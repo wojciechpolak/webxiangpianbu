@@ -1,6 +1,6 @@
 <?php
 
-//  WebXiangpianbu, version 0.96 (2005-02-19)
+//  WebXiangpianbu, version 0.97 (2005-03-05)
 //  Copyright (C) 2004, 2005 Wojciech Polak.
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -113,7 +113,7 @@ if (is_file ($filename) && is_readable ($filename))
 }
 else
 {
-  header ("Location: $site/$photodir/gallery.php");
+  header ("Location: $site/$photodir/$gscript");
   exit;
 }
 
@@ -149,7 +149,7 @@ if ($q != 'index')
   echo "<div class=\"center\">\n";
 
   echo '<span class="smaller">';
-  echo '<a href="gallery.php">all galleries</a>';
+  echo '<a href="'.$site.'/'.$photodir.'/'.$gscript.'">all galleries</a>';
   if ($meta['parent']['album'])
   {
     echo ' / <a href="?q='.$meta['parent']['album'].'">';
