@@ -1,6 +1,6 @@
 <?php
 
-//  WebXiangpianbu, version 0.95 (2005-02-17)
+//  WebXiangpianbu, version 0.96 (2005-02-19)
 //  Copyright (C) 2004, 2005 Wojciech Polak.
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -83,6 +83,7 @@ $meta['style'] = 'style.css';
 $meta['title'] = '';
 $meta['ppp'] = 5;
 $meta['columns'] = 1;
+$meta['copyright'] = '';
 
 $xml_state = '';
 $inside_parent = false;
@@ -214,6 +215,9 @@ if ($q != 'index')
     echo "</p>\n";
 
     $idx = $photo - 1;
+    if (isset ($index[$idx]['copyright']))
+      $meta['copyright'] = $index[$idx]['copyright'];
+
     if (isset ($index[$idx]['imgSize']))
     {
       $imgSize = $index[$idx]['imgSize'];
@@ -398,12 +402,20 @@ else // gallery index
   }
 }
 
+if ($meta['copyright'])
+  echo '<p class="copyright">Copyright (C) '.$meta['copyright']."</p>\n";
+
 $duration = microtime_diff ($start_time, microtime ());
 $duration = sprintf ("%0.6f", $duration);
 print "\n<!-- processing took $duration seconds -->";
 print "\n<!-- powered by WebXiangpianbu -->\n\n";
 
-@include 'inc/footer.html';
+?>
+</td></tr></table>
+</td></tr></table>
+
+</body></html>
+<?php
 
 // FUNCTIONS
 
@@ -486,6 +498,9 @@ function characterData ($parser, $data)
       case 'DESCRIPTION':
 	$index[$index_cnt]['description'] = trim ($data);
 	break;
+      case 'COPYRIGHT':
+	$index[$index_cnt]['copyright'] = trim ($data);
+	break;
       default:
 	return;
     }
@@ -533,6 +548,9 @@ function characterData ($parser, $data)
 	$n = trim ($data);
 	if (is_numeric ($n) && $n > 0)
 	  $meta['columns'] = $n;
+	break;
+      case 'COPYRIGHT':
+	$meta['copyright'] = trim ($data);
 	break;
       default:
 	return;

@@ -8,6 +8,7 @@
 <xs:element name="title" type="xs:string"/>
 <xs:element name="ppp" type="xs:positiveInteger"/>
 <xs:element name="columns" type="xs:positiveInteger"/>
+<xs:element name="copyright" type="xs:string"/>
 <xs:element name="album" type="xs:string"/>
 <xs:element name="comment" type="xs:string"/>
 <xs:element name="description" type="xs:string"/>
@@ -57,6 +58,7 @@
               <xs:element ref="title" minOccurs="0"/>
               <xs:element ref="ppp" minOccurs="0"/>
               <xs:element ref="columns" minOccurs="0"/>
+              <xs:element ref="copyright" minOccurs="0"/>
             </xs:sequence>
           </xs:complexType>
 	</xs:element>
@@ -76,6 +78,7 @@
 	      </xs:element>
               <xs:element ref="comment" minOccurs="0"/>
               <xs:element ref="description" minOccurs="0"/>
+              <xs:element ref="copyright" minOccurs="0"/>
             </xs:sequence>
           </xs:complexType>
 	</xs:element>
