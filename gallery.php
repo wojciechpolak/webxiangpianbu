@@ -1,6 +1,6 @@
 <?php
 
-//  WebXiangpianbu, version 0.93 (2005-02-12)
+//  WebXiangpianbu, version 0.94 (2005-02-13)
 //  Copyright (C) 2004, 2005 Wojciech Polak.
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -75,7 +75,8 @@ $index_cnt = 0;
 $imgSize = -1;
 $selectedSize = 0;
 
-$meta['parent'] = '';
+$meta['parent']['album'] = '';
+$meta['parent']['title'] = '';
 $meta['directory'] = array ();
 $meta['charset'] = 'US-ASCII';
 $meta['style'] = 'style.css';
@@ -84,7 +85,8 @@ $meta['ppp'] = 5;
 $meta['columns'] = 1;
 
 $xml_state = '';
-$inside_entry = false;
+$inside_parent = false;
+$inside_entry  = false;
 
 $filename = $gdatadir .'/'. $q . $gdataext;
 
@@ -146,11 +148,17 @@ if ($q != 'index')
   echo "<div class=\"center\">\n";
 
   echo '<span class="smaller">';
-  if ($meta['parent'])
-    echo '<a href="gallery.php?q='.$meta['parent'].'">Up</a>';
-  else
-    echo '<a href="gallery.php">all galleries</a>';
-  echo "</span>\n";
+  echo '<a href="gallery.php">all galleries</a>';
+  if ($meta['parent']['album'])
+  {
+    echo ' / <a href="?q='.$meta['parent']['album'].'">';
+    if ($meta['parent']['title'])
+      echo $meta['parent']['title'];
+    else
+      echo $meta['parent']['album'];
+    echo '</a>';
+  }
+  echo " /</span>\n";
 
   if ($meta['title'])
     echo '<p class="title">'.$meta['title']."</p>\n";
@@ -401,7 +409,7 @@ print "\n<!-- powered by WebXiangpianbu -->\n\n";
 
 function startElement ($parser, $element_name, $element_attributes)
 {
-  global $xml_state, $inside_entry, $index, $index_cnt, $imgSize;
+  global $xml_state, $inside_parent, $inside_entry, $index, $index_cnt, $imgSize;
   $xml_state = $element_name;
 
   switch ($element_name)
@@ -409,6 +417,9 @@ function startElement ($parser, $element_name, $element_attributes)
     case 'ENTRY':
       $inside_entry = true;
       $imgSize = -1;
+      break;
+    case 'PARENT':
+      $inside_parent = true;
       break;
     case 'SMALL':
     case 'MEDIUM':
@@ -433,7 +444,7 @@ function startElement ($parser, $element_name, $element_attributes)
 
 function endElement ($parser, $element_name)
 {
-  global $xml_state, $index_cnt, $inside_entry;
+  global $xml_state, $index_cnt, $inside_parent, $inside_entry;
   $xml_state = '';
 
   switch ($element_name)
@@ -442,13 +453,16 @@ function endElement ($parser, $element_name)
       $index_cnt++;
       $inside_entry = false;
       break;
+    case 'PARENT':
+      $inside_parent = false;
+      break;
   }
 }
 
 function characterData ($parser, $data)
 {
   global $xml_state, $index, $index_cnt;
-  global $imgSize, $inside_entry, $meta;
+  global $imgSize, $inside_parent, $inside_entry, $meta;
 
   if ($inside_entry)
   {
@@ -458,13 +472,13 @@ function characterData ($parser, $data)
 	$index[$index_cnt]['album'] = trim ($data);
 	break;
       case 'SMALL':
-	$index[$index_cnt][$imgSize]->filename  = trim ($data);
+	$index[$index_cnt][$imgSize]->filename = trim ($data);
 	break;
       case 'MEDIUM':
-	$index[$index_cnt][$imgSize]->filename  = trim ($data);
+	$index[$index_cnt][$imgSize]->filename = trim ($data);
 	break;
       case 'LARGE':
-	$index[$index_cnt][$imgSize]->filename  = trim ($data);
+	$index[$index_cnt][$imgSize]->filename = trim ($data);
 	break;
       case 'COMMENT':
 	$index[$index_cnt]['comment'] = trim ($data);
@@ -476,13 +490,22 @@ function characterData ($parser, $data)
 	return;
     }
   }
+  else if ($inside_parent)
+  {
+    switch ($xml_state)
+    {
+      case 'ALBUM':
+	$meta['parent']['album'] = trim ($data);
+	break;
+      case 'TITLE':
+	$meta['parent']['title'] = trim ($data);
+	break;
+    }
+  }
   else // inside meta
   {
     switch ($xml_state)
     {
-      case 'PARENT':
-	$meta['parent']  = trim ($data);
-	break;
       case 'SMALL':
 	$meta['directory'][0] = trim ($data);
 	break;
