@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+<!-- definition of simple elements -->
+<xs:element name="parent" type="xs:string"/>
+<xs:element name="charset" type="xs:string"/>
+<xs:element name="style" type="xs:string"/>
+<xs:element name="title" type="xs:string"/>
+<xs:element name="ppp" type="xs:positiveInteger"/>
+<xs:element name="columns" type="xs:positiveInteger"/>
+<xs:element name="album" type="xs:string"/>
+<xs:element name="comment" type="xs:string"/>
+<xs:element name="description" type="xs:string"/>
+
+<!-- definition of attributes -->
+<xs:attribute name="width" type="xs:positiveInteger"/>
+<xs:attribute name="height" type="xs:positiveInteger"/>
+<xs:attribute name="directory" type="xs:string"/>
+
+<!-- definition of complex elements -->
+<xs:complexType name="imagetype">
+  <xs:simpleContent>
+    <xs:extension base="xs:string">
+      <xs:attribute ref="width" use="optional"/>
+      <xs:attribute ref="height" use="optional"/>
+      <xs:attribute ref="directory" use="optional"/>
+    </xs:extension>
+  </xs:simpleContent>
+</xs:complexType>
+
+<xs:element name="gallery">
+    <xs:complexType>
+      <xs:sequence>
+
+	<xs:element name="meta" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element ref="parent" minOccurs="0"/>
+              <xs:element name="directory" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="small" type="xs:string"/>
+                    <xs:element name="medium" type="xs:string" minOccurs="0"/>
+                    <xs:element name="large" type="xs:string" minOccurs="0"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element ref="charset" minOccurs="0"/>
+              <xs:element ref="style" minOccurs="0"/>
+              <xs:element ref="title" minOccurs="0"/>
+              <xs:element ref="ppp" minOccurs="0"/>
+              <xs:element ref="columns" minOccurs="0"/>
+            </xs:sequence>
+          </xs:complexType>
+	</xs:element>
+
+	<xs:element name="entry" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element ref="album" minOccurs="0"/>
+              <xs:element name="image">
+	        <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="small" type="imagetype"/>
+                    <xs:element name="medium" type="imagetype" minOccurs="0"/>
+                    <xs:element name="large" type="imagetype" minOccurs="0"/>
+                  </xs:sequence>
+                </xs:complexType>
+	      </xs:element>
+              <xs:element ref="comment" minOccurs="0"/>
+              <xs:element ref="description" minOccurs="0"/>
+            </xs:sequence>
+          </xs:complexType>
+	</xs:element>
+
+      </xs:sequence>
+    </xs:complexType>
+</xs:element>
+
+</xs:schema>
