@@ -1,6 +1,6 @@
 <?php
 
-//  WebXiangpianbu, version 0.94 (2005-02-13)
+//  WebXiangpianbu, version 0.95 (2005-02-17)
 //  Copyright (C) 2004, 2005 Wojciech Polak.
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -230,7 +230,7 @@ if ($q != 'index')
 
       if ($index[$idx][$selectedSize]->directory)
 	echo $index[$idx][$selectedSize]->directory.'/';
-      else if ($meta['directory'][$selectedSize])
+      else if (isset ($meta['directory'][$selectedSize]))
 	echo $meta['directory'][$selectedSize].'/';
 
       echo $index[$idx][$selectedSize]->filename.'" alt="[photo]"';
@@ -318,7 +318,7 @@ if ($q != 'index')
 
       if ($index[$i][$selectedSize]->directory)
 	echo $index[$i][$selectedSize]->directory.'/';
-      else if ($meta['directory'][$selectedSize])
+      else if (isset ($meta['directory'][$selectedSize]))
 	echo $meta['directory'][$selectedSize].'/';
 
       echo $index[$i][$selectedSize]->filename.'" alt="[photo]"';
@@ -378,7 +378,7 @@ else // gallery index
 
     if ($index[$i][0]->directory)
       echo $index[$i][0]->directory.'/';
-    else if ($meta['directory'][$selectedSize])
+    else if (isset ($meta['directory'][$selectedSize]))
       echo $meta['directory'][$selectedSize].'/';
 
     echo $index[$i][0]->filename.'" alt="[photo]"';
