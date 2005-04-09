@@ -1,6 +1,6 @@
 <?php
 
-//  WebXiangpianbu, version 0.97 (2005-03-05)
+//  WebXiangpianbu, version 0.98 (2005-04-08)
 //  Copyright (C) 2004, 2005 Wojciech Polak.
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -89,7 +89,10 @@ $xml_state = '';
 $inside_parent = false;
 $inside_entry  = false;
 
-$filename = $gdatadir .'/'. $q . $gdataext;
+if ($gdatadir)
+  $filename = $gdatadir .'/'. $q . $gdataext;
+else
+  $filename = $q . $gdataext;
 
 // XML PARSING
 
@@ -119,13 +122,15 @@ else
 
 // XHTML
 
+header ("Content-Type: text/html; charset=$meta[charset]");
 echo '<?xml version="1.0" encoding="'.$meta['charset'].'"?>'."\n";
+
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 
 <head>
-<title>[gallery] <? echo $meta['title']; ?></title>
+<title>[gallery] <? echo substr (strip_tags ($meta['title']), 0, 80); ?></title>
 <meta http-equiv="Content-Type" content="text/html; charset=<? echo $meta['charset']; ?>" />
 <meta name="author" content="Wojciech Polak" />
 <meta name="robots" content="noindex,nofollow" />
@@ -388,7 +393,11 @@ else // gallery index
     echo $index[$i][0]->filename.'" alt="[photo]"';
     if ($index[$i][0]->width && $index[$i][0]->height)
       echo ' width="'.$index[$i][0]->width.'" height="'.$index[$i][0]->height.'"';
-    echo ' /></a></span></td><td><span class="comment">'.$index[$i]['comment'].'</span></td></tr>'."\n";
+
+    echo ' /></a></span></td><td>';
+    if (isset ($index[$i]['comment']) && $index[$i]['comment'])
+      echo '<span class="comment">'.$index[$i]['comment'].'</span>';
+    echo '</td></tr>'."\n";
   }
   echo "</table>\n";
 
@@ -493,13 +502,13 @@ function characterData ($parser, $data)
 	$index[$index_cnt][$imgSize]->filename = trim ($data);
 	break;
       case 'COMMENT':
-	$index[$index_cnt]['comment'] = trim ($data);
+	concat ($index[$index_cnt]['comment'], $data);
 	break;
       case 'DESCRIPTION':
-	$index[$index_cnt]['description'] = trim ($data);
+	concat ($index[$index_cnt]['description'], $data);
 	break;
       case 'COPYRIGHT':
-	$index[$index_cnt]['copyright'] = trim ($data);
+	concat ($index[$index_cnt]['copyright'], $data);
 	break;
       default:
 	return;
@@ -513,7 +522,7 @@ function characterData ($parser, $data)
 	$meta['parent']['album'] = trim ($data);
 	break;
       case 'TITLE':
-	$meta['parent']['title'] = trim ($data);
+	concat ($meta['parent']['title'], $data);
 	break;
     }
   }
@@ -537,7 +546,7 @@ function characterData ($parser, $data)
 	$meta['style']   = trim ($data);
 	break;
       case 'TITLE':
-	$meta['title']   = trim ($data);
+	concat ($meta['title'], $data);
 	break;
       case 'PPP':
 	$n = trim ($data);
@@ -550,7 +559,7 @@ function characterData ($parser, $data)
 	  $meta['columns'] = $n;
 	break;
       case 'COPYRIGHT':
-	$meta['copyright'] = trim ($data);
+	concat ($meta['copyright'], $data);
 	break;
       default:
 	return;
@@ -628,6 +637,13 @@ function getvars ($names)
 	$$v = trim ($_REQUEST[$v]);
   }
 } 
+
+function concat (&$s1, $s2 = '')
+{
+  if (!isset ($s1))
+    $s1 = '';
+  $s1 .= $s2;
+}
 
 function microtime_diff ($a, $b)
 {
