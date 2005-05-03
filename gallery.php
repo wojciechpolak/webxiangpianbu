@@ -1,6 +1,6 @@
 <?php
 
-//  WebXiangpianbu, version 0.98 (2005-04-08)
+//  WebXiangpianbu, version 0.98b (2005-05-03)
 //  Copyright (C) 2004, 2005 Wojciech Polak.
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -133,6 +133,7 @@ echo '<?xml version="1.0" encoding="'.$meta['charset'].'"?>'."\n";
 <title>[gallery] <? echo substr (strip_tags ($meta['title']), 0, 80); ?></title>
 <meta http-equiv="Content-Type" content="text/html; charset=<? echo $meta['charset']; ?>" />
 <meta name="author" content="Wojciech Polak" />
+<meta name="generator" content="WebXiangpianbu" />
 <meta name="robots" content="noindex,nofollow" />
 <link rel="stylesheet" href="<? echo $gdatadir.'/css/'.$meta['style']; ?>" type="text/css" />
 </head>
@@ -168,6 +169,8 @@ if ($q != 'index')
 
   if ($meta['title'])
     echo '<p class="title">'.$meta['title']."</p>\n";
+  else
+    echo "<p />\n";
 
   if (is_numeric ($page))
     count_pages ();
