@@ -1,6 +1,6 @@
 <?php
 
-//  WebXiangpianbu, version 0.98b (2005-05-03)
+//  WebXiangpianbu, version 0.98c (2005-05-04)
 //  Copyright (C) 2004, 2005 Wojciech Polak.
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -98,6 +98,10 @@ else
 
 if (is_file ($filename) && is_readable ($filename))
 {
+  $fileSize = filesize ($filename);
+  if ($fileSize > 1048576)
+    die ('Album file is too big');
+
   if (!($fp = fopen ($filename, 'r')))
     die ();
 
@@ -107,7 +111,7 @@ if (is_file ($filename) && is_readable ($filename))
   xml_set_element_handler ($xml_parser, 'startElement', 'endElement');
   xml_set_character_data_handler ($xml_parser, 'characterData');
 
-  while ($data = fread ($fp, 4096))
+  while ($data = fread ($fp, $fileSize))
   {
     if (!xml_parse ($xml_parser, $data, feof ($fp)))
       break;
