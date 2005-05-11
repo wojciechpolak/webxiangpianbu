@@ -1,6 +1,6 @@
 <?php
 
-//  WebXiangpianbu, version 0.98c (2005-05-04)
+//  WebXiangpianbu, version 0.98d (2005-05-11)
 //  Copyright (C) 2004, 2005 Wojciech Polak.
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -171,11 +171,6 @@ if ($q != 'index')
   }
   echo " /</span>\n";
 
-  if ($meta['title'])
-    echo '<p class="title">'.$meta['title']."</p>\n";
-  else
-    echo "<p />\n";
-
   if (is_numeric ($page))
     count_pages ();
 
@@ -311,6 +306,11 @@ if ($q != 'index')
   else // photo index
   {
     ###### PHOTO INDEX ###############
+
+    if ($meta['title'])
+      echo '<p class="title">'.$meta['title']."</p>\n";
+    else
+      echo "<p />\n";
 
     echo "<table class=\"center\" cellspacing=\"5\" cellpadding=\"5\">\n";
 
