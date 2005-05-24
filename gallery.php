@@ -1,6 +1,6 @@
 <?php
 
-//  WebXiangpianbu, version 0.98d (2005-05-11)
+//  WebXiangpianbu, version 0.99 (2005-05-24)
 //  Copyright (C) 2004, 2005 Wojciech Polak.
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -156,8 +156,10 @@ $allpages = 1;
 
 if ($q != 'index')
 {
-  echo "<div class=\"center\">\n";
+  if (is_numeric ($page))
+    count_pages ();
 
+  echo "<div class=\"center\">\n";
   echo '<span class="smaller">';
   echo '<a href="'.$site.'/'.$photodir.'/'.$gscript.'">all galleries</a>';
   if ($meta['parent']['album'])
@@ -169,10 +171,15 @@ if ($q != 'index')
       echo $meta['parent']['album'];
     echo '</a>';
   }
-  echo " /</span>\n";
-
-  if (is_numeric ($page))
-    count_pages ();
+  echo ' /';
+  if (is_numeric ($photo))
+  {
+    echo ' <a href="?q='.$q;
+    if ($allpages > 1)
+      echo '&amp;page='.$page;
+    echo '">'.$q.'</a>';
+  }
+  echo "</span>\n";
 
   switch (trim ($size))
   {
