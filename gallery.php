@@ -1,6 +1,6 @@
 <?php
 
-//  WebXiangpianbu, version 0.99 (2005-05-24)
+//  WebXiangpianbu, version 0.994 (2005-06-29)
 //  Copyright (C) 2004, 2005 Wojciech Polak.
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -36,7 +36,7 @@ class Image
 }
 
 $start_time = microtime ();
-getvars ('q,photo,size,page');
+getvars ('q,photo,size,page,rev');
 
 if ($q)
 {
@@ -44,10 +44,8 @@ if ($q)
 
   if (is_numeric ($photo)) {
     if ($photo < 1)
-      $photo = 1;
+      $photo = 'index';
   }
-  else
-    $photo = 'index';
 
   if ($q[0] == '.' || $q == 'index.html')
     die ('Get lost, lame!');
@@ -83,6 +81,7 @@ $meta['style'] = 'style.css';
 $meta['title'] = '';
 $meta['ppp'] = 5;
 $meta['columns'] = 1;
+$meta['reverseOrder'] = false;
 $meta['copyright'] = '';
 
 $xml_state = '';
@@ -154,13 +153,33 @@ $start = 0;
 $end = $index_cnt;
 $allpages = 1;
 
+if ($rev == '1' || $rev == 'true') {
+  $rev = true;
+  $meta['reverseOrder'] = !$meta['reverseOrder'];
+} else {
+  $rev = false;
+}
+
 if ($q != 'index')
 {
   if (is_numeric ($page))
     count_pages ();
 
+  // searching a photo by name
+  if (!is_numeric ($photo) && $photo != '')
+  {
+    $searchQuery = trim ($photo);
+    foreach ($index as $idx => $v)
+    {
+      if (preg_match ('/'.$searchQuery.'/', $v[1]->filename)) {
+	$photo = $idx + 1;
+	break;
+      }
+    }
+  }
+
   echo "<div class=\"center\">\n";
-  echo '<span class="smaller">';
+  echo '<span class="navigation">';
   echo '<a href="'.$site.'/'.$photodir.'/'.$gscript.'">all galleries</a>';
   if ($meta['parent']['album'])
   {
@@ -172,11 +191,23 @@ if ($q != 'index')
     echo '</a>';
   }
   echo ' /';
+
   if (is_numeric ($photo))
   {
+    if ($photo > $index_cnt)
+      $photo = 'index';
+
+    if ($page != 'all')
+    {
+      if ($meta['reverseOrder'])
+	$page = floor (($index_cnt - $photo) / $meta['ppp']) + 1;
+      else
+	$page = ceil ($photo / $meta['ppp']);
+    }
+
     echo ' <a href="?q='.$q;
-    if ($allpages > 1)
-      echo '&amp;page='.$page;
+    if ($rev)
+      echo '&amp;rev=1';
     echo '">'.$q.'</a>';
   }
   echo "</span>\n";
@@ -192,40 +223,69 @@ if ($q != 'index')
 
   if (is_numeric ($photo))
   {
-    echo '<p class="smaller">';
-    if ($photo >= 2) {
-      echo "<a href=\"?q=$q";
-      if ($allpages > 1)
-      {
-	if ($start == ($photo-1))
-	  echo '&amp;page='.($page-1);
-	else
-	  echo '&amp;page='.$page;
+    echo '<p class="navigation">';
+
+    if ($meta['reverseOrder'])
+    {
+      if ($photo < $index_cnt) {
+	echo "<a href=\"?q=$q";
+	if ($rev)
+	  echo '&amp;rev=1';
+ 	if ($page == 'all')
+ 	  echo '&amp;page=all';
+	echo "&amp;photo=".($photo+1);
+	if ($size)
+	  echo '&amp;size='.$size;
+	echo "\">&laquo; previous</a>";
       }
-      echo "&amp;photo=".($photo-1);
-      if ($size)
-	echo '&amp;size='.$size;
-      echo "\">&laquo; previous</a>";
-    }
-    else
-      echo "&laquo; previous";
-    echo ' | ';
-    if ($photo < $index_cnt) {
-      echo "<a href=\"?q=$q";
-      if ($allpages > 1)
-      {
-	if ($end == $photo)
-	  echo '&amp;page='.($page+1);
-	else
-	  echo '&amp;page='.$page;
+      else
+	echo "&laquo; previous";
+      echo ' | ';
+      if ($photo >= 2) {
+	echo "<a href=\"?q=$q";
+	if ($rev)
+	  echo '&amp;rev=1';
+	if ($page == 'all')
+ 	  echo '&amp;page=all';
+	echo "&amp;photo=".($photo-1);
+	if ($size)
+	  echo '&amp;size='.$size;
+	echo "\">next &raquo;</a>";
       }
-      echo "&amp;photo=".($photo+1);
-      if ($size)
-	echo '&amp;size='.$size;
-      echo "\">next &raquo;</a>";
+      else
+	echo "next &raquo;";
     }
-    else
-      echo "next &raquo;";
+    else // !reverseOrder
+    {
+      if ($photo >= 2) {
+	echo "<a href=\"?q=$q";
+	if ($rev)
+	  echo '&amp;rev=1';
+ 	if ($page == 'all')
+	  echo '&amp;page=all';
+	echo "&amp;photo=".($photo-1);
+	if ($size)
+	  echo '&amp;size='.$size;
+	echo "\">&laquo; previous</a>";
+      }
+      else
+	echo "&laquo; previous";
+      echo ' | ';
+      if ($photo < $index_cnt) {
+	echo "<a href=\"?q=$q";
+	if ($rev)
+	  echo '&amp;rev=1';
+ 	if ($page == 'all')
+	  echo '&amp;page=all';
+	echo "&amp;photo=".($photo+1);
+	if ($size)
+	  echo '&amp;size='.$size;
+	echo "\">next &raquo;</a>";
+      }
+      else
+	echo "next &raquo;";
+    }
+
     echo "</p>\n";
 
     $idx = $photo - 1;
@@ -241,9 +301,14 @@ if ($q != 'index')
 
     if ($photo <= $index_cnt && isset ($index[$idx][$selectedSize]))
     {
-      echo '<p><span class="photo"><a href="?q='.$q;
+      echo "<table class=\"photo\">\n<tr><td>";
+      echo '<a href="?q='.$q;
+      if ($rev)
+	echo '&amp;rev=1';
       if ($allpages > 1)
 	echo '&amp;page='.$page;
+      else if ($page == 'all')
+	echo '&amp;page=all';
       echo '"><img src="';
 
       if ($index[$idx][$selectedSize]->directory)
@@ -254,27 +319,34 @@ if ($q != 'index')
       echo $index[$idx][$selectedSize]->filename.'" alt="[photo]"';
       if ($index[$idx][$selectedSize]->width && $index[$idx][$selectedSize]->height)
         echo ' width="'.$index[$idx][$selectedSize]->width.'" height="'.$index[$idx][$selectedSize]->height.'"';
-      echo ' /></a></span>';
+      echo ' /></a>';
+
+      echo "</td></tr>\n";
+      if (isset ($index[$idx]['date']) && $index[$idx]['date'])
+	echo '<tr><td align="left"><span class="date">'.$index[$idx]['date']."</span></td></tr>\n";
+      echo "</table>";
 
       if (isset ($index[$idx]['comment']) && $index[$idx]['comment'])
-	echo "\n".'<br /><span class="comment">'.$index[$idx]['comment'].'</span>';
+	echo "\n".'<div class="comment">'.$index[$idx]['comment'].'</div>';
 
-      echo "</p>\n";
+      echo "\n";
 
       if (isset ($index[$idx]['description']) && $index[$idx]['description'])
 	echo '<p class="description">'.htmlentities($index[$idx]['description']).'</p>';
 
       if ($imgSize > 0)
       {
-	echo '<p class="smaller">other sizes: ';
+	echo '<p class="otherSizes">other sizes: ';
 	if ($imgSize >= 0) {
 	  if ($selectedSize == 0)
 	    echo 'small';
 	  else {
 	    echo '<a href="?q='.$q;
-	    if ($allpages > 1)
-	      echo '&amp;page='.$page;
-	    echo '&amp;photo='.$photo.'&size=small"';
+	    if ($rev)
+	      echo '&amp;rev=1';
+ 	    if ($page == 'all')
+	      echo '&amp;page=all';
+	    echo '&amp;photo='.$photo.'&amp;size=small"';
 	    if ($index[$idx][0]->width && $index[$idx][0]->height)
 	      echo ' title="'.$index[$idx][0]->width.' x '.$index[$idx][0]->height.' pixels"';
 	    echo'>small</a>';
@@ -285,9 +357,11 @@ if ($q != 'index')
 	    echo ', medium';
 	  else {
 	    echo ', <a href="?q='.$q;
-	    if ($allpages > 1)
-	      echo '&amp;page='.$page;
-	    echo '&amp;photo='.$photo.'&size=medium"';
+	    if ($rev)
+	      echo '&amp;rev=1';
+	    if ($page == 'all')
+	      echo '&amp;page=all';
+	    echo '&amp;photo='.$photo.'&amp;size=medium"';
 	    if ($index[$idx][1]->width && $index[$idx][1]->height)
 	      echo ' title="'.$index[$idx][1]->width.' x '.$index[$idx][1]->height.' pixels"';
 	    echo'>medium</a>';
@@ -298,9 +372,11 @@ if ($q != 'index')
 	    echo ', large';
 	  else {
 	    echo ', <a href="?q='.$q;
-	    if ($allpages > 1)
-	      echo '&amp;page='.$page;
-	    echo '&amp;photo='.$photo.'&size=large"';
+	    if ($rev)
+	      echo '&amp;rev=1';
+	    if ($page == 'all')
+	      echo '&amp;page=all';
+	    echo '&amp;photo='.$photo.'&amp;size=large"';
 	    if ($index[$idx][2]->width && $index[$idx][2]->height)
 	      echo ' title="'.$index[$idx][2]->width.' x '.$index[$idx][2]->height.' pixels"';
 	    echo'>large</a>';
@@ -319,24 +395,38 @@ if ($q != 'index')
     else
       echo "<p />\n";
 
-    echo "<table class=\"center\" cellspacing=\"5\" cellpadding=\"5\">\n";
+    echo "<table class=\"thumbnails\">\n";
 
     $td_counter   = 1;
     $selectedSize = 0;
+    $lastElement  = 0;
+
+    if ($meta['reverseOrder'])
+    {
+      $index = array_reverse ($index);
+      $lastElement = count ($index);
+    }
 
     for ($i = $start; $i < $end; $i++)
     {
+      if ($index[$i]['hidden'])
+	continue;
       if (!isset ($index[$i][$selectedSize]))
 	continue;
 
       if ($td_counter == 1)
-	echo "<tr valign=\"top\">";
+	echo "<tr valign=\"top\">\n";
 
-      echo "<td align=\"center\">\n";
-      echo '<span class="photo"><a href="?q='.$q;
-      if ($allpages > 1)
-	echo '&amp;page='.$page;
-      echo '&amp;photo='.($i+1).'">';
+      echo ' <td align="center"><a href="?q='.$q;
+      if ($rev)
+	echo '&amp;rev=1';
+      if ($page == 'all')
+	echo '&amp;page=all';
+      if ($meta['reverseOrder'])
+	echo '&amp;photo='.($lastElement - $i).'">';
+      else
+	echo '&amp;photo='.($i+1).'">';
+
       echo '<img src="';
 
       if ($index[$i][$selectedSize]->directory)
@@ -347,17 +437,15 @@ if ($q != 'index')
       echo $index[$i][$selectedSize]->filename.'" alt="[photo]"';
       if ($index[$i][$selectedSize]->width && $index[$i][$selectedSize]->height)
         echo ' width="'.$index[$i][$selectedSize]->width.'" height="'.$index[$i][$selectedSize]->height.'"';
-      echo ' /></a></span>'."\n";
+      echo ' /></a>';
 
       if (isset ($index[$i]['album']))
         echo '<br /><a href="?q='.$index[$i]['album'].'">&raquo; enter &laquo;</a>';
 
       if (isset ($index[$i]['comment']) && $index[$i]['comment'])
 	echo '<br /><span class="comment">'.$index[$i]['comment'].'</span>'."\n";
-      else
-	echo '<br /><span class="comment">...</span>'."\n";
 
-      echo "</td>";
+      echo "</td>\n";
 
       if ($td_counter == $meta['columns']) {
 	$td_counter = 1;
@@ -381,23 +469,29 @@ if ($q != 'index')
 }
 else // gallery index
 {
+  @include 'inc/gallery-index.html';
+
   if (is_numeric ($page))
     count_pages ();
 
-  echo '<p class="smaller"><a href="../">Home page</a> | <a href="../blog/">Weblog</a></p>'."\n";
   if ($meta['title'])
     echo '<p class="title">'.$meta['title']."</p>\n";
 
   ###### GALLERY INDEX #############
 
-  echo "<table cellspacing=\"5\" cellpadding=\"5\">\n";
+  echo "<table class=\"thumbnails\">\n";
+
+  $td_counter = 1;
+
   for ($i = $start; $i < $end; $i++)
   {
     if (!isset ($index[$i][0]))
       continue;
 
-    echo '<tr><td><span class="photo"><a href="?q='
-      .$index[$i]['album'].'"><img src="';
+    if ($td_counter == 1)
+      echo "<tr valign=\"top\">\n";
+
+    echo ' <td align="center"><a href="?q='.$index[$i]['album'].'"><img src="';
 
     if ($index[$i][0]->directory)
       echo $index[$i][0]->directory.'/';
@@ -408,11 +502,23 @@ else // gallery index
     if ($index[$i][0]->width && $index[$i][0]->height)
       echo ' width="'.$index[$i][0]->width.'" height="'.$index[$i][0]->height.'"';
 
-    echo ' /></a></span></td><td>';
+    echo ' /></a>';
     if (isset ($index[$i]['comment']) && $index[$i]['comment'])
-      echo '<span class="comment">'.$index[$i]['comment'].'</span>';
-    echo '</td></tr>'."\n";
+      echo '<br /><span class="comment">'.$index[$i]['comment'].'</span>';
+
+    echo "</td>\n";
+
+    if ($td_counter == $meta['columns']) {
+      $td_counter = 1;
+      echo "</tr>\n";
+    }
+    else
+      $td_counter++;
   }
+
+  if ($td_counter != 1)
+    echo "</tr>\n";
+
   echo "</table>\n";
 
   ##################################
@@ -472,6 +578,7 @@ function startElement ($parser, $element_name, $element_attributes)
 	  $image->directory = trim ($element_attributes['DIRECTORY']);
 
 	$index[$index_cnt][$imgSize]  = $image;
+	$index[$index_cnt]['hidden']  = false;
       }
       break;
   }
@@ -514,6 +621,9 @@ function characterData ($parser, $data)
 	break;
       case 'LARGE':
 	$index[$index_cnt][$imgSize]->filename = trim ($data);
+	break;
+      case 'DATE':
+	concat ($index[$index_cnt]['date'], $data);
 	break;
       case 'COMMENT':
 	concat ($index[$index_cnt]['comment'], $data);
@@ -572,6 +682,10 @@ function characterData ($parser, $data)
 	if (is_numeric ($n) && $n > 0)
 	  $meta['columns'] = $n;
 	break;
+      case 'REVERSE-ORDER':
+	if (trim ($data) == 'true')
+	  $meta['reverseOrder'] = true;
+	break;
       case 'COPYRIGHT':
 	concat ($meta['copyright'], $data);
 	break;
@@ -601,20 +715,27 @@ function count_pages ()
 
 function paging ()
 {
-  global $q, $allpages, $page;
+  global $q, $allpages, $page, $rev;
 
   echo '<p class="pages">';
 
   $wa = 5;
-  if ($page > 1)
-    echo "<a href=\"?q=$q&amp;page=".($page-1)."\">&laquo;</a> ";
+  if ($page > 1) {
+    echo '<a href="?q='.$q;
+    if ($rev)
+      echo '&amp;rev=1';
+    echo '&amp;page='.($page-1).'" title="previous page">&laquo;</a> ';
+  }
 
   if ($page <= $wa + 1)
     $cs = 1;
   else {
     $cs = $page - $wa;
     $back = $cs - 1;
-    echo "<a href=\"?q=$q&amp;page=$back\">...</a> ";
+    echo '<a href="?q='.$q;
+    if ($rev)
+      echo '&amp;rev=1';
+    echo '&amp;page='.$back.'">...</a> ';
   }
 
   $ce = $page + $wa;
@@ -627,15 +748,27 @@ function paging ()
   {
     if ($page == $i)
       echo "$i ";
-    else
-      echo "<a href=\"?q=$q&amp;page=$i\">$i</a> ";
+    else {
+      echo '<a href="?q='.$q;
+      if ($rev)
+	echo '&amp;rev=1';
+      echo '&amp;page='.$i.'">'.$i.'</a> ';
+    }
   }
 
-  if ($ce < $allpages)
-    echo "<a href=\"?q=$q&amp;page=$next\">...</a> ";
-    
-  if ($allpages > $page)
-    echo "<a href=\"?q=$q&amp;page=".($page+1)."\">&raquo;</a>";
+  if ($ce < $allpages) {
+    echo '<a href="?q='.$q;
+    if ($rev)
+      echo '&amp;rev=1';
+    echo '&amp;page='.$next.'">...</a> ';
+  }
+
+  if ($allpages > $page) {
+    echo '<a href="?q='.$q;
+    if ($rev)
+      echo '&amp;rev=1';
+    echo '&amp;page='.($page+1).'" title="next page">&raquo;</a>';
+  }
 
   echo "</p>\n";
 }
