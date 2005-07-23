@@ -1,6 +1,6 @@
 <?php
 
-//  WebXiangpianbu, version 0.994 (2005-06-29)
+//  WebXiangpianbu, version 0.995 (2005-07-23)
 //  Copyright (C) 2004, 2005 Wojciech Polak.
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -142,11 +142,7 @@ echo '<?xml version="1.0" encoding="'.$meta['charset'].'"?>'."\n";
 </head>
 <body>
 
-<table border="0" cellpadding="0" cellspacing="0" width="100%">
-<tr><td align="center">
-<table border="0" cellpadding="0" cellspacing="0" width="700">
-<tr><td align="left">
-
+<div id="content">
 <?php
 
 $start = 0;
@@ -178,8 +174,8 @@ if ($q != 'index')
     }
   }
 
-  echo "<div class=\"center\">\n";
-  echo '<span class="navigation">';
+  echo "<div id=\"menu\">";
+
   echo '<a href="'.$site.'/'.$photodir.'/'.$gscript.'">all galleries</a>';
   if ($meta['parent']['album'])
   {
@@ -210,7 +206,7 @@ if ($q != 'index')
       echo '&amp;rev=1';
     echo '">'.$q.'</a>';
   }
-  echo "</span>\n";
+  echo "</div>\n"; /* menu */
 
   switch (trim ($size))
   {
@@ -223,7 +219,7 @@ if ($q != 'index')
 
   if (is_numeric ($photo))
   {
-    echo '<p class="navigation">';
+    echo "<div id=\"navigation\">";
 
     if ($meta['reverseOrder'])
     {
@@ -286,7 +282,7 @@ if ($q != 'index')
 	echo "next &raquo;";
     }
 
-    echo "</p>\n";
+    echo "</div>\n\n"; /* navigation */
 
     $idx = $photo - 1;
     if (isset ($index[$idx]['copyright']))
@@ -336,7 +332,7 @@ if ($q != 'index')
 
       if ($imgSize > 0)
       {
-	echo '<p class="otherSizes">other sizes: ';
+	echo '<div id="otherSizes">other sizes: ';
 	if ($imgSize >= 0) {
 	  if ($selectedSize == 0)
 	    echo 'small';
@@ -382,7 +378,7 @@ if ($q != 'index')
 	    echo'>large</a>';
 	  }
 	}
-	echo "</p>\n";
+	echo "</div>\n"; /* otherSizes */
       }
     }
   }
@@ -391,11 +387,11 @@ if ($q != 'index')
     ###### PHOTO INDEX ###############
 
     if ($meta['title'])
-      echo '<p class="title">'.$meta['title']."</p>\n";
+      echo '<div id="title">'.$meta['title']."</div>\n";
     else
       echo "<p />\n";
 
-    echo "<table class=\"thumbnails\">\n";
+    echo "\n<table class=\"thumbnails\">\n";
 
     $td_counter   = 1;
     $selectedSize = 0;
@@ -465,7 +461,6 @@ if ($q != 'index')
     if (is_numeric ($page) && $index_cnt > $limit)
       paging ();
   }
-  echo "</div>\n";
 }
 else // gallery index
 {
@@ -475,11 +470,11 @@ else // gallery index
     count_pages ();
 
   if ($meta['title'])
-    echo '<p class="title">'.$meta['title']."</p>\n";
+    echo '<div id="title">'.$meta['title']."</div>\n";
 
   ###### GALLERY INDEX #############
 
-  echo "<table class=\"thumbnails\">\n";
+  echo "\n<table class=\"thumbnails\">\n";
 
   $td_counter = 1;
 
@@ -524,27 +519,21 @@ else // gallery index
   ##################################
 
   if (is_numeric ($page) && $index_cnt > $limit)
-  {
-    echo '<div align="center">';
     paging ();
-    echo '</div>';
-  }
 }
 
 if ($meta['copyright'])
-  echo '<p class="copyright">Copyright (C) '.$meta['copyright']."</p>\n";
+  echo "\n<p class=\"copyright\">Copyright (C) ".$meta['copyright']."</p>\n";
+?>
+</div>
+
+</body></html>
+<?php
 
 $duration = microtime_diff ($start_time, microtime ());
 $duration = sprintf ("%0.6f", $duration);
 print "\n<!-- processing took $duration seconds -->";
 print "\n<!-- powered by WebXiangpianbu -->\n\n";
-
-?>
-</td></tr></table>
-</td></tr></table>
-
-</body></html>
-<?php
 
 // FUNCTIONS
 
@@ -717,7 +706,7 @@ function paging ()
 {
   global $q, $allpages, $page, $rev;
 
-  echo '<p class="pages">';
+  echo '<div id="pages">';
 
   $wa = 5;
   if ($page > 1) {
@@ -770,7 +759,7 @@ function paging ()
     echo '&amp;page='.($page+1).'" title="next page">&raquo;</a>';
   }
 
-  echo "</p>\n";
+  echo "</div>\n"; /* pages */
 }
 
 function getvars ($names)
