@@ -1,6 +1,6 @@
 <?php
 
-//  WebXiangpianbu, version 0.995 (2005-07-23)
+//  WebXiangpianbu, version 0.997 (2005-10-09)
 //  Copyright (C) 2004, 2005 Wojciech Polak.
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -176,10 +176,10 @@ if ($q != 'index')
 
   echo "<div id=\"menu\">";
 
-  echo '<a href="'.$site.'/'.$photodir.'/'.$gscript.'">all galleries</a>';
+  echo '<a id="levelTop" href="'.$site.'/'.$photodir.'/'.$gscript.'">all galleries</a>';
   if ($meta['parent']['album'])
   {
-    echo ' / <a href="?q='.$meta['parent']['album'].'">';
+    echo ' / <a id="levelParent" href="?q='.$meta['parent']['album'].'">';
     if ($meta['parent']['title'])
       echo $meta['parent']['title'];
     else
@@ -224,7 +224,7 @@ if ($q != 'index')
     if ($meta['reverseOrder'])
     {
       if ($photo < $index_cnt) {
-	echo "<a href=\"?q=$q";
+	echo "<a id=\"prevPhoto\" href=\"?q=$q";
 	if ($rev)
 	  echo '&amp;rev=1';
  	if ($page == 'all')
@@ -238,7 +238,7 @@ if ($q != 'index')
 	echo "&laquo; previous";
       echo ' | ';
       if ($photo >= 2) {
-	echo "<a href=\"?q=$q";
+	echo "<a id=\"nextPhoto\" href=\"?q=$q";
 	if ($rev)
 	  echo '&amp;rev=1';
 	if ($page == 'all')
@@ -254,7 +254,7 @@ if ($q != 'index')
     else // !reverseOrder
     {
       if ($photo >= 2) {
-	echo "<a href=\"?q=$q";
+	echo "<a id=\"prevPhoto\" href=\"?q=$q";
 	if ($rev)
 	  echo '&amp;rev=1';
  	if ($page == 'all')
@@ -268,7 +268,7 @@ if ($q != 'index')
 	echo "&laquo; previous";
       echo ' | ';
       if ($photo < $index_cnt) {
-	echo "<a href=\"?q=$q";
+	echo "<a id=\"nextPhoto\" href=\"?q=$q";
 	if ($rev)
 	  echo '&amp;rev=1';
  	if ($page == 'all')
@@ -298,7 +298,7 @@ if ($q != 'index')
     if ($photo <= $index_cnt && isset ($index[$idx][$selectedSize]))
     {
       echo "<table class=\"photo\">\n<tr><td>";
-      echo '<a href="?q='.$q;
+      echo '<a id="levelIndex" href="?q='.$q;
       if ($rev)
 	echo '&amp;rev=1';
       if ($allpages > 1)
@@ -435,11 +435,12 @@ if ($q != 'index')
         echo ' width="'.$index[$i][$selectedSize]->width.'" height="'.$index[$i][$selectedSize]->height.'"';
       echo ' /></a>';
 
-      if (isset ($index[$i]['album']))
-        echo '<br /><a href="?q='.$index[$i]['album'].'">&raquo; enter &laquo;</a>';
-
+      if (isset ($index[$i]['album'])) {
+        echo '<div class="enter"><a href="?q='.
+	     $index[$i]['album'].'">&raquo; enter &laquo;</a></div>';
+      }
       if (isset ($index[$i]['comment']) && $index[$i]['comment'])
-	echo '<br /><span class="comment">'.$index[$i]['comment'].'</span>'."\n";
+	echo '<div class="comment">'.$index[$i]['comment'].'</div>'."\n";
 
       echo "</td>\n";
 
@@ -499,8 +500,7 @@ else // gallery index
 
     echo ' /></a>';
     if (isset ($index[$i]['comment']) && $index[$i]['comment'])
-      echo '<br /><span class="comment">'.$index[$i]['comment'].'</span>';
-
+      echo '<div class="comment">'.$index[$i]['comment'].'</div>';
     echo "</td>\n";
 
     if ($td_counter == $meta['columns']) {
@@ -527,6 +527,7 @@ if ($meta['copyright'])
 ?>
 </div>
 
+<script type="text/javascript" src="gallery.js"></script>
 </body></html>
 <?php
 
