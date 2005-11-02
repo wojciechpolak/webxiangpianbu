@@ -1,6 +1,6 @@
 <?php
 
-//  WebXiangpianbu, version 0.997 (2005-10-09)
+//  WebXiangpianbu, version 0.998 (2005-11-01)
 //  Copyright (C) 2004, 2005 Wojciech Polak.
 //
 //  This program is free software; you can redistribute it and/or modify
@@ -328,7 +328,7 @@ if ($q != 'index')
       echo "\n";
 
       if (isset ($index[$idx]['description']) && $index[$idx]['description'])
-	echo '<p class="description">'.htmlentities($index[$idx]['description']).'</p>';
+	echo '<p class="description">'.htmlentities2($index[$idx]['description']).'</p>';
 
       if ($imgSize > 0)
       {
@@ -780,6 +780,22 @@ function concat (&$s1, $s2 = '')
   if (!isset ($s1))
     $s1 = '';
   $s1 .= $s2;
+}
+
+function htmlentities2 ($htmlcode) {
+  static $htmlEntities;
+  static $entitiesDecoded;
+  static $utf8Entities;
+  if (!isset ($htmlEntities))
+    $htmlEntities = array_values (get_html_translation_table (HTML_ENTITIES, ENT_QUOTES));
+  if (!isset ($entitiesDecoded))
+    $entitiesDecoded = array_keys (get_html_translation_table (HTML_ENTITIES, ENT_QUOTES));
+  if (!isset ($utf8Entities)) {
+    $num = count ($entitiesDecoded);
+    for ($u = 0; $u < $num; $u++)
+      $utf8Entities[$u] = '&#'.ord ($entitiesDecoded[$u]).';';
+  }
+  return str_replace ($htmlEntities, $utf8Entities, $htmlcode);
 }
 
 function microtime_diff ($a, $b)
