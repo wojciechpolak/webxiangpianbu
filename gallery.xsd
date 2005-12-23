@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
+<!-- WebXiangpianbu, version 1.0 -->
 <!-- definition of simple elements -->
 <xs:element name="parent" type="xs:string"/>
 <xs:element name="charset" type="xs:string"/>

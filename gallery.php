@@ -1,6 +1,6 @@
 <?php
 
-//  WebXiangpianbu, version 0.998 (2005-11-01)
+//  WebXiangpianbu, version 1.0 (2005-11-01)
 //  Copyright (C) 2004, 2005 Wojciech Polak.
 //
 //  This program is free software; you can redistribute it and/or modify
