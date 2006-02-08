@@ -1,5 +1,5 @@
 /*
-   WebXiangpianbu gallery.js
+   WebXiangpianbu gallery.js, version 1.1
    Copyright (C) 2005, 2006 Wojciech Polak.
 
    This program is free software; you can redistribute it and/or modify
