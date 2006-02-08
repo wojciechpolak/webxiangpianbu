@@ -1,7 +1,7 @@
 <?php
 
-//  WebXiangpianbu, version 1.0 (2005-11-01)
-//  Copyright (C) 2004, 2005 Wojciech Polak.
+//  WebXiangpianbu, version 1.1 (2006-02-06)
+//  Copyright (C) 2004, 2005, 2006 Wojciech Polak.
 //
 //  This program is free software; you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
@@ -139,6 +139,7 @@ echo '<?xml version="1.0" encoding="'.$meta['charset'].'"?>'."\n";
 <meta name="generator" content="WebXiangpianbu" />
 <meta name="robots" content="noindex,nofollow" />
 <link rel="stylesheet" href="<? echo $gdatadir.'/css/'.$meta['style']; ?>" type="text/css" />
+<script type="text/javascript" src="gallery.js"></script>
 </head>
 <body>
 
@@ -527,7 +528,7 @@ if ($meta['copyright'])
 ?>
 </div>
 
-<script type="text/javascript" src="gallery.js"></script>
+<script type="text/javascript">inif()</script>
 </body></html>
 <?php
 
