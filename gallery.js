@@ -20,6 +20,10 @@
 var nua = navigator.userAgent.toLowerCase ();
 var opera = nua.indexOf ('opera') != -1;
 var msie = nua.indexOf ('msie') != -1 && (document.all && !opera);
+var inprogress = 0;
+var queue = new Array ();
+var mem = new Object ();
+var memCnt = 0;
 
 function follow (id) {
   var a = document.getElementById (id);
@@ -43,8 +47,10 @@ function fadeIn (iobj) {
 	  else
 	    img.style.opacity = (count / 100);
 	}
-	else
+	else {
 	  clearInterval (intv);
+	  inprogress--;
+	}
       }
       catch (e) {}
     }, 25);
@@ -57,12 +63,35 @@ function inif () {
       if (!img.complete) {
 	img.style.filter = 'alpha(opacity=0)';
 	img.style.opacity = 0;
-	img.onload = function () {
-	  fadeIn (this);
-	};
+	if (inprogress == 0) {
+	  inprogress++;
+	  img.onload = function () {
+	    fadeIn (this);
+	  };
+	}
+	else
+	  queue[queue.length] = img;
       }
     }
+    fadeInRandom (queue.length);
   }
+}
+
+function fadeInRandom (n) {
+  if (!n) return;
+  while (true) {
+    var r = Math.round ((n - 1) * Math.random ());
+    if (!queue[r].complete)
+      break;
+    if (!mem[r]) {
+      mem[r] = true;
+      memCnt++;
+      fadeIn (queue[r]);
+      break;
+    }
+  }
+  if (memCnt < n)
+    setTimeout (function () { fadeInRandom (n); }, 400);
 }
 
 document.onkeypress = function (e) {
