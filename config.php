@@ -1,6 +1,6 @@
 <?php
 
-// WebXiangpianbu, version 1.0
+// WebXiangpianbu, version 1.1
 // BEGIN CONFIG
 
 $site      = 'http://your.site.name';
