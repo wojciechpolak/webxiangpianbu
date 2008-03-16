@@ -1,23 +1,26 @@
 <?php
 
-//  WebXiangpianbu, version 1.1 (2006-02-06)
-//  Copyright (C) 2004, 2005, 2006 Wojciech Polak.
+//  WebXiangpianbu, version 1.2 (2008-01-01)
+//  Copyright (C) 2004, 2005, 2006, 2007, 2008 Wojciech Polak.
 //
-//  This program is free software; you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation; either version 2, or (at your option)
-//  any later version.
+//  This program is free software; you can redistribute it and/or modify it
+//  under the terms of the GNU General Public License as published by the
+//  Free Software Foundation; either version 3 of the License, or (at your
+//  option) any later version.
 //
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
 //
-//  You should have received a copy of the GNU General Public License
-//  along with this program; if not, write to the Free Software Foundation,
-//  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+//  You should have received a copy of the GNU General Public License along
+//  with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+if (!ereg ("^apache2", @php_sapi_name ()))
+  ob_start ('ob_gzhandler');
 
 require 'config.php';
+if (!isset ($CONF)) exit;
 
 class Image
 {
@@ -76,7 +79,7 @@ $selectedSize = 0;
 $meta['parent']['album'] = '';
 $meta['parent']['title'] = '';
 $meta['directory'] = array ();
-$meta['charset'] = 'US-ASCII';
+$meta['charset'] = 'UTF-8';
 $meta['style'] = 'style.css';
 $meta['title'] = '';
 $meta['ppp'] = 5;
@@ -88,10 +91,11 @@ $xml_state = '';
 $inside_parent = false;
 $inside_entry  = false;
 
-if ($gdatadir)
-  $filename = $gdatadir .'/'. $q . $gdataext;
+if ($CONF['webxiang.path.albums'])
+  $filename = $CONF['webxiang.path.albums'].'/'
+    . $q . $CONF['webxiang.album.ext'];
 else
-  $filename = $q . $gdataext;
+  $filename = $q . $CONF['webxiang.album.ext'];
 
 // XML PARSING
 
@@ -119,7 +123,7 @@ if (is_file ($filename) && is_readable ($filename))
 }
 else
 {
-  header ("Location: $site/$photodir/$gscript");
+  header ('Location: '.$CONF['webxiang.url.site'].'/');
   exit;
 }
 
@@ -130,15 +134,16 @@ echo '<?xml version="1.0" encoding="'.$meta['charset'].'"?>'."\n";
 
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<html xmlns="http://www.w3.org/1999/xhtml">
 
 <head>
-<title>[gallery] <? echo substr (strip_tags ($meta['title']), 0, 80); ?></title>
+<title>[gallery]<? echo ' '.substr (strip_tags ($meta['title']), 0, 80); ?></title>
 <meta http-equiv="Content-Type" content="text/html; charset=<? echo $meta['charset']; ?>" />
 <meta name="author" content="Wojciech Polak" />
 <meta name="generator" content="WebXiangpianbu" />
-<meta name="robots" content="noindex,nofollow" />
-<link rel="stylesheet" href="<? echo $gdatadir.'/css/'.$meta['style']; ?>" type="text/css" />
+<meta name="robots" content="<?php echo ($q == 'index' ? 'index' : 'noindex'); ?>,nofollow" />
+<base href="<? echo $CONF['webxiang.url.site'].'/'; ?>" />
+<link rel="stylesheet" href="<? echo $CONF['webxiang.url.css'].'/'.$meta['style']; ?>" type="text/css" />
 <script type="text/javascript" src="gallery.js"></script>
 </head>
 <body>
@@ -177,10 +182,10 @@ if ($q != 'index')
 
   echo "<div id=\"menu\">";
 
-  echo '<a id="levelTop" href="'.$site.'/'.$photodir.'/'.$gscript.'">all galleries</a>';
+  echo '<a id="levelTop" href="'.$CONF['webxiang.url.site'].'/">all galleries</a>';
   if ($meta['parent']['album'])
   {
-    echo ' / <a id="levelParent" href="?q='.$meta['parent']['album'].'">';
+    echo ' / <a id="levelParent" href="'.genQueryLink ($meta['parent']['album']).'">';
     if ($meta['parent']['title'])
       echo $meta['parent']['title'];
     else
@@ -202,9 +207,8 @@ if ($q != 'index')
 	$page = ceil ($photo / $meta['ppp']);
     }
 
-    echo ' <a href="?q='.$q;
-    if ($rev)
-      echo '&amp;rev=1';
+    echo ' <a href="';
+    echo genQueryLink ($q, array ('rev' => $rev));
     echo '">'.$q.'</a>';
   }
   echo "</div>\n"; /* menu */
@@ -218,6 +222,8 @@ if ($q != 'index')
       $selectedSize = 1;
   }
 
+  $prefetch = false;
+
   if (is_numeric ($photo))
   {
     echo "<div id=\"navigation\">";
@@ -225,29 +231,38 @@ if ($q != 'index')
     if ($meta['reverseOrder'])
     {
       if ($photo < $index_cnt) {
-	echo "<a id=\"prevPhoto\" href=\"?q=$q";
-	if ($rev)
-	  echo '&amp;rev=1';
- 	if ($page == 'all')
- 	  echo '&amp;page=all';
-	echo "&amp;photo=".($photo+1);
-	if ($size)
-	  echo '&amp;size='.$size;
+	echo "<a id=\"prevPhoto\" href=\"";
+	$params = array ('rev'  => $rev,
+			 'photo'=> $photo + 1,
+			 'size' => $size);
+	if ($page == 'all') $params['page'] = 'all';
+	echo genQueryLink ($q, $params);
 	echo "\">&laquo; previous</a>";
       }
       else
 	echo "&laquo; previous";
       echo ' | ';
       if ($photo >= 2) {
-	echo "<a id=\"nextPhoto\" href=\"?q=$q";
-	if ($rev)
-	  echo '&amp;rev=1';
-	if ($page == 'all')
- 	  echo '&amp;page=all';
-	echo "&amp;photo=".($photo-1);
-	if ($size)
-	  echo '&amp;size='.$size;
+	echo "<a id=\"nextPhoto\" href=\"";
+	$params = array ('rev'   => $rev,
+			 'photo' => $photo - 1,
+			 'size'  => $size);
+	if ($page == 'all') $params['page'] = 'all';
+	echo genQueryLink ($q, $params);
 	echo "\">next &raquo;</a>";
+
+	if (!isset ($index[$photo-2][$selectedSize]))
+	  $selectedSize = 0;
+	if (!isset ($index[$photo-2][$selectedSize]))
+	  $selectedSize = 2;
+
+	if ($index[$photo-2][$selectedSize]->directory)
+	  $prefetch = $CONF['webxiang.url.photos'].'/'.$index[$photo-2][$selectedSize]->directory.'/';
+	else if (isset ($meta['directory'][$selectedSize]))
+	  $prefetch = $CONF['webxiang.url.photos'].'/'.$meta['directory'][$selectedSize].'/';
+	else
+	  $prefetch = $CONF['webxiang.url.photos'].'/';
+	$prefetch .= $index[$photo-2][$selectedSize]->filename;
       }
       else
 	echo "next &raquo;";
@@ -255,29 +270,38 @@ if ($q != 'index')
     else // !reverseOrder
     {
       if ($photo >= 2) {
-	echo "<a id=\"prevPhoto\" href=\"?q=$q";
-	if ($rev)
-	  echo '&amp;rev=1';
- 	if ($page == 'all')
-	  echo '&amp;page=all';
-	echo "&amp;photo=".($photo-1);
-	if ($size)
-	  echo '&amp;size='.$size;
+	echo "<a id=\"prevPhoto\" href=\"";
+	$params = array ('rev'   => $rev,
+			 'photo' => $photo - 1,
+			 'size'  => $size);
+	if ($page == 'all') $params['page'] = 'all';
+	echo genQueryLink ($q, $params);
 	echo "\">&laquo; previous</a>";
       }
       else
 	echo "&laquo; previous";
       echo ' | ';
       if ($photo < $index_cnt) {
-	echo "<a id=\"nextPhoto\" href=\"?q=$q";
-	if ($rev)
-	  echo '&amp;rev=1';
- 	if ($page == 'all')
-	  echo '&amp;page=all';
-	echo "&amp;photo=".($photo+1);
-	if ($size)
-	  echo '&amp;size='.$size;
+	echo "<a id=\"nextPhoto\" href=\"";
+	$params = array ('rev'   => $rev,
+			 'photo' => $photo + 1,
+			 'size'  => $size);
+	if ($page == 'all') $params['page'] = 'all';
+	echo genQueryLink ($q, $params);
 	echo "\">next &raquo;</a>";
+
+	if (!isset ($index[$photo][$selectedSize]))
+	  $selectedSize = 0;
+	if (!isset ($index[$photo][$selectedSize]))
+	  $selectedSize = 2;
+
+	if ($index[$photo][$selectedSize]->directory)
+	  $prefetch = $CONF['webxiang.url.photos'].'/'.$index[$photo][$selectedSize]->directory.'/';
+	else if (isset ($meta['directory'][$selectedSize]))
+	  $prefetch = $CONF['webxiang.url.photos'].'/'.$meta['directory'][$selectedSize].'/';
+	else
+	  $prefetch = $CONF['webxiang.url.photos'].'/';
+	$prefetch .= $index[$photo][$selectedSize]->filename;
       }
       else
 	echo "next &raquo;";
@@ -285,7 +309,14 @@ if ($q != 'index')
 
     echo "</div>\n\n"; /* navigation */
 
+    if ($prefetch) {
+      if (!strstr ($prefetch, 'http') && substr ($prefetch, 0, 1) != '/')
+	$prefetch = $CONF['webxiang.url.site'].'/'.$prefetch; 
+      header ('Link: <'.$prefetch.'>; rel=prefetch');
+    }
+
     $idx = $photo - 1;
+
     if (isset ($index[$idx]['copyright']))
       $meta['copyright'] = $index[$idx]['copyright'];
 
@@ -299,14 +330,14 @@ if ($q != 'index')
     if ($photo <= $index_cnt && isset ($index[$idx][$selectedSize]))
     {
       echo "<table class=\"photo\">\n<tr><td>";
-      echo '<a id="levelIndex" href="?q='.$q;
-      if ($rev)
-	echo '&amp;rev=1';
+      echo '<a id="levelIndex" href="';
+      $params = array ('rev' => $rev);
       if ($allpages > 1)
-	echo '&amp;page='.$page;
+	$params['page'] = $page;
       else if ($page == 'all')
-	echo '&amp;page=all';
-      echo '"><img src="';
+	$params['page'] = 'all';
+      echo genQueryLink ($q, $params);
+      echo '"><img src="'.$CONF['webxiang.url.photos'].'/';
 
       if ($index[$idx][$selectedSize]->directory)
 	echo $index[$idx][$selectedSize]->directory.'/';
@@ -338,45 +369,51 @@ if ($q != 'index')
 	  if ($selectedSize == 0)
 	    echo 'small';
 	  else {
-	    echo '<a href="?q='.$q;
-	    if ($rev)
-	      echo '&amp;rev=1';
- 	    if ($page == 'all')
-	      echo '&amp;page=all';
-	    echo '&amp;photo='.$photo.'&amp;size=small"';
+	    echo '<a href="';
+	    $params = array ('rev'   => $rev,
+			     'photo' => $photo,
+			     'size'  => 'small');
+	    if ($page == 'all') $params['page'] = 'all';
+	    echo genQueryLink ($q, $params);
+	    echo '"';
 	    if ($index[$idx][0]->width && $index[$idx][0]->height)
-	      echo ' title="'.$index[$idx][0]->width.' x '.$index[$idx][0]->height.' pixels"';
-	    echo'>small</a>';
+	      echo ' rel="nofollow" title="'.$index[$idx][0]->width
+		.' x '.$index[$idx][0]->height.' pixels"';
+	    echo '>small</a>';
 	  }
 	}
 	if ($imgSize >= 1) {
 	  if ($selectedSize == 1)
 	    echo ', medium';
 	  else {
-	    echo ', <a href="?q='.$q;
-	    if ($rev)
-	      echo '&amp;rev=1';
-	    if ($page == 'all')
-	      echo '&amp;page=all';
-	    echo '&amp;photo='.$photo.'&amp;size=medium"';
+	    echo ', <a href="';
+	    $params = array ('rev'   => $rev,
+			     'photo' => $photo,
+			     'size'  => 'medium');
+	    if ($page == 'all') $params['page'] = 'all';
+	    echo genQueryLink ($q, $params);
+	    echo '"';
 	    if ($index[$idx][1]->width && $index[$idx][1]->height)
-	      echo ' title="'.$index[$idx][1]->width.' x '.$index[$idx][1]->height.' pixels"';
-	    echo'>medium</a>';
+	      echo ' rel="nofollow" title="'.$index[$idx][1]->width
+		.' x '.$index[$idx][1]->height.' pixels"';
+	    echo '>medium</a>';
 	  }
 	}
 	if ($imgSize >= 2) {
 	  if ($selectedSize == 2)
 	    echo ', large';
 	  else {
-	    echo ', <a href="?q='.$q;
-	    if ($rev)
-	      echo '&amp;rev=1';
-	    if ($page == 'all')
-	      echo '&amp;page=all';
-	    echo '&amp;photo='.$photo.'&amp;size=large"';
+	    echo ', <a href="';
+	    $params = array ('rev'   => $rev,
+			     'photo' => $photo,
+			     'size'  => 'large');
+	    if ($page == 'all') $params['page'] = 'all';
+	    echo genQueryLink ($q);
+	    echo '"';
 	    if ($index[$idx][2]->width && $index[$idx][2]->height)
-	      echo ' title="'.$index[$idx][2]->width.' x '.$index[$idx][2]->height.' pixels"';
-	    echo'>large</a>';
+	      echo ' rel="nofollow" title="'.$index[$idx][2]->width
+		.' x '.$index[$idx][2]->height.' pixels"';
+	    echo '>large</a>';
 	  }
 	}
 	echo "</div>\n"; /* otherSizes */
@@ -391,6 +428,9 @@ if ($q != 'index')
       echo '<div id="title">'.$meta['title']."</div>\n";
     else
       echo "<p />\n";
+
+    if (is_numeric ($page) && $index_cnt > $limit)
+      paging ();
 
     echo "\n<table class=\"thumbnails\">\n";
 
@@ -414,18 +454,21 @@ if ($q != 'index')
       if ($td_counter == 1)
 	echo "<tr valign=\"top\">\n";
 
-      echo ' <td align="center"><a href="?q='.$q;
-      if ($rev)
-	echo '&amp;rev=1';
-      if ($page == 'all')
-	echo '&amp;page=all';
-      if ($meta['reverseOrder'])
-	echo '&amp;photo='.($lastElement - $i).'">';
-      else
-	echo '&amp;photo='.($i+1).'">';
-
-      echo '<img src="';
-
+      echo ' <td align="center"><a href="';
+      if (isset ($index[$i]['album'])) {
+	echo genQueryLink ($index[$i]['album']);
+      }
+      else {
+	$params = array ('rev' => $rev);
+	if ($page == 'all') $params['page'] = 'all';
+	if ($meta['reverseOrder'])
+	  $params['photo'] = $lastElement - $i;
+	else
+	  $params['photo'] = $i + 1;
+	echo genQueryLink ($q, $params);
+      }
+      echo '">';
+      echo '<img src="'.$CONF['webxiang.url.photos'].'/';
       if ($index[$i][$selectedSize]->directory)
 	echo $index[$i][$selectedSize]->directory.'/';
       else if (isset ($meta['directory'][$selectedSize]))
@@ -437,8 +480,8 @@ if ($q != 'index')
       echo ' /></a>';
 
       if (isset ($index[$i]['album'])) {
-        echo '<div class="enter"><a href="?q='.
-	     $index[$i]['album'].'">&raquo; enter &laquo;</a></div>';
+        echo '<div class="enter"><br /><a href="'.genQueryLink ($index[$i]['album'])
+	  .'">enter <em>'.($index[$i]['album']).'</em> &raquo;</a></div>';
       }
       if (isset ($index[$i]['comment']) && $index[$i]['comment'])
 	echo '<div class="comment">'.$index[$i]['comment'].'</div>'."\n";
@@ -488,7 +531,8 @@ else // gallery index
     if ($td_counter == 1)
       echo "<tr valign=\"top\">\n";
 
-    echo ' <td align="center"><a href="?q='.$index[$i]['album'].'"><img src="';
+    echo ' <td align="center"><a href="'.genQueryLink ($index[$i]['album'])
+      .'"><img src="'.$CONF['webxiang.url.photos'].'/';
 
     if ($index[$i][0]->directory)
       echo $index[$i][0]->directory.'/';
@@ -529,6 +573,14 @@ if ($meta['copyright'])
 </div>
 
 <script type="text/javascript">inif()</script>
+<?php
+  if ($CONF['webxiang.google.analytics']) {
+    echo '<script type="text/javascript" src="http://www.google-analytics.com/ga.js"></script>
+<script type="text/javascript">var tracker = _gat._getTracker (\''.
+    $CONF['webxiang.google.analytics']."');
+tracker._initData (); tracker._trackPageview ();</script>\n";
+  }
+?>
 </body></html>
 <?php
 
@@ -538,6 +590,41 @@ print "\n<!-- processing took $duration seconds -->";
 print "\n<!-- powered by WebXiangpianbu -->\n\n";
 
 // FUNCTIONS
+
+function genQueryLink ($q, $params = array ())
+{
+  global $CONF;
+
+  $s = '';
+  if ($CONF['webxiang.prettyURI'])
+    $s .= $q . '/';
+  else
+    $s .= '?q='. $q;
+
+  if ($CONF['webxiang.prettyURI']) {
+    if (isset ($params['photo'])) {
+      $s .= $params['photo'];
+      unset ($params['photo']);
+    }
+    if (isset ($params['size'])) {
+      $s .= '/'.$params['size'];
+      unset ($params['size']);
+    }
+  }
+
+  if (count ($params)) {
+    $arr = array ();
+    foreach ($params as $k => $v) {
+      if (trim ($v) != '')
+	array_push ($arr, $k.'='.urlencode ($v));
+    }
+    if (count ($arr)) {
+      $s .= $CONF['webxiang.prettyURI'] ? '?' : '&amp;';
+      $s .= implode ('&amp;', $arr);
+    }
+  }
+  return $s;
+}
 
 function startElement ($parser, $element_name, $element_attributes)
 {
@@ -708,14 +795,14 @@ function paging ()
 {
   global $q, $allpages, $page, $rev;
 
-  echo '<div id="pages">';
+  echo '<div class="pages">';
 
   $wa = 5;
   if ($page > 1) {
-    echo '<a href="?q='.$q;
-    if ($rev)
-      echo '&amp;rev=1';
-    echo '&amp;page='.($page-1).'" title="previous page">&laquo;</a> ';
+    echo '<a href="';
+    echo genQueryLink ($q, array ('rev'  => $rev,
+				  'page' => $page - 1));
+    echo '" title="previous page">&laquo;</a> ';
   }
 
   if ($page <= $wa + 1)
@@ -723,10 +810,10 @@ function paging ()
   else {
     $cs = $page - $wa;
     $back = $cs - 1;
-    echo '<a href="?q='.$q;
-    if ($rev)
-      echo '&amp;rev=1';
-    echo '&amp;page='.$back.'">...</a> ';
+    echo '<a href="';
+    echo genQueryLink ($q, array ('rev'  => $rev,
+				  'page' => $back));
+    echo '" title="page '.$back.'">...</a> ';
   }
 
   $ce = $page + $wa;
@@ -738,27 +825,27 @@ function paging ()
   for ($i = $cs; $i <= $ce; $i++)
   {
     if ($page == $i)
-      echo "$i ";
+      echo '<span class="thisPage">'.$i.'</span> ';
     else {
-      echo '<a href="?q='.$q;
-      if ($rev)
-	echo '&amp;rev=1';
-      echo '&amp;page='.$i.'">'.$i.'</a> ';
+      echo '<a href="';
+      echo genQueryLink ($q, array ('rev'  => $rev,
+				    'page' => $i));
+      echo '" title="page '.$i.'">'.$i.'</a> ';
     }
   }
 
   if ($ce < $allpages) {
-    echo '<a href="?q='.$q;
-    if ($rev)
-      echo '&amp;rev=1';
-    echo '&amp;page='.$next.'">...</a> ';
+    echo '<a href="';
+    echo genQueryLink ($q, array ('rev'  => $rev,
+				  'page' => $next));
+    echo '" title="page '.$next.'">...</a> ';
   }
 
   if ($allpages > $page) {
-    echo '<a href="?q='.$q;
-    if ($rev)
-      echo '&amp;rev=1';
-    echo '&amp;page='.($page+1).'" title="next page">&raquo;</a>';
+    echo '<a href="';
+    echo genQueryLink ($q, array ('rev'  => $rev,
+				  'page' => $page + 1));
+    echo '" title="next page">&raquo;</a>';
   }
 
   echo "</div>\n"; /* pages */
