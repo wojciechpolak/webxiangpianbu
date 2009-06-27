@@ -1,7 +1,7 @@
 <?php
 
-//  WebXiangpianbu, version 1.2 (2008-01-01)
-//  Copyright (C) 2004, 2005, 2006, 2007, 2008 Wojciech Polak.
+//  WebXiangpianbu, version 1.3 (2009-06-27)
+//  Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009 Wojciech Polak.
 //
 //  This program is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU General Public License as published by the
@@ -82,9 +82,11 @@ $meta['directory'] = array ();
 $meta['charset'] = 'UTF-8';
 $meta['style'] = 'style.css';
 $meta['title'] = '';
+$meta['description'] = '';
 $meta['ppp'] = 5;
 $meta['columns'] = 1;
 $meta['reverseOrder'] = false;
+$meta['hideOtherSizes'] = false;
 $meta['copyright'] = '';
 
 $xml_state = '';
@@ -327,6 +329,9 @@ if ($q != 'index')
 	$selectedSize = $imgSize;
     }
 
+    if (isset ($index[$idx]['hideOtherSizes']))
+      $meta['hideOtherSizes'] = $index[$idx]['hideOtherSizes'];
+
     if ($photo <= $index_cnt && isset ($index[$idx][$selectedSize]))
     {
       echo "<table class=\"photo\">\n<tr><td>";
@@ -337,7 +342,8 @@ if ($q != 'index')
       else if ($page == 'all')
 	$params['page'] = 'all';
       echo genQueryLink ($q, $params);
-      echo '"><img src="'.$CONF['webxiang.url.photos'].'/';
+      echo '" onclick="return navigateBack(this);"><img src="'.
+	$CONF['webxiang.url.photos'].'/';
 
       if ($index[$idx][$selectedSize]->directory)
 	echo $index[$idx][$selectedSize]->directory.'/';
@@ -362,7 +368,7 @@ if ($q != 'index')
       if (isset ($index[$idx]['description']) && $index[$idx]['description'])
 	echo '<p class="description">'.htmlentities2($index[$idx]['description']).'</p>';
 
-      if ($imgSize > 0)
+      if ($imgSize > 0 && !$meta['hideOtherSizes'])
       {
 	echo '<div id="otherSizes">other sizes: ';
 	if ($imgSize >= 0) {
@@ -428,6 +434,9 @@ if ($q != 'index')
       echo '<div id="title">'.$meta['title']."</div>\n";
     else
       echo "<p />\n";
+
+    if ($meta['description'])
+      echo '<div id="description">'.$meta['description']."</div>\n";
 
     if (is_numeric ($page) && $index_cnt > $limit)
       paging ();
@@ -576,9 +585,9 @@ if ($meta['copyright'])
 <?php
   if ($CONF['webxiang.google.analytics']) {
     echo '<script type="text/javascript" src="http://www.google-analytics.com/ga.js"></script>
-<script type="text/javascript">var tracker = _gat._getTracker (\''.
-    $CONF['webxiang.google.analytics']."');
-tracker._initData (); tracker._trackPageview ();</script>\n";
+<script type="text/javascript">if (typeof _gat != \'undefined\') {
+var tracker = _gat._getTracker (\''.$CONF['webxiang.google.analytics']."');
+tracker._initData (); tracker._trackPageview (); }</script>\n";
   }
 ?>
 </body></html>
@@ -712,6 +721,12 @@ function characterData ($parser, $data)
       case 'COPYRIGHT':
 	concat ($index[$index_cnt]['copyright'], $data);
 	break;
+      case 'HIDE-OTHER-SIZES':
+	if (trim ($data) == 'true')
+	  $index[$index_cnt]['hideOtherSizes'] = true;
+	else
+	  $index[$index_cnt]['hideOtherSizes'] = false;
+	break;
       default:
 	return;
     }
@@ -750,6 +765,9 @@ function characterData ($parser, $data)
       case 'TITLE':
 	concat ($meta['title'], $data);
 	break;
+      case 'DESCRIPTION':
+	concat ($meta['description'], $data);
+	break;
       case 'PPP':
 	$n = trim ($data);
 	if (is_numeric ($n) && $n > 0)
@@ -766,6 +784,10 @@ function characterData ($parser, $data)
 	break;
       case 'COPYRIGHT':
 	concat ($meta['copyright'], $data);
+	break;
+      case 'HIDE-OTHER-SIZES':
+	if (trim ($data) == 'true')
+	  $meta['hideOtherSizes'] = true;
 	break;
       default:
 	return;
