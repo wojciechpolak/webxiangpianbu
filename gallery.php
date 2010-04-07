@@ -1,7 +1,7 @@
 <?php
 
-//  WebXiangpianbu, version 1.3 (2009-06-27)
-//  Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009 Wojciech Polak.
+//  WebXiangpianbu, version 1.3b (2010-04-05)
+//  Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010 Wojciech Polak.
 //
 //  This program is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU General Public License as published by the
@@ -145,6 +145,7 @@ echo '<?xml version="1.0" encoding="'.$meta['charset'].'"?>'."\n";
 <meta name="generator" content="WebXiangpianbu" />
 <meta name="robots" content="<?php echo ($q == 'index' ? 'index' : 'noindex'); ?>,nofollow" />
 <base href="<? echo $CONF['webxiang.url.site'].'/'; ?>" />
+<link rel="alternate" type="application/atom+xml" title="Atom" href="feed.xml" />
 <link rel="stylesheet" href="<? echo $CONF['webxiang.url.css'].'/'.$meta['style']; ?>" type="text/css" />
 <script type="text/javascript" src="gallery.js"></script>
 </head>
