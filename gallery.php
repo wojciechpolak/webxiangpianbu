@@ -1,6 +1,6 @@
 <?php
 
-//  WebXiangpianbu, version 1.3b (2010-04-05)
+//  WebXiangpianbu, version 1.4 (2010-07-04)
 //  Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010 Wojciech Polak.
 //
 //  This program is free software; you can redistribute it and/or modify it
@@ -83,6 +83,7 @@ $meta['charset'] = 'UTF-8';
 $meta['style'] = 'style.css';
 $meta['title'] = '';
 $meta['description'] = '';
+$meta['cover'] = '';
 $meta['ppp'] = 5;
 $meta['columns'] = 1;
 $meta['reverseOrder'] = false;
@@ -147,6 +148,9 @@ echo '<?xml version="1.0" encoding="'.$meta['charset'].'"?>'."\n";
 <base href="<? echo $CONF['webxiang.url.site'].'/'; ?>" />
 <link rel="alternate" type="application/atom+xml" title="Atom" href="feed.xml" />
 <link rel="stylesheet" href="<? echo $CONF['webxiang.url.css'].'/'.$meta['style']; ?>" type="text/css" />
+<?php if (isset ($meta['cover']) && $meta['cover']) { ?><link rel="image_src" href="<?php
+ echo $CONF['webxiang.url.site'].'/'.$CONF['webxiang.url.photos'].'/'.$meta['cover'];
+?>" /><?php echo "\n"; } ?>
 <script type="text/javascript" src="gallery.js"></script>
 </head>
 <body>
@@ -578,7 +582,7 @@ else // gallery index
 }
 
 if ($meta['copyright'])
-  echo "\n<p class=\"copyright\">Copyright (C) ".$meta['copyright']."</p>\n";
+  echo "\n<p class=\"copyright\">Copyright &copy; ".$meta['copyright']."</p>\n";
 ?>
 </div>
 
@@ -768,6 +772,9 @@ function characterData ($parser, $data)
 	break;
       case 'DESCRIPTION':
 	concat ($meta['description'], $data);
+	break;
+      case 'COVER':
+	concat ($meta['cover'], $data);
 	break;
       case 'PPP':
 	$n = trim ($data);

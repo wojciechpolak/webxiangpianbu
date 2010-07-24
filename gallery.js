@@ -1,6 +1,6 @@
 /*
-   WebXiangpianbu gallery.js, version 1.1
-   Copyright (C) 2005, 2006 Wojciech Polak.
+   WebXiangpianbu gallery.js, version 1.4
+   Copyright (C) 2005, 2006, 2010 Wojciech Polak.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -21,8 +21,8 @@ var nua = navigator.userAgent.toLowerCase ();
 var opera = nua.indexOf ('opera') != -1;
 var msie = nua.indexOf ('msie') != -1 && (document.all && !opera);
 var inprogress = 0;
-var queue = new Array ();
-var mem = new Object ();
+var queue = [];
+var mem = {};
 var memCnt = 0;
 
 function follow (id) {
@@ -57,8 +57,11 @@ function fadeIn (iobj) {
 }
 
 function inif () {
-  if (document.images.length > 1) {
-    for (var i = 0; i < document.images.length; i++) {
+  var top_fadein = 15;
+  var len = document.images.length > top_fadein ?
+    top_fadein : document.images.length;
+  if (len > 1) {
+    for (var i = 0; i < len; i++) {
       var img = document.images[i];
       if (!img.complete) {
 	img.style.filter = 'alpha(opacity=0)';
@@ -92,6 +95,17 @@ function fadeInRandom (n) {
   }
   if (memCnt < n)
     setTimeout (function () { fadeInRandom (n); }, 400);
+}
+
+function navigateBack (a) {
+  if (typeof document.referrer != 'undefined' &&
+      typeof a != 'undefined') {
+    if (document.referrer == a.href) {
+      window.history.back ();
+      return false;
+    }
+  }
+  return true;
 }
 
 document.onkeypress = function (e) {

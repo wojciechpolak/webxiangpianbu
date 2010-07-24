@@ -1,12 +1,13 @@
 <?xml version="1.0"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
-<!-- WebXiangpianbu, version 1.3 -->
+<!-- WebXiangpianbu, version 1.4 -->
 <!-- definition of simple elements -->
 <xs:element name="parent" type="xs:string"/>
 <xs:element name="charset" type="xs:string"/>
 <xs:element name="style" type="xs:string"/>
 <xs:element name="title" type="xs:string"/>
+<xs:element name="cover" type="xs:string"/>
 <xs:element name="ppp" type="xs:positiveInteger"/>
 <xs:element name="columns" type="xs:positiveInteger"/>
 <xs:element name="reverse-order" type="xs:string"/>
@@ -60,6 +61,7 @@
             <xs:element ref="charset" minOccurs="0"/>
             <xs:element ref="style" minOccurs="0"/>
             <xs:element ref="title" minOccurs="0"/>
+            <xs:element ref="cover" minOccurs="0"/>
             <xs:element ref="ppp" minOccurs="0"/>
             <xs:element ref="columns" minOccurs="0"/>
             <xs:element ref="reverse-order" minOccurs="0"/>
