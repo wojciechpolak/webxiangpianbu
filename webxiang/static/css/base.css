@@ -1,0 +1,247 @@
+.clear { clear: both; }
+
+a:link {
+  text-decoration: none;
+  color: #ffcc00;
+}
+a:visited {
+  text-decoration: none;
+  color: #ffcc00;
+}
+a:active {
+  text-decoration: none;
+  color: #ffcc00;
+}
+a:hover {
+  text-decoration: underline;
+  color: #ffcc00;
+}
+
+body {
+  color: #aaa;
+  background-color: black;
+  font-family: arial, helvetica, sans-serif;
+  font-size: 12pt;
+  text-align: center;
+  overflow-y: scroll;
+}
+
+#content {
+  padding-top: 1px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#menu {
+  font-size: smaller;
+  text-align: center;
+}
+
+h1, h2, h3, h4 {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+h2#title {
+  font-size: 225%;
+  font-weight: 200;
+  line-height: 1.2;
+  margin: 16px 0 20px;
+}
+
+#navigation {
+  font-size: smaller;
+  margin-top: 1.12em;
+  margin-bottom: 1em;
+}
+
+#otherSizes {
+  font-size: x-small;
+  margin-top: 1.12em;
+}
+
+.pages {
+  font-size: smaller;
+  margin-bottom: 2em;
+}
+.pages a {
+  padding: 2px 6px;
+  margin-right: 4px;
+  border: 1px solid #333;
+}
+.pages a:hover {
+  color: white;
+  background-color: #0063dc;
+  border: 1px solid #444;
+  text-decoration: none;
+}
+.thisPage {
+  color: #ff0084;
+  margin-right: 4px;
+  padding: 2px 6px;
+  border: 1px solid #333;
+}
+
+.thumbnails {
+  display: table;
+  margin: 16px auto;
+  text-align: center;
+}
+.thumbnails.float {
+  width: 755px;
+}
+.thumbnails.float div.item {
+  float: left;
+  margin: 4px 4px 0 4px;
+}
+.thumbnails .row {
+  display: table-row;
+}
+.thumbnails .cell {
+  display: table-cell;
+  vertical-align: top;
+  margin: 0 auto;
+  padding: 15px 15px 7px 15px;
+}
+.thumbnails img {
+  border-style: none;
+}
+.thumbnails img.loaded:hover {
+  opacity: 0.9 !important;
+}
+.thumbnails img.loaded {
+  transition:.2s ease-out; -webkit-transition:0.2s ease-out;
+}
+.thumbnails img.loaded:hover,
+.thumbnails img.loaded:active {
+  transform:scale(1.1); -webkit-transform:scale(1.1);
+}
+
+.photo a, .thumbnails a, .story a {
+  outline: 0;
+}
+
+.photo {
+  text-align: center;
+  margin: 20px 0 16px 0;
+}
+.photo img {
+  border-style: none;
+}
+.photo td {
+  padding: 0;
+}
+
+.story { margin: 16px auto; }
+.story .item { margin-bottom: 40px; }
+.story img { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); }
+.story iframe { width: 100%; height: auto; }
+
+div.geo {
+  width: 100%;
+  max-width: 995px;
+  height: auto;
+  margin: 4px auto;
+  overflow: hidden;
+}
+div.geo img {
+  width: 100%;
+  height: auto;
+}
+
+div.video {
+  height: 0;
+  max-width: 900px;
+  overflow: hidden;
+  padding-bottom: 56.25%;
+  padding-top: 25px;
+  position: relative;
+}
+div.video iframe {
+  height: 100%;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 100%;
+}
+div.video.w43 {
+  padding-bottom: 67.5%;
+}
+div.video.vimeo {
+  padding-top: 0;
+}
+
+.date {
+  font-size: smaller;
+  font-weight: normal;
+  vertical-align: top;
+}
+
+.center {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.copyright {
+  font-size: smaller;
+  text-align: center;
+}
+
+@media screen and (max-width: 640px) {
+  #content { width: 100%; }
+  h2#title { font-size: 18px; }
+  .story .item { margin: 16px 0 16px 0; }
+
+  .thumbnails {
+    display: block;
+    width: auto;
+  }
+  .thumbnails.float {
+    width: auto;
+  }
+  .thumbnails .row {
+    display: block;
+  }
+  .thumbnails .cell {
+    display: block;
+    width: auto;
+    float: none;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0.5em;
+  }
+  .thumbnails.float img {
+    max-width: 200px;
+    height: auto;
+  }
+  .story img {
+    max-width: 100%;
+    height: auto;
+  }
+  .photo img {
+    max-width: 100%;
+    height: auto;
+  }
+  .pages a, .thisPage {
+    padding: 2px 8px;
+    margin-right: 4px;
+  }
+}
+@media screen and (max-width: 480px) {
+  .thumbnails.float img {
+    max-width: 140px;
+    height: auto;
+  }
+}
+@media screen and (max-width: 360px) {
+  .thumbnails.float img {
+    max-width: 160px;
+    height: auto;
+  }
+}
+@media screen and (max-width: 320px) {
+  .thumbnails.float img {
+    max-width: 140px;
+    height: auto;
+  }
+}

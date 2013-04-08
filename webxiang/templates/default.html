@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load url from future %}
+
+{% block main %}
+{% if mode == "photo" %}
+<div id="menu">
+  <a id="levelTop" href="{% url 'index' %}">{% trans "all galleries" %}</a> /
+  <a href="{{ entry.link }}">{{ meta.title_gallery }}</a>
+</div>
+
+<div id="navigation">
+  {% if prev_entry %}<a id="prevPhoto" href="{{ prev_entry }}">&laquo; {% trans "previous" %}</a>{% else %}&laquo; {% trans "previous" %}{% endif %} |
+  {% if next_entry %}<a id="nextPhoto" href="{{ next_entry }}">{% trans "next" %} &raquo;</a>{% else %}{% trans "next" %} &raquo;{% endif %}
+</div>
+
+<div class="photo">
+  <a id="levelIndex" href="{{ entry.link }}" onclick="return navigateBack(this);">
+    <img src="{{ entry.url }}" alt="[photo]" {% if entry.size %}width="{{ entry.size.0 }}" height="{{ entry.size.1 }}"{% endif %} />
+  </a>
+  {% if entry.date %}<div class="date">{{ entry.date }}</div>{% endif %}
+  {% if entry.description %}<p class="description">{{ entry.description }}</p>{% endif %}
+  {% if entry.geo and meta.geo %}<div class="geo" data-geo="{{ entry.geo }}"></div>{% endif %}
+</div>
+{% else %}
+{% if album != "index" %}
+<div id="menu">
+  <a id="levelTop" href="{% url 'index' %}">{% trans "all galleries" %}</a> /
+</div>
+{% endif %}
+<h2 id="title">{{ meta.title_gallery }}</h2>
+{% if meta.description %}<div id="description">{{ meta.description|safe }}</div>{% endif %}
+
+{% url 'views.display' album=album as album_url %}
+{% spaceless %}
+{% if entries.paginator.num_pages > 1 %}
+<div class="pages">
+  {% if entries.has_previous %}
+  <a id="prevPage" href="{% if entries.previous_page_number > 1 %}?page={{ entries.previous_page_number }}{% else %}{{ album_url }}{% endif %}" title="{% trans 'previous page' %}">&laquo;</a>
+  {% endif %}
+  {% for i in entries.paginator.page_range_limited %}
+  {% if i == entries.number %}
+  <span class="thisPage">{{ i }}</span>
+  {% else %}
+  <a href="{% if i > 1 %}?page={{ i }}{% else %}{{ album_url }}{% endif %}" title="page {{ i }}">{{ i }}</a>
+  {% endif %}
+  {% endfor %}
+  {% if entries.has_next %}
+  <a id="nextPage" href="?page={{ entries.next_page_number }}" title="{% trans 'next page' %}">&raquo;</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endspaceless %}
+
+<div class="thumbnails">
+  {% for group in groups %}
+  <div class="row">
+    {% for entry in group %}
+    <div class="cell">
+      <div class="item">
+	{% if entry.title %}<h3>{{ entry.title }}</h3>{% endif %}
+	<a href="{{ entry.link }}" data-index="{{ entry.index }}">
+	  <img src="{{ entry.url }}" alt="[photo]" {% if entry.size %}width="{{ entry.size.0 }}" height="{{ entry.size.1 }}"{% endif %} />
+	</a>
+	{% if entry.comment %}<div class="comment">{{ entry.comment }}</div>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+<div class="clear"></div>
+{% endif %}
+
+<p class="copyright">&copy; {{ meta.copyright }}</p>
+{% endblock main %}

@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block main %}
+<div class="photo"><img src="{{ entry.url }}" alt="[photo]" /></div>
+{% if meta.copyright %}<p class="copyright">&copy; {{ meta.copyright }}</p>{% endif %}
+{% endblock main %}

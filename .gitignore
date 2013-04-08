@@ -1,0 +1,8 @@
+*.pyc
+*.pyo
+*.mo
+*~
+settings.py
+cached/
+static/
+webxiang/templates/user-*.html
