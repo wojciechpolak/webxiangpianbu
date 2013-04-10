@@ -66,8 +66,10 @@
     for (var i = 0; i < document.images.length; i++) {
       var img = document.images[i];
       if (!img.complete) {
-        if (msie)
+        if (msie) {
           img.style.filter = 'alpha(opacity=0)';
+          img.src = img.src; /* weird IE cached images fix */
+        }
         else
           img.style.opacity = 0;
         img.onload = function () {
@@ -88,8 +90,10 @@
       for (var i = 0; i < len; i++) {
         var img = document.images[i];
         if (!img.complete) {
-          if (msie)
+          if (msie) {
             img.style.filter = 'alpha(opacity=0)';
+            img.src = img.src;
+          }
           else
             img.style.opacity = 0;
           if (inprogress == 0) {
@@ -182,97 +186,102 @@
         });
 
       $('html').swipe ()
-	.bind ('swipeLeft', function () {
-	    follow (GID ('nextPhoto') || GID ('nextPage'));
-	  })
-	.bind ('swipeRight', function () {
-	    follow (GID ('prevPhoto') || GID ('prevPage'));
-	  });
+        .bind ('swipeLeft', function () {
+            follow (GID ('nextPhoto') || GID ('nextPage'));
+          })
+        .bind ('swipeRight', function () {
+            follow (GID ('prevPhoto') || GID ('prevPage'));
+          });
     });
 }());
 
 (function ($) {
-  $.fn.swipe = function () {
+  $.fn.swipe = function (preventDefault) {
     var has_touch = 'ontouchstart' in window || navigator.msMaxTouchPoints;
     return this.each (function () {
-      	var startX;
-	var startY;
-	var step = 50;
-	var $this = $(this);
+        var startX;
+        var startY;
+        var step = 50;
+        var $this = $(this);
 
-	if (has_touch)
-	  $this.bind ('touchstart', touchstart);
+        if (has_touch)
+          $this.bind ('touchstart', touchstart);
 
-	function touchstart (event) {
-	  var t = event.originalEvent.touches;
-	  if (t && t.length) {
-	    startX = t[0].pageX;
-	    startY = t[0].pageY;
-	    $this.bind ('touchmove', touchmove);
-	  }
-	}
+        function touchstart (event) {
+          if (preventDefault)
+            event.preventDefault ();
+          var t = event.originalEvent.touches;
+          if (t && t.length) {
+            startX = t[0].pageX;
+            startY = t[0].pageY;
+            $this.bind ('touchmove', touchmove);
+          }
+        }
 
-	function touchmove (event) {
-	  var t = event.originalEvent.touches;
-	  if (t && t.length) {
-	    var deltaX = startX - t[0].pageX;
-	    var deltaY = startY - t[0].pageY;
+        function touchmove (event) {
+          if (preventDefault)
+            event.preventDefault ();
+          var t = event.originalEvent.touches;
+          if (t && t.length) {
+            var deltaX = startX - t[0].pageX;
+            var deltaY = startY - t[0].pageY;
 
-	    if (deltaX >= step)
-	      $this.trigger ('swipeLeft');
-	    else if (deltaX <= -step)
-	      $this.trigger ('swipeRight');
-	    if (deltaY >= step)
-	      $this.trigger ('swipeUp');
-	    else if (deltaY <= -step)
-	      $this.trigger ('swipeDown');
+            if (deltaX >= step)
+              $this.trigger ('swipeLeft');
+            else if (deltaX <= -step)
+              $this.trigger ('swipeRight');
+            if (deltaY >= step)
+              $this.trigger ('swipeUp');
+            else if (deltaY <= -step)
+              $this.trigger ('swipeDown');
 
-	    if (Math.abs (deltaX) >= step ||
-		Math.abs (deltaY) >= step) {
-	      $this.unbind ('touchmove', touchmove);
-	    }
-	  }
-	}
+            if (Math.abs (deltaX) >= step ||
+                Math.abs (deltaY) >= step) {
+              $this.unbind ('touchmove', touchmove);
+            }
+          }
+        }
 
-	if (!has_touch)
-	  $this.bind ('mousedown', mousestart);
+        if (!has_touch)
+          $this.bind ('mousedown', mousestart);
 
-	function mousestart (event) {
-	  console.log (event);
-	  var t = event.originalEvent;
-	  if (t) {
-	    startX = t.pageX;
-	    startY = t.pageY;
-	    $this.bind ('mousemove', mousemove);
-	    $this.bind ('mouseup', function () {
-		$this.unbind ('mousemove', mousemove);
-	      });
-	  }
-	  event.preventDefault ();
-	}
+        function mousestart (event) {
+          if (preventDefault)
+            event.preventDefault ();
+          var t = event.originalEvent;
+          if (t) {
+            startX = t.pageX;
+            startY = t.pageY;
+            $this.bind ('mousemove', mousemove);
+            $this.bind ('mouseup', function () {
+                $this.unbind ('mousemove', mousemove);
+              });
+          }
+        }
 
-	function mousemove (event) {
-	  var t = event.originalEvent;
-	  if (t) {
-	    var deltaX = startX - t.pageX;
-	    var deltaY = startY - t.pageY;
+        function mousemove (event) {
+          if (preventDefault)
+            event.preventDefault ();
+          var t = event.originalEvent;
+          if (t) {
+            var deltaX = startX - t.pageX;
+            var deltaY = startY - t.pageY;
 
-	    if (deltaX >= step)
-	      $this.trigger ('swipeLeft');
-	    else if (deltaX <= -step)
-	      $this.trigger ('swipeRight');
-	    if (deltaY >= step)
-	      $this.trigger ('swipeUp');
-	    else if (deltaY <= -step)
-	      $this.trigger ('swipeDown');
+            if (deltaX >= step)
+              $this.trigger ('swipeLeft');
+            else if (deltaX <= -step)
+              $this.trigger ('swipeRight');
+            if (deltaY >= step)
+              $this.trigger ('swipeUp');
+            else if (deltaY <= -step)
+              $this.trigger ('swipeDown');
 
-	    if (Math.abs (deltaX) >= step ||
-		Math.abs (deltaY) >= step) {
-	      $this.unbind ('mousemove', mousemove);
-	    }
-	  }
-	  event.preventDefault ();
-	}
+            if (Math.abs (deltaX) >= step ||
+                Math.abs (deltaY) >= step) {
+              $this.unbind ('mousemove', mousemove);
+            }
+          }
+        }
       });
   };
 })(jQuery);

@@ -301,6 +301,8 @@ def _open_albumfile(album_name):
             data = json.loads(album_content)
         except Exception, e:
             raise e
+    else:
+        raise Http404
 
     # save cache file
     fp = open(cachefile, 'w')
