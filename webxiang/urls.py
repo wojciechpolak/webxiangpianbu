@@ -28,6 +28,6 @@ urlpatterns += patterns(
     url(r'^$', 'views.display', name='index'),
     url(r'^(?P<photo>[\w-]+\.jpg)$', 'views.onephoto', name='onephoto'),
     url(r'^(?P<album>[\w-]+)/$', 'views.display', name='album'),
-    url(r'^(?P<album>[\w-]+)/(?P<photo>[\w\-\.]+)$', 'views.display',
+    url(r'^(?P<album>[\w-]+)/(?P<photo>[\w\-\./]+)$', 'views.display',
         name='photo'),
 )

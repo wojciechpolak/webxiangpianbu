@@ -22,7 +22,7 @@ import marshal
 import py_compile
 
 from django.conf import settings
-from django.http import Http404
+from django.http import Http404, HttpResponsePermanentRedirect
 from django.shortcuts import render
 from django.template import TemplateDoesNotExist
 from django.core.urlresolvers import reverse
@@ -87,35 +87,68 @@ def display(request, album='index', photo=None):
         mode = 'photo'
         lentries = len(data['entries'])
 
-        if photo.isdigit():
-            photo_idx = int(photo)
+        photo_idx = photo.split('/')[0]
+        if photo_idx.isdigit():
+            photo_idx = int(photo_idx)
         else:
+            photo_idx = None
             if not photo.lower().endswith('.jpg'):
                 photo += '.jpg'
             for idx, ent in enumerate(data['entries']):
-                if photo == ent.get('image'):
+                if isinstance(ent['image'], basestring):
+                    f = ent['image']
+                else:
+                    f = ent['image']['file']
+                if photo == f:
                     if reverse_order:
                         photo_idx = lentries - idx
                     else:
                         photo_idx = idx + 1
                     break
+            if photo_idx is None:
+                raise Http404
 
         if reverse_order:
             idx = lentries - photo_idx
-            data['prev_entry'] = photo_idx + \
-                1 if photo_idx < lentries else None
-            data['next_entry'] = photo_idx - 1 if photo_idx > 1 else None
             data['meta']['title'] = '#%s - %s' % \
                 (photo_idx, data['meta']['title'] or album)
+            prev_idx = photo_idx + 1 if photo_idx < lentries else None
+            next_idx = photo_idx - 1 if photo_idx > 1 else None
         else:
             idx = photo_idx - 1
-            data['prev_entry'] = photo_idx - 1 if photo_idx > 1 else None
-            data['next_entry'] = photo_idx + \
-                1 if photo_idx < lentries else None
             data['meta']['title'] = '#%s - %s' % \
                 (photo_idx, data['meta']['title'] or album)
+            prev_idx = photo_idx - 1 if photo_idx > 1 else None
+            next_idx = photo_idx + 1 if photo_idx < lentries else None
 
         entry = data['entry'] = data['entries'][idx]
+
+        # determine canonical photo url
+        canon_link = '%s/%s' % (photo_idx, entry['slug']) \
+            if 'slug' in entry else photo_idx
+        canonical_url = reverse('photo', kwargs={
+                'album': album,
+                'photo': canon_link})
+        if canonical_url != request.path:
+            return HttpResponsePermanentRedirect(canonical_url)
+
+        if prev_idx is not None:
+            slug = data['entries'][prev_idx - 1].get('slug')
+            prev_photo = '%s/%s' % (prev_idx, slug) if slug else prev_idx
+            data['prev_entry'] = reverse('photo', kwargs={
+                    'album': album,
+                    'photo': prev_photo})
+        else:
+            data['prev_entry'] = None
+
+        if next_idx is not None:
+            slug = data['entries'][next_idx - 1].get('slug')
+            next_photo = '%s/%s' % (next_idx, slug) if slug else next_idx
+            data['next_entry'] = reverse('photo', kwargs={
+                    'album': album,
+                    'photo': next_photo})
+        else:
+            data['next_entry'] = None
 
         if isinstance(entry['image'], basestring):
             f = entry['image']
@@ -135,10 +168,9 @@ def display(request, album='index', photo=None):
         else:
             page = int(math.ceil(photo_idx / float(data['meta']['ppp'])))
 
+        entry['link'] = reverse('album', kwargs={'album': album})
         if page > 1:
-            entry['link'] = './?page=%s' % page
-        else:
-            entry['link'] = './'
+            entry['link'] += '?page=%s' % page
 
         data['meta']['copyright'] = entry.get('copyright',
                                               data['meta'].get('copyright'))
@@ -196,7 +228,12 @@ def display(request, album='index', photo=None):
                     entry['link'] = reverse('album', kwargs={
                         'album': entry['album']})
                 else:
-                    entry['link'] = entry['index']
+                    slug = entry.get('slug')
+                    link = '%s/%s' % (entry['index'], slug) \
+                        if slug else entry['index']
+                    entry['link'] = reverse('photo', kwargs={
+                            'album': album,
+                            'photo': link})
 
             else:  # non-image entries
                 video = entry.get('video')
