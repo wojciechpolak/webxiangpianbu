@@ -153,14 +153,17 @@ def display(request, album='index', photo=None):
         if isinstance(entry['image'], basestring):
             f = entry['image']
             path = meta_path
+            size = entry.get('size') or data[
+                'meta'].get('default-image-size')
         else:
             f = entry['image']['file']
             path = entry['image'].get('path', meta_path)
+            size = entry['image'].get('size') or data[
+                'meta'].get('default-image-size')
 
         path = urlparse.urljoin(baseurl, path)
         entry['url'] = urlparse.urljoin(path, f)
-        entry['size'] = entry.get('size') or data[
-            'meta'].get('default-image-size')
+        entry['size'] = size
 
         if reverse_order:
             page = int(math.floor((lentries - photo_idx) /

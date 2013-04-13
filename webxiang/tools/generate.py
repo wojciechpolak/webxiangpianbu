@@ -174,10 +174,7 @@ def main():
         os.path.basename(opts['outputdir']) or 'foo'
     album['meta']['path'] = album_name + '/'
 
-    if 'album-dir' in opts:
-        album_dir = opts['album-dir']
-    else:
-        album_dir = opts['outputdir']
+    album_dir = opts['album-dir'] or opts['outputdir']
 
     if opts['album-format'] in ('json', 'all'):
         # output json
