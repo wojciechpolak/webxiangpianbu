@@ -150,16 +150,20 @@ def display(request, album='index', photo=None):
         else:
             data['next_entry'] = None
 
-        if isinstance(entry['image'], basestring):
+        img = entry.get('image')
+        if isinstance(img, basestring):
             f = entry['image']
             path = meta_path
             size = entry.get('size') or data[
                 'meta'].get('default-image-size')
-        else:
+        elif img:
             f = entry['image']['file']
             path = entry['image'].get('path', meta_path)
             size = entry['image'].get('size') or data[
                 'meta'].get('default-image-size')
+        else:  # video
+            _parse_video_entry(entry)
+            f = path = size = ''
 
         path = urlparse.urljoin(baseurl, path)
         entry['url'] = urlparse.urljoin(path, f)
@@ -239,18 +243,8 @@ def display(request, album='index', photo=None):
                             'photo': link})
 
             else:  # non-image entries
-                video = entry.get('video')
-                if video:
-                    if 'youtube.com/' in video:
-                        for v in re.findall(r'https?://(www\.)?youtube\.com/'
-                                            'watch\?v=([\-\w]+)(\S*)', video):
-                            entry['type'] = 'youtube'
-                            entry['vid'] = v[1]
-                    elif 'vimeo.com/' in video:
-                        for v in re.findall(
-                                r'https?://(www\.)?vimeo\.com/(\d+)', video):
-                            entry['type'] = 'vimeo'
-                            entry['vid'] = v[1]
+                _parse_video_entry(entry)
+
 
         # grouping entries into columns
         columns = int(data['meta'].get('columns', 3))
@@ -296,6 +290,21 @@ def onephoto(request, photo):
         },
     }
     return render(request, 'photo.html', ctx)
+
+
+def _parse_video_entry(entry):
+    video = entry.get('video')
+    if video:
+        if 'youtube.com/' in video:
+            for v in re.findall(r'https?://(www\.)?youtube\.com/'
+                                'watch\?v=([\-\w]+)(\S*)', video):
+                entry['type'] = 'youtube'
+                entry['vid'] = v[1]
+        elif 'vimeo.com/' in video:
+            for v in re.findall(
+                    r'https?://(www\.)?vimeo\.com/(\d+)', video):
+                entry['type'] = 'vimeo'
+                entry['vid'] = v[1]
 
 
 def _open_albumfile(album_name):
