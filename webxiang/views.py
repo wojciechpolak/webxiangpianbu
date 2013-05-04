@@ -133,7 +133,10 @@ def display(request, album='index', photo=None):
             return HttpResponsePermanentRedirect(canonical_url)
 
         if prev_idx is not None:
-            slug = data['entries'][prev_idx - 1].get('slug')
+            if reverse_order:
+                slug = data['entries'][idx - 1].get('slug')
+            else:
+                slug = data['entries'][prev_idx - 1].get('slug')
             prev_photo = '%s/%s' % (prev_idx, slug) if slug else prev_idx
             data['prev_entry'] = reverse('photo', kwargs={
                     'album': album,
@@ -142,7 +145,10 @@ def display(request, album='index', photo=None):
             data['prev_entry'] = None
 
         if next_idx is not None:
-            slug = data['entries'][next_idx - 1].get('slug')
+            if reverse_order:
+                slug = data['entries'][idx + 1].get('slug')
+            else:
+                slug = data['entries'][next_idx - 1].get('slug')
             next_photo = '%s/%s' % (next_idx, slug) if slug else next_idx
             data['next_entry'] = reverse('photo', kwargs={
                     'album': album,
