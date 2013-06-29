@@ -24,6 +24,7 @@
   var queue = [];
   var mem = {};
   var memCnt = 0;
+  var cookie_showmap = 'showMap';
 
   function GID (id) {
     return document.getElementById (id);
@@ -166,6 +167,18 @@
         follow ('levelParent') ||
         follow ('levelTop');
       break;
+    case 77: /* m */
+      $('.geo').trigger ('toggle').each (function () {
+	  if ($(this).is (':visible')) {
+	    var t = $(this).offset ().top;
+	    $('html,body').animate ({scrollTop: t}, 200);
+	  }
+	});
+      if (read_cookie (cookie_showmap))
+	write_cookie (cookie_showmap, '', -1);
+      else
+	write_cookie (cookie_showmap, 1, 31);
+      break;
     }
   };
 
@@ -175,15 +188,29 @@
       else
         fadeInRandomly ();
 
-      $('.geo').each (function () {
-          var geo = $(this);
-          var size = geo.width () + 'x100';
-          var latlng = geo.data ('geo');
-          var zoom = latlng == '0,0' ? 1 : 11;
-          geo.html ('<a href="http://maps.google.com/maps?q='+ latlng +
-                    '" target="_blank"><img src="//maps.googleapis.com/maps/api/staticmap?sensor=false&zoom='+
-                    zoom +'&size='+ size +'&scale=2&markers='+ latlng +'" alt="Map"/></a>');
-        });
+      $('.geo')
+	.bind ('toggle', function () {
+	    $(this).trigger ($(this).is (':visible') ? 'hide' : 'show');
+	  })
+	.bind ('show', function () {
+	    var geo = $(this);
+	    var size = geo.width () + 'x100';
+	    var latlng = geo.data ('geo');
+	    var zoom = latlng == '0,0' ? 1 : 11;
+	    geo.html ('<a href="http://maps.google.com/maps?q='+ latlng +
+		      '" target="_blank"><img src="//maps.googleapis.com/maps/api/staticmap?sensor=false&zoom='+
+		      zoom +'&size='+ size +'&scale=2&markers='+ latlng +'" alt="Map"/></a>');
+	    geo.fadeIn ();
+	  })
+	.bind ('hide', function () {
+	    $(this).hide ();
+	  })
+	.each (function () {
+	    if (!read_cookie (cookie_showmap))
+	      $(this).trigger ('hide');
+	    else
+	      $(this).trigger ('show');
+	  });
 
       $('html').swipe ()
         .bind ('swipeLeft', function () {
@@ -193,6 +220,29 @@
             follow (GID ('prevPhoto') || GID ('prevPage'));
           });
     });
+
+  function read_cookie (name) {
+    var nameEq = name + '=';
+    var ca = document.cookie.split (';');
+    for (var i = 0; i < ca.length; i++) {
+      var c = ca[i];
+      while (c.charAt (0) == ' ')
+	c = c.substring (1, c.length);
+      if (c.indexOf (nameEq) == 0)
+	return c.substring (nameEq.length, c.length);
+    }
+    return null;
+  }
+
+  function write_cookie (name, value, days) {
+    var expires = '';
+    if (days) {
+      var date = new Date ();
+      date.setTime (date.getTime () + (days * 86400000));
+      var expires = '; expires=' + date.toGMTString ();
+    }
+    document.cookie = name +'='+ value + expires + '; path=/';
+  }
 }());
 
 (function ($) {
