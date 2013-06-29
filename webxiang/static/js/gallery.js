@@ -169,15 +169,15 @@
       break;
     case 77: /* m */
       $('.geo').trigger ('toggle').each (function () {
-	  if ($(this).is (':visible')) {
-	    var t = $(this).offset ().top;
-	    $('html,body').animate ({scrollTop: t}, 200);
-	  }
-	});
+          if ($(this).is (':visible')) {
+            var t = $(this).offset ().top;
+            $('html,body').animate ({scrollTop: t}, 200);
+          }
+        });
       if (read_cookie (cookie_showmap))
-	write_cookie (cookie_showmap, '', -1);
+        write_cookie (cookie_showmap, '', -1);
       else
-	write_cookie (cookie_showmap, 1, 31);
+        write_cookie (cookie_showmap, 1, 31);
       break;
     }
   };
@@ -189,28 +189,28 @@
         fadeInRandomly ();
 
       $('.geo')
-	.bind ('toggle', function () {
-	    $(this).trigger ($(this).is (':visible') ? 'hide' : 'show');
-	  })
-	.bind ('show', function () {
-	    var geo = $(this);
-	    var size = geo.width () + 'x100';
-	    var latlng = geo.data ('geo');
-	    var zoom = latlng == '0,0' ? 1 : 11;
-	    geo.html ('<a href="http://maps.google.com/maps?q='+ latlng +
-		      '" target="_blank"><img src="//maps.googleapis.com/maps/api/staticmap?sensor=false&zoom='+
-		      zoom +'&size='+ size +'&scale=2&markers='+ latlng +'" alt="Map"/></a>');
-	    geo.fadeIn ();
-	  })
-	.bind ('hide', function () {
-	    $(this).hide ();
-	  })
-	.each (function () {
-	    if (!read_cookie (cookie_showmap))
-	      $(this).trigger ('hide');
-	    else
-	      $(this).trigger ('show');
-	  });
+        .bind ('toggle', function () {
+            $(this).trigger ($(this).is (':visible') ? 'hide' : 'show');
+          })
+        .bind ('show', function () {
+            var geo = $(this);
+            var size = geo.width () + 'x100';
+            var latlng = geo.data ('geo');
+            var zoom = latlng == '0,0' ? 1 : 11;
+            geo.html ('<a href="http://maps.google.com/maps?q='+ latlng +
+                      '" target="_blank"><img src="//maps.googleapis.com/maps/api/staticmap?sensor=false&zoom='+
+                      zoom +'&size='+ size +'&scale=2&markers='+ latlng +'" alt="Map"/></a>');
+            geo.fadeIn ();
+          })
+        .bind ('hide', function () {
+            $(this).hide ();
+          })
+        .each (function () {
+            if (!read_cookie (cookie_showmap))
+              $(this).trigger ('hide');
+            else
+              $(this).trigger ('show');
+          });
 
       $('html').swipe ()
         .bind ('swipeLeft', function () {
@@ -227,9 +227,9 @@
     for (var i = 0; i < ca.length; i++) {
       var c = ca[i];
       while (c.charAt (0) == ' ')
-	c = c.substring (1, c.length);
+        c = c.substring (1, c.length);
       if (c.indexOf (nameEq) == 0)
-	return c.substring (nameEq.length, c.length);
+        return c.substring (nameEq.length, c.length);
     }
     return null;
   }
