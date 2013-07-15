@@ -134,6 +134,12 @@
       setTimeout (function () { fadeInNextRandom (n); }, 400);
   }
 
+  function scrollToElement (el, offset) {
+    offset = offset || 0;
+    var t = $(el).offset ().top + offset;
+    $('html,body').animate ({scrollTop: t}, 200);
+  }
+
   window.navigateBack = function (a) {
     if (typeof document.referrer != 'undefined' &&
         typeof a != 'undefined') {
@@ -169,15 +175,37 @@
       break;
     case 77: /* m */
       $('.geo').trigger ('toggle').each (function () {
-          if ($(this).is (':visible')) {
-            var t = $(this).offset ().top;
-            $('html,body').animate ({scrollTop: t}, 200);
-          }
+          if ($(this).is (':visible'))
+            scrollToElement (this);
         });
       if (read_cookie (cookie_showmap))
         write_cookie (cookie_showmap, '', -1);
       else
         write_cookie (cookie_showmap, 1, 31);
+      break;
+    case 74: /* j - navigate next in story index */
+      var $cur = $('#story .item.current');
+      if (!$cur.length) {
+        $cur = $('#story .item:first').addClass ('current');
+        $cur.length && scrollToElement ($cur, -16);
+      }
+      else {
+        var $next = $cur.next();
+        $next.addClass ('current').siblings().removeClass ('current');
+        $next.length && scrollToElement ($next, -16);
+      }
+      break;
+    case 75: /* k - navigate prev in story index */
+      var $cur = $('#story .item.current');
+      if (!$cur.length) {
+        $cur = $('#story .item:last').addClass ('current');
+        $cur.length && scrollToElement ($cur, -16);
+      }
+      else {
+        var $prev = $cur.prev();
+        $prev.addClass ('current').siblings().removeClass ('current');
+        $prev.length && scrollToElement ($prev, -16);
+      }
       break;
     }
   };
