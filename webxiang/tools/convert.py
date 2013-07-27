@@ -43,13 +43,20 @@ def main():
             if o in ('-y', '--overwrite'):
                 opts['overwrite'] = True
 
-        opts['input'] = glob.glob(args[0])
+        if len(args):
+            opts['input'] = glob.glob(args[0])
+        else:
+            raise getopt.GetoptError('')
         if len(args) > 1:
             opts['output-dir'] = os.path.dirname(args[1])
             opts['output-name'] = os.path.basename(args[1])
     except getopt.GetoptError:
         print "Usage: %s [OPTION...] INPUT OUTPUT" % sys.argv[0]
         print "%s -- album converter" % sys.argv[0]
+        print """
+ Options               Default values
+ -y, --overwrite       [False]
+"""
         sys.exit(1)
 
     if opts['output-dir'] and not os.path.exists(opts['output-dir']):

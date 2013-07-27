@@ -119,11 +119,34 @@ def main():
             elif o == '--skip-thumb-gen':
                 opts['skip-thumb-gen'] = True
 
-        opts['inputdir'] = args[0]
-        opts['outputdir'] = args[1]
+        if len(args):
+            opts['inputdir'] = args[0]
+            opts['outputdir'] = args[1]
+        else:
+            raise getopt.GetoptError('')
     except getopt.GetoptError:
         print "Usage: %s [OPTION...] INPUT-DIR OUTPUT-DIR" % sys.argv[0]
         print "%s -- album generator" % sys.argv[0]
+        print """
+ Options                      Default values
+ --album-name=STRING          [output dir's name]
+ --album-dir=STRING           [output dir]
+ --album-format=STRING        [yaml] (yaml|json|all)
+ --copyright=STRING           [None]
+ --template=STRING            [None]
+ --style=STRING               [None]
+ --images-quality=INTEGER     [95] (0..100)
+ --images-sharpness=FLOAT     [1.4]
+ --images-maxsize=WxH         [900x640]
+ --images-default-size=WxH    [None]
+ --thumbs-skip                [False]
+ --thumbs-quality=INTEGER     [90] (0..100)
+ --thumbs-size=WxH            [180x180]
+ --show-geo                   [True]
+ --correct-orientation        [True]
+ --skip-image-gen             [False]
+ --skip-thumb-gen             [False]
+"""
         sys.exit(1)
 
     if not os.path.exists(opts['outputdir']):

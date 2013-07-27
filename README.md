@@ -34,6 +34,7 @@ generate.py -- generates albums from photo files.
 
     $ tools/generate.py --album-dir=albums/ ~/photos/vacation/
       ~/webxiang/static/data/vacation
+    $ tools/generate.py --help
 
 convert.py -- converts albums between different formats (YAML, JSON).
 
