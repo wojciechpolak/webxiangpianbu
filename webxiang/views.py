@@ -56,6 +56,7 @@ def display(request, album='index', photo=None):
             'ppp': 36,
             'reverse-order': False,
             'default-thumb-size': (180, 180),
+            'cover': None,
         },
         'entries': [],
     }
@@ -263,6 +264,9 @@ def display(request, album='index', photo=None):
 
     if not data['meta']['style'].endswith('.css'):
         data['meta']['style'] += '.css'
+
+    if data['meta']['cover'] and not data['meta']['cover'].startswith('/'):
+        data['meta']['cover'] = urlparse.urljoin(path, data['meta']['cover'])
 
     ctx = {
         'mode': mode,
