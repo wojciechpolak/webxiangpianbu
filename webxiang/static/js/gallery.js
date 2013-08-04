@@ -242,9 +242,13 @@
 
       $('html').swipe ()
         .bind ('swipeLeft', function () {
+            if (window.getSelection && window.getSelection ().toString ())
+              return;
             follow (GID ('nextPhoto') || GID ('nextPage'));
           })
         .bind ('swipeRight', function () {
+            if (window.getSelection && window.getSelection ().toString ())
+              return;
             follow (GID ('prevPhoto') || GID ('prevPage'));
           });
     });
