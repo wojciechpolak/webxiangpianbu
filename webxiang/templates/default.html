@@ -3,12 +3,14 @@
 {% load url from future %}
 
 {% block main %}
-{% if mode == "photo" %}
+{% if not meta.custom_menu %}
 <div id="menu">
   <a id="levelTop" href="{% url 'index' %}">{% trans "all galleries" %}</a> /
-  <a href="{{ entry.link }}">{{ meta.title_gallery }}</a>
+  {% if mode == "photo" %}<a href="{{ entry.link }}">{{ meta.title_gallery }}</a>{% endif %}
 </div>
+{% else %}{% include "user-menu.html" %}{% endif %}
 
+{% if mode == "photo" %}
 <div id="navigation">
   {% if prev_entry %}<a id="prevPhoto" href="{{ prev_entry }}">&laquo; {% trans "previous" %}</a>{% else %}&laquo; {% trans "previous" %}{% endif %} |
   {% if next_entry %}<a id="nextPhoto" href="{{ next_entry }}">{% trans "next" %} &raquo;</a>{% else %}{% trans "next" %} &raquo;{% endif %}
@@ -27,11 +29,6 @@
   {% if entry.geo and meta.geo %}<div class="geo" data-geo="{{ entry.geo }}"></div>{% endif %}
 </div>
 {% else %}
-{% if album != "index" %}
-<div id="menu">
-  <a id="levelTop" href="{% url 'index' %}">{% trans "all galleries" %}</a> /
-</div>
-{% endif %}
 <h2 id="title">{{ meta.title_gallery }}</h2>
 {% if meta.description %}<div id="description">{{ meta.description|safe }}</div>{% endif %}
 

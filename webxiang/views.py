@@ -52,6 +52,7 @@ def display(request, album='index', photo=None):
             'style': 'base.css',
             'title': 'Albums',
             'robots': 'noindex,nofollow',
+            'custom_menu': False,
             'columns': 3,
             'ppp': 36,
             'reverse-order': False,
