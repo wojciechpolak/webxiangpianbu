@@ -171,7 +171,8 @@ def display(request, album='index', photo=None):
                 'meta'].get('default-image-size')
         else:  # video
             _parse_video_entry(entry)
-            f = path = size = ''
+            path = meta_path
+            f = size = ''
 
         path = urlparse.urljoin(baseurl, path)
         entry['url'] = urlparse.urljoin(path, f)
@@ -251,6 +252,7 @@ def display(request, album='index', photo=None):
                             'photo': link})
 
             else:  # non-image entries
+                path = urlparse.urljoin(baseurl, meta_path)
                 _parse_video_entry(entry)
 
 
@@ -263,7 +265,7 @@ def display(request, album='index', photo=None):
                     *(iter(data['entries'].object_list),) * columns)
             )
 
-    if not data['meta']['style'].endswith('.css'):
+    if data['meta']['style'] and not data['meta']['style'].endswith('.css'):
         data['meta']['style'] += '.css'
 
     if data['meta']['cover'] and not data['meta']['cover'].startswith('/'):

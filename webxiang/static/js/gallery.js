@@ -136,6 +136,10 @@
 
   function scrollToElement (el, offset) {
     offset = offset || 0;
+    if (offset == 'c') {
+      var diff = $(window).height () - $(el).height ();
+      offset = diff > 16 ? - parseInt (diff / 2, 10) : 0;
+    }
     var t = $(el).offset ().top + offset;
     $('html,body').animate ({scrollTop: t}, 200);
   }
@@ -187,24 +191,26 @@
       var $cur = $('#story .item.current');
       if (!$cur.length) {
         $cur = $('#story .item:first').addClass ('current');
-        $cur.length && scrollToElement ($cur, -16);
+        $cur.length && scrollToElement ($cur, 'c');
       }
       else {
         var $next = $cur.next();
+        if (!$next.length) $next = $('#story .item:first');
         $next.addClass ('current').siblings().removeClass ('current');
-        $next.length && scrollToElement ($next, -16);
+        $next.length && scrollToElement ($next, 'c');
       }
       break;
     case 75: /* k - navigate prev in story index */
       var $cur = $('#story .item.current');
       if (!$cur.length) {
         $cur = $('#story .item:last').addClass ('current');
-        $cur.length && scrollToElement ($cur, -16);
+        $cur.length && scrollToElement ($cur, 'c');
       }
       else {
         var $prev = $cur.prev();
+        if (!$prev.length) $prev = $('#story .item:last');
         $prev.addClass ('current').siblings().removeClass ('current');
-        $prev.length && scrollToElement ($prev, -16);
+        $prev.length && scrollToElement ($prev, 'c');
       }
       break;
     }
