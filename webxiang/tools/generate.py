@@ -47,6 +47,7 @@ def main():
         'copyright': None,
         'template': None,
         'style': None,
+        'ppp': 12,  # pictures per page
         'images-quality': 95,
         'images-maxsize': [900, 640],
         'images-sharpness': 1.4,
@@ -67,6 +68,7 @@ def main():
                                      'copyright=',
                                      'template=',
                                      'style=',
+                                     'ppp=',
                                      'images-quality=',
                                      'images-sharpness=',
                                      'images-maxsize=',
@@ -92,6 +94,8 @@ def main():
                 opts['template'] = arg
             elif o == '--style':
                 opts['style'] = arg
+            elif o == '--ppp':
+                opts['ppp'] = int(arg)
             elif o == '--show-geo':
                 opts['show-geo'] = True
 
@@ -135,6 +139,7 @@ def main():
  --copyright=STRING           [None]
  --template=STRING            [None]
  --style=STRING               [None]
+ --ppp=INTEGER                [12]
  --images-quality=INTEGER     [95] (0..100)
  --images-sharpness=FLOAT     [1.4]
  --images-maxsize=WxH         [900x640]
@@ -156,7 +161,7 @@ def main():
         'meta': {
             'path': '',
             'title': '',
-            'ppp': 12,
+            'ppp': opts['ppp'],
             'columns': 4,
             'copyright': '%s' % date.today().year,
             'default-image-size': [],
@@ -303,16 +308,21 @@ def process_image(opts, album, fname):
     if list(img.size) != album['meta']['default-image-size']:
         data['image'] = {'file': fname, 'size': list(img.size)}
 
+    output_fname = opts['outputdir'] + '/' + fname
+    if os.path.exists(output_fname):
+        print 'file exists, skipping... %s' % output_fname
+        return
+
     if not opts['skip-image-gen']:
         if opts['images-sharpness']:
             sharpener = ImageEnhance.Sharpness(img)
             img = sharpener.enhance(opts['images-sharpness'])
 
         ImageFile.MAXBLOCK = img.size[0] * img.size[1]
-        img.save(opts['outputdir'] + '/' + fname, 'JPEG', optimize=True,
+        img.save(output_fname, 'JPEG', optimize=True,
                  quality=opts['images-quality'], progressive=False)
 
-        print 'saved %s' % opts['outputdir'] + '/' + fname
+        print 'saved %s' % output_fname
 
 
 def gen_thumbnails(opts, img_blob, fname):
@@ -321,6 +331,11 @@ def gen_thumbnails(opts, img_blob, fname):
     fname = '%s-%dx%d.%s' % (''.join(fn[0:-1]), size[0], size[1], fn[-1])
 
     if opts['skip-thumb-gen']:
+        return fname
+
+    output_fname = opts['outputdir'] + '/' + fname
+    if os.path.exists(output_fname):
+        print 'file exists, skipping... %s' % output_fname
         return fname
 
     img = img_blob.copy()
@@ -342,10 +357,10 @@ def gen_thumbnails(opts, img_blob, fname):
     img = img.crop((left, upper, right, lower))
     img.thumbnail(size, Image.ANTIALIAS)
     ImageFile.MAXBLOCK = 131072
-    img.save(opts['outputdir'] + '/' + fname, 'JPEG', optimize=True,
+    img.save(output_fname, 'JPEG', optimize=True,
              quality=opts['thumbs-quality'], progressive=True)
 
-    print 'saved %s' % opts['outputdir'] + '/' + fname
+    print 'saved %s' % output_fname
     return fname
 
 
