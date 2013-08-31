@@ -18,6 +18,29 @@
     <div id="content">
       {% block main %}{% endblock main %}
     </div><!-- /content -->
+
+    {% if album != "index" %}<aside>
+      <div id="overlay" style="display:none"></div>
+      <div id="show-help" title="{% trans 'Help' %}">?</div>
+      <div id="help" class="dialog" style="display:none">
+	<div class="dialog-content">
+	  <div id="dialog-message">
+	    <h4>{% trans "Keyboard Shortcuts" %}</h4>
+	    <p>
+	      <b>t</b> &ndash; {% trans "return to top menu" %}<br/>
+	      <b>u</b> &ndash; {% trans "navigate level up" %}<br/>
+	      <b>m</b> &ndash; {% trans "toggle geo map (when available)" %}<br/>
+	      <b>j</b> &ndash; {% trans "scroll down to next photo" %}<br/>
+	      <b>k</b> &ndash; {% trans "scroll up to previous photo" %}<br/>
+	      <b>n</b>, <b>&rarr;</b> {% trans "(right arrow) &ndash; next photo or page" %}<br/>
+	      <b>p</b>, <b>&larr;</b> {% trans "(left arrow) &ndash; previous photo or page" %}<br/>
+	    </p>
+	  </div>
+	  <span class="close button">{% trans "Close" %}</span>
+	</div>
+      </div>
+    </aside>{% endif %}
+
     {% include "user-footer.html" %}
   </body>
 </html>

@@ -144,6 +144,16 @@
     $('html,body').animate ({scrollTop: t}, 200);
   }
 
+  function showDialog (id) {
+    var $el = $(id);
+    var h = $(window).height ();
+    var w = $(window).width ();
+    var dtop = (h / 2) - ($el.height () / 1.5) + $(window).scrollTop ();
+    var dleft = (w / 2) - ($el.width () / 2);
+    $('#overlay').css ({height: h, width: w}).show ();
+    $el.css ({top: dtop, left: dleft}).fadeIn ('fast');
+  }
+
   window.navigateBack = function (a) {
     if (typeof document.referrer != 'undefined' &&
         typeof a != 'undefined') {
@@ -213,6 +223,12 @@
         $prev.length && scrollToElement ($prev, 'c');
       }
       break;
+    case 72: /* h - show dialog (help) */
+      showDialog('#help');
+      break;
+    case 27: /* esc - hide dialog */
+      $('.dialog .close').click ();
+      break;
     }
   };
 
@@ -231,7 +247,7 @@
             var size = geo.width () + 'x100';
             var latlng = geo.data ('geo');
             var zoom = latlng == '0,0' ? 1 : 11;
-            geo.html ('<a href="http://maps.google.com/maps?q='+ latlng +
+            geo.html ('<a href="https://maps.google.com/maps?q='+ latlng +
                       '" target="_blank"><img src="//maps.googleapis.com/maps/api/staticmap?sensor=false&zoom='+
                       zoom +'&size='+ size +'&scale=2&markers='+ latlng +'" alt="Map"/></a>');
             geo.fadeIn ();
@@ -257,6 +273,15 @@
               return;
             follow (GID ('prevPhoto') || GID ('prevPage'));
           });
+
+      $('#show-help').click (function (e) {
+          e.preventDefault();
+          showDialog('#help');
+        });
+      $(document).on ('click', '.dialog .close', function (e) {
+          e.preventDefault ();
+          $('.dialog, #overlay').hide ();
+        });
     });
 
   function read_cookie (name) {

@@ -187,7 +187,11 @@ def main():
         data = fp.readlines()
         fp.close()
         opts['inputdir'] = data[0].strip()  # first line points directory
-        files = [line.strip() for line in data[1:] if line.strip()]
+        files = []
+        for line in data[1:]:
+            line = line.split('#')[0].strip()
+            if line:
+                files.append(line)
     else:
         files = os.listdir(opts['inputdir'])
         files.sort()

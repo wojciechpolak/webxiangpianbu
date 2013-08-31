@@ -4,8 +4,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: webxiang 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-04-07 17:23+0200\n"
-"PO-Revision-Date: 2013-04-07 17:24+0200\n"
+"POT-Creation-Date: 2013-08-30 21:23+0200\n"
+"PO-Revision-Date: 2013-08-30 21:23+0200\n"
 "Language-Team: Polish\n"
 "Language: pl\n"
 "MIME-Version: 1.0\n"
@@ -13,6 +13,36 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2)\n"
+
+msgid "Help"
+msgstr "Pomoc"
+
+msgid "Keyboard Shortcuts"
+msgstr "Skróty klawiszowe"
+
+msgid "return to top menu"
+msgstr "powrót do głównego menu"
+
+msgid "navigate level up"
+msgstr "nawigacja poziom wyżej"
+
+msgid "toggle geo map (when available)"
+msgstr "włącza/wyłącza geo mapę (jeśli dostępna)"
+
+msgid "scroll down to next photo"
+msgstr "nawiguje w dół do następnego zdjęcia"
+
+msgid "scroll up to previous photo"
+msgstr "nawiguje w górę do poprzedniego zdjęcia"
+
+msgid "(right arrow) &ndash; next photo or page"
+msgstr "(strzałka w prawo) &ndash; następne zdjęcie lub strona"
+
+msgid "(left arrow) &ndash; previous photo or page"
+msgstr "(strzałka w lewo) &ndash; poprzednie zdjęcie lub strona"
+
+msgid "Close"
+msgstr "Zamknij"
 
 msgid "all galleries"
 msgstr "galerie"
