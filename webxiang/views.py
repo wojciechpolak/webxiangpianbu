@@ -47,6 +47,7 @@ def display(request, album='index', photo=None):
 
     data = {
         'URL_PHOTOS': settings.WEBXIANG_PHOTOS_URL,
+        'LAZY_LOADING': settings.WEBXIANG_PHOTOS_LAZY,
         'meta': {
             'template': 'default.html',
             'style': 'base.css',

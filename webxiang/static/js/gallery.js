@@ -81,7 +81,7 @@
         $(img).addClass ('loaded');
       }
     }
- }
+  }
 
   function fadeInRandomly() {
     var top_fadein = 20;
@@ -233,8 +233,27 @@
   };
 
   $(document).ready (function () {
-      if (GID ('story'))
-        fadeInAll ();
+      if (GID ('story')) {
+        /* support image lazy loading plugins */
+        if ($.fn.lazyload) {
+          $('img').lazyload ({
+            threshold: 1200,
+            effect: 'fadeIn',
+            data_attribute: 'src'
+          });
+        }
+        else if ($.fn.lazy) {
+          $('img').lazy ({
+            threshold: 1200,
+            effect: 'fadeIn',
+            effectTime: 250,
+            enableThrottle: true,
+            throttle: 250
+          });
+        }
+        else
+          fadeInAll ();
+      }
       else
         fadeInRandomly ();
 

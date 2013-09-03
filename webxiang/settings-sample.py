@@ -138,6 +138,9 @@ WEBXIANG_PHOTOS_URL = '/data/'
 # Absolute path to the directory containing photo files (JPEGs).
 WEBXIANG_PHOTOS_ROOT = '/home/user/photos/data/'
 
+# Photos lazy loading (requires jQuery plugin)
+WEBXIANG_PHOTOS_LAZY = False
+
 ALBUM_DIR = os.path.join(SITE_ROOT, 'albums')
 CACHE_DIR = os.path.join(SITE_ROOT, 'cached')
 
