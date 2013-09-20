@@ -189,6 +189,8 @@ def display(request, album='index', photo=None):
         if page > 1:
             entry['link'] += '?page=%s' % page
 
+        data['meta']['description'] = entry.get('description',
+                                                data['meta']['title'])
         data['meta']['copyright'] = entry.get('copyright',
                                               data['meta'].get('copyright'))
 
