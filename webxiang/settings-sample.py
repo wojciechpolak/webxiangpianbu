@@ -133,6 +133,8 @@ LOGGING = {
 # WebXiangpianbu specific settings.
 #
 
+SITE_URL = 'www.example.org/'
+
 WEBXIANG_PHOTOS_URL = '/data/'
 
 # Absolute path to the directory containing photo files (JPEGs).

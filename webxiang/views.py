@@ -271,8 +271,19 @@ def display(request, album='index', photo=None):
     if data['meta']['style'] and not data['meta']['style'].endswith('.css'):
         data['meta']['style'] += '.css'
 
-    if data['meta']['cover'] and not data['meta']['cover'].startswith('/'):
-        data['meta']['cover'] = urlparse.urljoin(path, data['meta']['cover'])
+    # handle cover's URL
+    cover = data['meta']['cover']
+    if cover and not cover.startswith('/'):
+        cover = urlparse.urljoin(path, cover)
+    if cover and hasattr(settings, 'SITE_URL'):
+        if not settings.SITE_URL.startswith('http'):
+            site_url = '%s://%s' % \
+                (request.META.get('HTTP_X_SCHEME', 'http'),
+                 settings.SITE_URL)
+        else:
+            site_url = settings.SITE_URL
+        cover = urlparse.urljoin(site_url, cover)
+    data['meta']['cover'] = cover
 
     ctx = {
         'mode': mode,

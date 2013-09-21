@@ -25,7 +25,7 @@
   </a>
   {% endif %}
   {% if entry.date %}<div class="date">{{ entry.date }}</div>{% endif %}
-  {% if entry.description %}<p class="description">{{ entry.description }}</p>{% endif %}
+  {% if entry.description %}<p class="description">{{ entry.description|safe }}</p>{% endif %}
   {% if entry.geo and meta.geo %}<div class="geo" data-geo="{{ entry.geo }}"></div>{% endif %}
 </div>
 {% else %}
