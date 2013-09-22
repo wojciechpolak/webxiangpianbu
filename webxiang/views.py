@@ -195,7 +195,13 @@ def display(request, album='index', photo=None):
                                               data['meta'].get('copyright'))
 
     else:
-        mode = 'album'
+        if photo == 'geomap':
+            mode = 'geomap'
+        else:
+            mode = 'album'
+
+        if mode == 'geomap':
+            data['meta']['ppp'] = 500
 
         paginator = Paginator(data['entries'], data['meta']['ppp'])
         try:
@@ -269,8 +275,7 @@ def display(request, album='index', photo=None):
             )
 
         # set up geo points
-        if photo == 'geomap':
-            mode = 'geomap'
+        if mode == 'geomap':
             points = {}
             for entry in data['entries'].object_list:
                 if 'geo' in entry:
