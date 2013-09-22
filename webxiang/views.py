@@ -86,7 +86,7 @@ def display(request, album='index', photo=None):
     if reverse_order:
         data['entries'] = list(reversed(data['entries']))
 
-    if photo:
+    if photo and photo != 'geomap':
         mode = 'photo'
         lentries = len(data['entries'])
 
@@ -267,6 +267,23 @@ def display(request, album='index', photo=None):
                 for t in itertools.izip_longest(
                     *(iter(data['entries'].object_list),) * columns)
             )
+
+        # set up geo points
+        if photo == 'geomap':
+            mode = 'geomap'
+            points = {}
+            for entry in data['entries'].object_list:
+                if 'geo' in entry:
+                    p = entry['geo']
+                    if p not in points:
+                        points[p] = []
+                    if 'exif' in entry:
+                        del entry['exif']
+                    points[p].append(entry)
+            points = sorted([(k, v) for k, v in points.items()],
+                            key=lambda x: x[1][0]['index'])
+            data['points'] = json.dumps(points)
+            del data['entries']
 
     if data['meta']['style'] and not data['meta']['style'].endswith('.css'):
         data['meta']['style'] += '.css'

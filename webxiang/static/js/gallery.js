@@ -171,11 +171,11 @@
     else if (e.which) code = e.which;
     if (e.ctrlKey || e.altKey) return;
     switch (code) {
-    case 39: /* left */
+    case 39: /* right */
     case 78: /* n */
       follow (GID ('nextPhoto') || GID ('nextPage'));
       break;
-    case 37: /* right */
+    case 37: /* left */
     case 80: /* p */
       follow (GID ('prevPhoto') || GID ('prevPage'));
       break;
@@ -188,14 +188,19 @@
         follow ('levelTop');
       break;
     case 77: /* m */
-      $('.geo').trigger ('toggle').each (function () {
-          if ($(this).is (':visible'))
-            scrollToElement (this);
-        });
-      if (read_cookie (cookie_showmap))
-        write_cookie (cookie_showmap, '', -1);
-      else
-        write_cookie (cookie_showmap, 1, 31);
+      if (GID ('story')) {
+        window.location = GID ('geomap') ? './' : 'geomap';
+      }
+      else {
+        $('.geo').trigger ('toggle').each (function () {
+            if ($(this).is (':visible'))
+              scrollToElement (this);
+          });
+        if (read_cookie (cookie_showmap))
+          write_cookie (cookie_showmap, '', -1);
+        else
+          write_cookie (cookie_showmap, 1, 31);
+      }
       break;
     case 74: /* j - navigate next in story index */
       var $cur = $('#story .item.current');
@@ -301,7 +306,130 @@
           e.preventDefault ();
           $('.dialog, #overlay').hide ();
         });
+
+      if (GID ('geomap')) {
+        window.wxpb_init_map = function () {
+          var gmap = new google.maps.Map (GID ('geomap'), {
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+            zoomControlOptions: {style: google.maps.ZoomControlStyle.LARGE},
+            keyboardShortcuts: false,
+            center: new google.maps.LatLng (0, 0),
+            zoom: 1
+          });
+          var bounds = new google.maps.LatLngBounds ();
+          for (var i = 0; i < wxpb_geo_points.length; i++) {
+            add_marker (gmap, bounds, wxpb_geo_points[i]);
+          }
+          if (!bounds.isEmpty ()) {
+            gmap.setCenter (bounds.getCenter ());
+            gmap.fitBounds (bounds);
+          }
+
+          $(document).keyup (function (e) {
+              switch (e.which) {
+              case 37: /* left */
+                if (!streetview)
+                  $('.inav.prev').click ();
+                break;
+              case 39: /* right */
+                if (!streetview)
+                  $('.inav.next').click ();
+                break;
+              case 83: /* s - toggle streetview */
+                if (streetview && streetview.getVisible ()) {
+                  streetview.setVisible (false);
+                  streetview = null;
+                }
+                else if (last_marker) {
+                  streetview = gmap.getStreetView ();
+                  streetview.setPosition (last_marker.getPosition ());
+                  streetview.setVisible (true);
+                  google.maps.event
+                    .addListener (streetview, 'visible_changed', function () {
+                        if (!this.getVisible ())
+                          streetview = null;
+                      });
+                }
+                break;
+              }
+          });
+        };
+
+        var lang = (window.navigator.userLanguage ||
+                    window.navigator.language || 'en').substr (0, 2);
+
+        var script = document.createElement ('script');
+        var src = 'https://maps-api-ssl.google.com/maps/api/js?sensor=false';
+        script.type = 'text/javascript';
+        script.src = src + '&language=' + lang + '&callback=wxpb_init_map';
+        document.body.appendChild (script);
+
+        $(document).on ('click', '.inav', function (e) {
+            e.preventDefault ();
+            var $this = $(this);
+            var cur = $this.data ('idx');
+            if ($this.hasClass ('prev'))
+              var idx = cur > 0 ? cur - 1 : markers.length - 1;
+            else if ($this.hasClass ('next'))
+              var idx = cur < markers.length - 1 ? cur + 1 : 0;
+            google.maps.event.trigger (markers[idx], 'click');
+          });
+      }
     });
+
+  var last_marker = null;
+  var streetview = null;
+  var markers = [];
+
+  function add_marker (gmap, bounds, data) {
+    var gs = data[0].split (',');
+    var mark = new google.maps.Marker ({
+      map: gmap,
+      position: new google.maps.LatLng (gs[0], gs[1])
+    });
+    mark.chain_idx = markers.length;
+    markers.push (mark);
+    bounds.extend (mark.getPosition ());
+
+    google.maps.event.addListener (mark, 'click', function () {
+        last_marker && last_marker.close ();
+        var content = [];
+        for (var i = 0; i < data[1].length; i++) {
+          var x = data[1][i];
+
+          var maxwidth = 400, maxheight = 270;
+          var size = x.image.size || x.size;
+          var rw = size[0] / maxwidth;
+          var rh = size[1] / maxheight;
+          if (rw > rh) {
+            var width = maxwidth;
+            var height = parseInt (size[1] / rw);
+          }
+          else {
+            var width = parseInt (size[0] / rh);
+            var height = maxheight;
+          }
+
+          content.push ('<p><a class="gminiphoto" href="'+ x.link +
+                        '" target="_blank"><img src="' + x.url_full +
+                        '" width="'+ width +'" height="'+ height +
+                        '" alt="[photo]"></a></p>');
+          if (x.description)
+            content.push ('<p>' + x.description + '</p>');
+        }
+        content.push ('<p>');
+        content.push ('<a href="#" class="inav prev" data-idx="' +
+                      this.chain_idx + '">&lt;&lt;</a> ');
+        content.push ('| <a href="#" class="inav next" data-idx="' +
+                      this.chain_idx + '">&gt;&gt;</a>');
+        content.push ('</p>');
+        last_marker = new google.maps.InfoWindow ({
+          content: content.join ('')
+        });
+        last_marker.setPosition (this.getPosition ());
+        last_marker.open (streetview || gmap, this);
+      });
+  }
 
   function read_cookie (name) {
     var nameEq = name + '=';
