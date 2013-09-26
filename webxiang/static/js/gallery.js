@@ -229,7 +229,11 @@
       }
       break;
     case 72: /* h - show dialog (help) */
-      showDialog('#help');
+      showDialog ('#help');
+      break;
+    case 191: /* question mark */
+      if (e.shiftKey)
+        showDialog ('#help');
       break;
     case 27: /* esc - hide dialog */
       $('.dialog .close').click ();
@@ -300,7 +304,7 @@
 
       $('#show-help').click (function (e) {
           e.preventDefault();
-          showDialog('#help');
+          showDialog ('#help');
         });
       $(document).on ('click', '.dialog .close', function (e) {
           e.preventDefault ();
