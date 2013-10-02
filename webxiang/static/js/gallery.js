@@ -134,6 +134,38 @@
       setTimeout (function () { fadeInNextRandom (n); }, 400);
   }
 
+  function nextPhoto () {
+    if (!follow (GID ('nextPhoto'))) {
+      var $cur = $('#story .item.current');
+      if (!$cur.length) {
+        $cur = $('#story .item:first').addClass ('current');
+        $cur.length && scrollToElement ($cur, 'c');
+      }
+      else {
+        var $next = $cur.next();
+        if (!$next.length) $next = $('#story .item:first');
+        $next.addClass ('current').siblings().removeClass ('current');
+        $next.length && scrollToElement ($next, 'c');
+      }
+    }
+  }
+
+  function previousPhoto () {
+    if (!follow (GID ('prevPhoto'))) {
+      var $cur = $('#story .item.current');
+      if (!$cur.length) {
+        $cur = $('#story .item:last').addClass ('current');
+        $cur.length && scrollToElement ($cur, 'c');
+      }
+      else {
+        var $prev = $cur.prev();
+        if (!$prev.length) $prev = $('#story .item:last');
+        $prev.addClass ('current').siblings().removeClass ('current');
+        $prev.length && scrollToElement ($prev, 'c');
+      }
+    }
+  }
+
   function scrollToElement (el, offset) {
     offset = offset || 0;
     if (offset == 'c') {
@@ -170,22 +202,27 @@
     if (e.keyCode) code = e.keyCode;
     else if (e.which) code = e.which;
     if (e.ctrlKey || e.altKey) return;
+
     switch (code) {
     case 39: /* right */
-    case 78: /* n */
-      follow (GID ('nextPhoto') || GID ('nextPage'));
+    case 74: /* j */
+      nextPhoto();
       break;
     case 37: /* left */
+    case 75: /* k */
+      previousPhoto();
+      break;
+    case 78: /* n */
+      follow (GID ('nextPage') || GID ('nextPhoto'));
+      break;
     case 80: /* p */
-      follow (GID ('prevPhoto') || GID ('prevPage'));
+      follow (GID ('prevPage') || GID ('prevPhoto'));
       break;
     case 84: /* t */
       follow ('levelTop');
       break;
     case 85: /* u */
-      follow ('levelIndex') ||
-        follow ('levelParent') ||
-        follow ('levelTop');
+      follow ('levelIndex') || follow ('levelParent') || follow ('levelTop');
       break;
     case 77: /* m */
       if (GID ('story')) {
@@ -200,32 +237,6 @@
           write_cookie (cookie_showmap, '', -1);
         else
           write_cookie (cookie_showmap, 1, 31);
-      }
-      break;
-    case 74: /* j - navigate next in story index */
-      var $cur = $('#story .item.current');
-      if (!$cur.length) {
-        $cur = $('#story .item:first').addClass ('current');
-        $cur.length && scrollToElement ($cur, 'c');
-      }
-      else {
-        var $next = $cur.next();
-        if (!$next.length) $next = $('#story .item:first');
-        $next.addClass ('current').siblings().removeClass ('current');
-        $next.length && scrollToElement ($next, 'c');
-      }
-      break;
-    case 75: /* k - navigate prev in story index */
-      var $cur = $('#story .item.current');
-      if (!$cur.length) {
-        $cur = $('#story .item:last').addClass ('current');
-        $cur.length && scrollToElement ($cur, 'c');
-      }
-      else {
-        var $prev = $cur.prev();
-        if (!$prev.length) $prev = $('#story .item:last');
-        $prev.addClass ('current').siblings().removeClass ('current');
-        $prev.length && scrollToElement ($prev, 'c');
       }
       break;
     case 72: /* h - show dialog (help) */
@@ -262,6 +273,7 @@
         }
         else
           fadeInAll ();
+        $('#story .item:first').addClass ('current');
       }
       else
         fadeInRandomly ();
