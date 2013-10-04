@@ -63,7 +63,7 @@
       }, 25);
   }
 
-  function fadeInAll() {
+  function fadeInAll () {
     for (var i = 0; i < document.images.length; i++) {
       var img = document.images[i];
       if (!img.complete) {
@@ -83,7 +83,7 @@
     }
   }
 
-  function fadeInRandomly() {
+  function fadeInRandomly () {
     var top_fadein = 20;
     var len = document.images.length > top_fadein ?
       top_fadein : document.images.length;
@@ -137,12 +137,10 @@
   function nextPhoto () {
     if (!follow (GID ('nextPhoto'))) {
       var $cur = $('#story .item.current');
-      if (!$cur.length) {
+      if (!$cur.length)
         $cur = $('#story .item:first').addClass ('current');
-        $cur.length && scrollToElement ($cur, 'c');
-      }
-      else {
-        var $next = $cur.next();
+      if ($cur.length) {
+        var $next = $cur.next ();
         if (!$next.length) $next = $('#story .item:first');
         $next.addClass ('current').siblings().removeClass ('current');
         $next.length && scrollToElement ($next, 'c');
@@ -153,15 +151,12 @@
   function previousPhoto () {
     if (!follow (GID ('prevPhoto'))) {
       var $cur = $('#story .item.current');
-      if (!$cur.length) {
-        $cur = $('#story .item:last').addClass ('current');
-        $cur.length && scrollToElement ($cur, 'c');
-      }
-      else {
-        var $prev = $cur.prev();
-        if (!$prev.length) $prev = $('#story .item:last');
-        $prev.addClass ('current').siblings().removeClass ('current');
-        $prev.length && scrollToElement ($prev, 'c');
+      if ($cur.length) {
+        var $prev = $cur.prev ();
+        if ($prev.length) {
+          $prev.addClass ('current').siblings().removeClass ('current');
+          $prev.length && scrollToElement ($prev, 'c');
+        }
       }
     }
   }
@@ -259,7 +254,10 @@
           $('img').lazyload ({
             threshold: 1200,
             effect: 'fadeIn',
-            data_attribute: 'src'
+            data_attribute: 'src',
+            load: function (img) {
+                $(this).addClass ('loaded');
+            }
           });
         }
         else if ($.fn.lazy) {
@@ -268,12 +266,14 @@
             effect: 'fadeIn',
             effectTime: 250,
             enableThrottle: true,
-            throttle: 250
+            throttle: 250,
+            afterLoad: function (img) {
+                $(this).addClass ('loaded');
+            }
           });
         }
         else
           fadeInAll ();
-        $('#story .item:first').addClass ('current');
       }
       else
         fadeInRandomly ();

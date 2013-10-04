@@ -137,9 +137,9 @@ h2#title {
 .story .item { margin-bottom: 40px; }
 .story img {
   max-width: 100%;
-  height: auto;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
+.story img.loaded { height: auto; }
 .story iframe { width: 100%; height: auto; }
 
 div.geo {
