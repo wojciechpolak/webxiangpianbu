@@ -221,7 +221,10 @@
       break;
     case 77: /* m */
       if (GID ('story')) {
-        window.location = GID ('geomap') ? './' : 'geomap';
+        if (GID ('geomap'))
+          window.location = './';
+        else if ($('#story').hasClass ('has-geomap'))
+          window.location = 'geomap';
       }
       else {
         $('.geo').trigger ('toggle').each (function () {
@@ -413,7 +416,7 @@
         for (var i = 0; i < data[1].length; i++) {
           var x = data[1][i];
 
-          var maxwidth = 400, maxheight = 270;
+          var maxwidth = 300, maxheight = 270;
           var size = x.image.size || x.size;
           var rw = size[0] / maxwidth;
           var rh = size[1] / maxheight;

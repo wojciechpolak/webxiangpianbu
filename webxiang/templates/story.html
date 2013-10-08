@@ -54,7 +54,7 @@
 {% endif %}
 {% endspaceless %}
 
-<div id="story" class="story">
+<div id="story" class="story{% if meta.geo %} has-geomap{% endif %}">
   {% for entry in entries.object_list %}
   <div class="item">
     {% if entry.title %}<h3>{{ entry.title }}</h3>{% endif %}
