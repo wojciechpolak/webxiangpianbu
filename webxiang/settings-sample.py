@@ -8,7 +8,10 @@ TEMPLATE_DEBUG = DEBUG
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+]
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -23,6 +26,11 @@ LANGUAGES = (
 LANGUAGE_CODE = 'en-us'
 LANGUAGE_COOKIE_NAME = 'lang'
 DEFAULT_LANGUAGE = 1
+
+# Directories where Django looks for translation files.
+LOCALE_PATHS = (
+    os.path.join(SITE_ROOT, 'locale'),
+)
 
 SITE_ID = 1
 

@@ -1,7 +1,10 @@
+*~
 *.pyc
 *.pyo
 *.mo
-*~
+bin/
+include/
+lib/
 settings.py
 cached/
 static/
