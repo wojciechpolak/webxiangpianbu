@@ -32,7 +32,7 @@
 <h2 id="title">{{ meta.title_gallery }}</h2>
 {% if meta.description %}<div id="description">{{ meta.description|safe }}</div>{% endif %}
 
-{% url 'views.display' album=album as album_url %}
+{% url 'webxiang.views.display' album=album as album_url %}
 {% spaceless %}
 {% if entries.paginator.num_pages > 1 %}
 <div class="pages">
