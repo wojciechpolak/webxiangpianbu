@@ -52,7 +52,7 @@ def display(request, album='index', photo=None):
         'Mobi' in request.META.get('HTTP_USER_AGENT', '') or
             request.GET.get('mobile')):
         data['meta']['template'] = 'floating'
-        data['meta']['thumbs-skip'] = False
+        data['meta']['thumbs_skip'] = False
 
     tpl = data['meta'].get('template', 'default.html')
     if not tpl.endswith('.html'):

@@ -48,8 +48,8 @@ def get_data(album, photo=None, page=1, site_url=None):
             'custom_menu': False,
             'columns': 3,
             'ppp': 36,
-            'reverse-order': False,
-            'default-thumb-size': (180, 180),
+            'reverse_order': False,
+            'default_thumb_size': (180, 180),
             'cover': None,
         },
         'entries': [],
@@ -70,7 +70,7 @@ def get_data(album, photo=None, page=1, site_url=None):
     for i, entry in enumerate(data['entries'], start=1):
         entry['index'] = i
 
-    reverse_order = bool(data['meta']['reverse-order'])
+    reverse_order = bool(data['meta']['reverse_order'])
     if reverse_order:
         data['entries'] = list(reversed(data['entries']))
 
@@ -150,12 +150,12 @@ def get_data(album, photo=None, page=1, site_url=None):
             f = entry['image']
             path = meta_path
             size = entry.get('size') or data[
-                'meta'].get('default-image-size')
+                'meta'].get('default_image_size')
         elif img:
             f = entry['image']['file']
             path = entry['image'].get('path', meta_path)
             size = entry['image'].get('size') or data[
-                'meta'].get('default-image-size')
+                'meta'].get('default_image_size')
         else:  # video
             _parse_video_entry(entry)
             path = meta_path
@@ -205,27 +205,27 @@ def get_data(album, photo=None, page=1, site_url=None):
         paginator.page_range_limited = paginator.page_range[cmin:cmax]
 
         for i, entry in enumerate(data['entries'].object_list):
-            if data['meta'].get('thumbs-skip'):
+            if data['meta'].get('thumbs_skip'):
                 img = entry.get('image')
                 path = data['meta'].get('path', meta_path)
                 item_type = 'image'
             else:
                 img = entry.get('thumb', entry.get('image'))
-                path = data['meta'].get('path-thumb', meta_path)
+                path = data['meta'].get('path_thumb', meta_path)
                 item_type = 'thumb'
 
             if img:
                 if isinstance(img, basestring):
                     f = img
-                    entry['size'] = data['meta'].get('default-%s-size' %
+                    entry['size'] = data['meta'].get('default_%s_size' %
                                                      item_type)
                 else:
                     f = img['file']
                     path = img.get('path',
-                                   data['meta'].get('path-thumb', meta_path))
+                                   data['meta'].get('path_thumb', meta_path))
                     entry['size'] = img.get(
                         'size',
-                        data['meta'].get('default-%s-size' % item_type))
+                        data['meta'].get('default_%s_size' % item_type))
 
                 path = urlparse.urljoin(baseurl, path)
                 entry['url'] = urlparse.urljoin(path, f)
