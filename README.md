@@ -12,13 +12,22 @@ Features
 - Mobile friendly
 - Localization
 
-Deployment
-----------
+Installation
+------------
+
+	$ git clone https://github.com/wojciechpolak/webxiangpianbu.git
+	$ cd webxiangpianbu
+	$ virtualenv .
+	$ source bin/activate
+	$ pip install -r requirements.txt
+
+Web Application Deployment
+--------------------------
 
 See https://docs.djangoproject.com/en/dev/howto/deployment/
 for usual Django applications deployment.
 
-1. Change working directory to `webxiang`.
+1. Change working directory to `webxiangpianbu`.
 2. Copy `webxiang/settings-sample.py` to `webxiang/settings.py`
    and modify it to your needs.
 3. Make sure that 'cache' directory (settings.CACHE_DIR) exists
@@ -36,7 +45,7 @@ generate.py -- generates albums from photo files.
       ~/webxiang/static/data/vacation
     $ tools/generate.py --help
 
-convert.py -- converts albums between different formats (YAML, JSON).
+convert.py -- converts albums between different file formats (YAML, JSON).
 
     $ tools/convert.py 'albums/*.yaml' tmp/
 
