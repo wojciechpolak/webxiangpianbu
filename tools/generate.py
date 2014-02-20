@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  WebXiangpianbu Copyright (C) 2013 Wojciech Polak
+#  WebXiangpianbu Copyright (C) 2013, 2014 Wojciech Polak
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by the
@@ -41,28 +41,29 @@ except ImportError:
 
 def main():
     opts = {
-        'album-name': None,
-        'album-dir': None,
-        'album-format': 'yaml',
+        'album_name': None,
+        'album_dir': None,
+        'album_format': 'yaml',
         'copyright': None,
         'template': None,
         'style': None,
         'ppp': 12,  # pictures per page
-        'images-quality': 95,
-        'images-maxsize': [900, 640],
-        'images-sharpness': 1.4,
-        'thumbs-skip': False,
-        'thumbs-quality': 90,
-        'thumbs-size': [180, 180],
-        'show-geo': True,
-        'correct-orientation': True,
-        'skip-image-gen': False,
-        'skip-thumb-gen': False,
+        'images_quality': 95,
+        'images_maxsize': [900, 640],
+        'images_sharpness': 1.4,
+        'thumbs_skip': False,
+        'thumbs_quality': 90,
+        'thumbs_size': [180, 180],
+        'show_geo': True,
+        'correct_orientation': True,
+        'skip_image_gen': False,
+        'skip_thumb_gen': False,
     }
 
     try:
         gopts, args = getopt.getopt(sys.argv[1:], '',
-                                    ['album-name=',
+                                    ['help',
+                                     'album-name=',
                                      'album-dir=',
                                      'album-format=',
                                      'copyright=',
@@ -82,12 +83,14 @@ def main():
                                      'skip-thumb-gen',
                                      ])
         for o, arg in gopts:
-            if o == '--album-name':
-                opts['album-name'] = arg
+            if o == '--help':
+                raise getopt.GetoptError('')
+            elif o == '--album-name':
+                opts['album_name'] = arg
             elif o == '--album-dir':
-                opts['album-dir'] = arg
+                opts['album_dir'] = arg
             elif o == '--album-format':
-                opts['album-format'] = arg.lower()
+                opts['album_format'] = arg.lower()
             elif o == '--copyright':
                 opts['copyright'] = arg
             elif o == '--template':
@@ -97,31 +100,31 @@ def main():
             elif o == '--ppp':
                 opts['ppp'] = int(arg)
             elif o == '--show-geo':
-                opts['show-geo'] = True
+                opts['show_geo'] = True
 
             elif o in ('-q', '--images-quality'):
-                opts['images-quality'] = int(arg)
+                opts['images_quality'] = int(arg)
             elif o == '--images-sharpness':
-                opts['images-sharpness'] = float(arg)
+                opts['images_sharpness'] = float(arg)
             elif o == '--images-maxsize':
                 s = arg.split('x')
-                opts['images-maxsize'] = [int(s[0]), int(s[1])]
+                opts['images_maxsize'] = [int(s[0]), int(s[1])]
             elif o == '--images-default-size':
                 s = arg.split('x')
-                opts['default-image-size'] = [int(s[0]), int(s[1])]
+                opts['default_image_size'] = [int(s[0]), int(s[1])]
 
             elif o == '--thumbs-skip':
-                opts['thumbs-skip'] = True
+                opts['thumbs_skip'] = True
             elif o == '--thumbs-quality':
-                opts['thumbs-quality'] = int(arg)
+                opts['thumbs_quality'] = int(arg)
             elif o == '--thumbs-size':
                 s = arg.split('x')
-                opts['thumbs-size'] = int(s[0]), int(s[1])
+                opts['thumbs_size'] = int(s[0]), int(s[1])
 
             elif o == '--skip-image-gen':
-                opts['skip-image-gen'] = True
+                opts['skip_image_gen'] = True
             elif o == '--skip-thumb-gen':
-                opts['skip-thumb-gen'] = True
+                opts['skip_thumb_gen'] = True
 
         if len(args):
             opts['inputdir'] = args[0]
@@ -164,23 +167,23 @@ def main():
             'ppp': opts['ppp'],
             'columns': 4,
             'copyright': '%s' % date.today().year,
-            'default-image-size': [],
-            'default-thumb-size': opts['thumbs-size'],
+            'default_image_size': [],
+            'default_thumb_size': opts['thumbs_size'],
         },
         'entries': [],
     }
 
-    if 'copyright' in opts:
+    if opts['copyright']:
         album['meta']['copyright'] = opts['copyright']
-    if 'template' in opts:
+    if opts['template']:
         album['meta']['template'] = opts['template']
-        album['meta']['thumbs-skip'] = True
-    if 'style' in opts:
+        album['meta']['thumbs_skip'] = True
+    if opts['style']:
         album['meta']['style'] = opts['style']
-    if 'show-geo' in opts:
+    if opts['show_geo']:
         album['meta']['geo'] = True
-    if 'default-image-size' in opts:
-        album['meta']['default-image-size'] = opts['default-image-size']
+    if 'default_image_size' in opts:
+        album['meta']['default_image_size'] = opts['default_image_size']
 
     if opts['inputdir'].endswith('.in'):
         fp = open(opts['inputdir'])
@@ -202,13 +205,13 @@ def main():
             process_image(opts, album, fname)
             opts['idx'] += 1
 
-    album_name = opts['album-name'] or \
+    album_name = opts['album_name'] or \
         os.path.basename(opts['outputdir']) or 'foo'
     album['meta']['path'] = album_name + '/'
 
-    album_dir = opts['album-dir'] or opts['outputdir']
+    album_dir = opts['album_dir'] or opts['outputdir']
 
-    if opts['album-format'] in ('json', 'all'):
+    if opts['album_format'] in ('json', 'all'):
         # output json
         filename = os.path.normpath('%s/%s.json' % (album_dir, album_name))
         overwrite = True
@@ -221,7 +224,7 @@ def main():
             album_file_json.close()
             print 'saved %s' % album_file_json.name
 
-    if opts['album-format'] in ('yaml', 'all'):
+    if opts['album_format'] in ('yaml', 'all'):
         # output yaml
         filename = os.path.normpath('%s/%s.yaml' % (album_dir, album_name))
         overwrite = True
@@ -253,7 +256,7 @@ exif_tags = {
 
 
 def process_image(opts, album, fname):
-    img = Image.open(opts['inputdir'] + fname)
+    img = Image.open(os.path.join(opts['inputdir'], fname))
 
     # lower case for file suffix
     fn = fname.split('.')
@@ -282,7 +285,7 @@ def process_image(opts, album, fname):
             if decoded in exif_accepted:
                 exif_data[decoded] = value
             elif decoded == 'Orientation':
-                if opts['correct-orientation']:
+                if opts['correct_orientation']:
                     if value == 3:
                         img = img.rotate(180)
                     if value == 6:
@@ -299,7 +302,7 @@ def process_image(opts, album, fname):
     if exif_data:
         data['exif'] = exif_data
 
-    if not opts['thumbs-skip']:
+    if not opts['thumbs_skip']:
         data['thumb'] = gen_thumbnails(opts, img, fname)
 
     lat, lng = get_latlng(gps_data)
@@ -308,36 +311,36 @@ def process_image(opts, album, fname):
 
     album['entries'].append(data)
 
-    img.thumbnail(opts['images-maxsize'], Image.ANTIALIAS)
-    if list(img.size) != album['meta']['default-image-size']:
+    img.thumbnail(opts['images_maxsize'], Image.ANTIALIAS)
+    if list(img.size) != album['meta']['default_image_size']:
         data['image'] = {'file': fname, 'size': list(img.size)}
 
-    output_fname = opts['outputdir'] + '/' + fname
+    output_fname = os.path.join(opts['outputdir'], fname)
     if os.path.exists(output_fname):
         print 'file exists, skipping... %s' % output_fname
         return
 
-    if not opts['skip-image-gen']:
-        if opts['images-sharpness']:
+    if not opts['skip_image_gen']:
+        if opts['images_sharpness']:
             sharpener = ImageEnhance.Sharpness(img)
-            img = sharpener.enhance(opts['images-sharpness'])
+            img = sharpener.enhance(opts['images_sharpness'])
 
         ImageFile.MAXBLOCK = img.size[0] * img.size[1]
         img.save(output_fname, 'JPEG', optimize=True,
-                 quality=opts['images-quality'], progressive=False)
+                 quality=opts['images_quality'], progressive=False)
 
         print 'saved %s' % output_fname
 
 
 def gen_thumbnails(opts, img_blob, fname):
-    size = opts['thumbs-size']
+    size = opts['thumbs_size']
     fn = fname.split('.')
     fname = '%s-%dx%d.%s' % (''.join(fn[0:-1]), size[0], size[1], fn[-1])
 
-    if opts['skip-thumb-gen']:
+    if opts['skip_thumb_gen']:
         return fname
 
-    output_fname = opts['outputdir'] + '/' + fname
+    output_fname = os.path.join(opts['outputdir'], fname)
     if os.path.exists(output_fname):
         print 'file exists, skipping... %s' % output_fname
         return fname
@@ -362,7 +365,7 @@ def gen_thumbnails(opts, img_blob, fname):
     img.thumbnail(size, Image.ANTIALIAS)
     ImageFile.MAXBLOCK = 131072
     img.save(output_fname, 'JPEG', optimize=True,
-             quality=opts['thumbs-quality'], progressive=True)
+             quality=opts['thumbs_quality'], progressive=True)
 
     print 'saved %s' % output_fname
     return fname

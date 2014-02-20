@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  WebXiangpianbu Copyright (C) 2013 Wojciech Polak
+#  WebXiangpianbu Copyright (C) 2013, 2014 Wojciech Polak
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by the
@@ -31,8 +31,8 @@ except ImportError:
 def main():
     opts = {
         'overwrite': False,
-        'output-dir': '',
-        'output-name': '',
+        'output_dir': '',
+        'output_name': '',
     }
 
     try:
@@ -48,8 +48,8 @@ def main():
         else:
             raise getopt.GetoptError('')
         if len(args) > 1:
-            opts['output-dir'] = os.path.dirname(args[1])
-            opts['output-name'] = os.path.basename(args[1])
+            opts['output_dir'] = os.path.dirname(args[1])
+            opts['output_name'] = os.path.basename(args[1])
     except getopt.GetoptError:
         print "Usage: %s [OPTION...] INPUT OUTPUT" % sys.argv[0]
         print "%s -- album converter" % sys.argv[0]
@@ -59,8 +59,8 @@ def main():
 """
         sys.exit(1)
 
-    if opts['output-dir'] and not os.path.exists(opts['output-dir']):
-        os.makedirs(opts['output-dir'])
+    if opts['output_dir'] and not os.path.exists(opts['output_dir']):
+        os.makedirs(opts['output_dir'])
 
     for name in opts['input']:
         data = read_albumfile(name)
@@ -89,8 +89,8 @@ def read_albumfile(name):
 
 
 def to_yaml(opts, name, data):
-    filename = os.path.join(opts['output-dir'] or os.path.dirname(name),
-                            opts['output-name'] or os.path.basename(
+    filename = os.path.join(opts['output_dir'] or os.path.dirname(name),
+                            opts['output_name'] or os.path.basename(
                             name.replace('.json', '.yaml')))
     overwrite = True
     if os.path.exists(filename):
@@ -105,8 +105,8 @@ def to_yaml(opts, name, data):
 
 
 def to_json(opts, name, data):
-    filename = os.path.join(opts['output-dir'] or os.path.dirname(name),
-                            opts['output-name'] or os.path.basename(
+    filename = os.path.join(opts['output_dir'] or os.path.dirname(name),
+                            opts['output_name'] or os.path.basename(
                             name.replace('.yaml', '.json')))
     overwrite = True
     if os.path.exists(filename):

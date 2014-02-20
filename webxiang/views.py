@@ -54,7 +54,7 @@ def display(request, album='index', photo=None):
         data['meta']['template'] = 'floating'
         data['meta']['thumbs_skip'] = False
 
-    tpl = data['meta'].get('template', 'default.html')
+    tpl = data['meta'].get('template') or 'default.html'
     if not tpl.endswith('.html'):
         tpl += '.html'
 

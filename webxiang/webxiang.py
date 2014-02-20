@@ -177,8 +177,8 @@ def get_data(album, photo=None, page=1, site_url=None):
 
         data['meta']['description'] = entry.get('description',
                                                 data['meta']['title'])
-        data['meta']['copyright'] = entry.get('copyright',
-                                              data['meta'].get('copyright'))
+        data['meta']['copyright'] = entry.get('copyright') or \
+            data['meta'].get('copyright')
 
     else:
         if photo == 'geomap':
