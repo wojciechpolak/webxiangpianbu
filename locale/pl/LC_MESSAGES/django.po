@@ -4,8 +4,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: webxiang 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-10-02 23:56+0200\n"
-"PO-Revision-Date: 2013-10-03 00:02+0200\n"
+"POT-Creation-Date: 2014-02-22 19:13+0100\n"
+"PO-Revision-Date: 2014-02-22 19:08+0100\n"
 "Language-Team: Polish\n"
 "Language: pl\n"
 "MIME-Version: 1.0\n"
@@ -13,6 +13,11 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2)\n"
+
+#. Translators: this is an URL
+#, python-format
+msgid "page-%(number)s.html"
+msgstr "strona-%(number)s.html"
 
 msgid "Help"
 msgstr "Pomoc"

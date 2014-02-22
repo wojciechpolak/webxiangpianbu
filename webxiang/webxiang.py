@@ -24,6 +24,7 @@ import py_compile
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator, InvalidPage, EmptyPage
+from .templatetags.page import page as page_url
 
 try:
     import yaml
@@ -38,8 +39,8 @@ except ImportError:
 
 def get_data(album, photo=None, page=1, site_url=None):
     data = {
-        'URL_PHOTOS': settings.WEBXIANG_PHOTOS_URL,
-        'LAZY_LOADING': settings.WEBXIANG_PHOTOS_LAZY,
+        'URL_PHOTOS': getattr(settings, 'WEBXIANG_PHOTOS_URL', 'data/'),
+        'LAZY_LOADING': getattr(settings, 'WEBXIANG_PHOTOS_LAZY', False),
         'meta': {
             'template': 'default.html',
             'style': 'base.css',
@@ -118,8 +119,8 @@ def get_data(album, photo=None, page=1, site_url=None):
         canon_link = '%s/%s' % (photo_idx, entry['slug']) \
             if 'slug' in entry else photo_idx
         data['canonical_url'] = reverse('photo', kwargs={
-                'album': album,
-                'photo': canon_link})
+            'album': album,
+            'photo': canon_link})
 
         if prev_idx is not None:
             if reverse_order:
@@ -128,8 +129,8 @@ def get_data(album, photo=None, page=1, site_url=None):
                 slug = data['entries'][prev_idx - 1].get('slug')
             prev_photo = '%s/%s' % (prev_idx, slug) if slug else prev_idx
             data['prev_entry'] = reverse('photo', kwargs={
-                    'album': album,
-                    'photo': prev_photo})
+                'album': album,
+                'photo': prev_photo})
         else:
             data['prev_entry'] = None
 
@@ -140,8 +141,8 @@ def get_data(album, photo=None, page=1, site_url=None):
                 slug = data['entries'][next_idx - 1].get('slug')
             next_photo = '%s/%s' % (next_idx, slug) if slug else next_idx
             data['next_entry'] = reverse('photo', kwargs={
-                    'album': album,
-                    'photo': next_photo})
+                'album': album,
+                'photo': next_photo})
         else:
             data['next_entry'] = None
 
@@ -173,7 +174,7 @@ def get_data(album, photo=None, page=1, site_url=None):
 
         entry['link'] = reverse('album', kwargs={'album': album})
         if page > 1:
-            entry['link'] += '?page=%s' % page
+            entry['link'] += page_url({}, album, '', page)
 
         data['meta']['description'] = entry.get('description',
                                                 data['meta']['title'])
@@ -243,13 +244,12 @@ def get_data(album, photo=None, page=1, site_url=None):
                     link = '%s/%s' % (entry['index'], slug) \
                         if slug else entry['index']
                     entry['link'] = reverse('photo', kwargs={
-                            'album': album,
-                            'photo': link})
+                        'album': album,
+                        'photo': link})
 
             else:  # non-image entries
                 path = urlparse.urljoin(baseurl, meta_path)
                 _parse_video_entry(entry)
-
 
         # grouping entries into columns
         columns = int(data['meta'].get('columns', 3))
@@ -314,7 +314,11 @@ def _parse_video_entry(entry):
 def _open_albumfile(album_name):
     albumfile_yaml = os.path.join(settings.ALBUM_DIR, album_name + '.yaml')
     albumfile_json = os.path.join(settings.ALBUM_DIR, album_name + '.json')
-    cachefile = os.path.join(settings.CACHE_DIR, album_name + '.py')
+
+    if hasattr(settings, 'CACHE_DIR'):
+        cachefile = os.path.join(settings.CACHE_DIR, album_name + '.py')
+    else:
+        cachefile = None
 
     try:
         mt1 = os.path.getmtime(albumfile_yaml)
@@ -358,10 +362,11 @@ def _open_albumfile(album_name):
         return None
 
     # save cache file
-    fp = open(cachefile, 'w')
-    fp.write('cache=' + str(data))
-    fp.close()
-    py_compile.compile(cachefile)
-    os.unlink(cachefile)
+    if cachefile:
+        fp = open(cachefile, 'w')
+        fp.write('cache=' + str(data))
+        fp.close()
+        py_compile.compile(cachefile)
+        os.unlink(cachefile)
 
     return data

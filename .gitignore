@@ -8,4 +8,6 @@ lib/
 settings.py
 cached/
 static/
+albums/
 webxiang/templates/user-*.html
+output-*

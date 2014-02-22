@@ -29,7 +29,7 @@ DEFAULT_LANGUAGE = 1
 
 # Directories where Django looks for translation files.
 LOCALE_PATHS = (
-    os.path.join(SITE_ROOT, 'locale'),
+    os.path.join(SITE_ROOT, '../locale'),
 )
 
 SITE_ID = 1

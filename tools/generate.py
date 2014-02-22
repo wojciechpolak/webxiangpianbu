@@ -44,6 +44,7 @@ def main():
         'album_name': None,
         'album_dir': None,
         'album_format': 'yaml',
+        'path': '',
         'copyright': None,
         'template': None,
         'style': None,
@@ -66,6 +67,7 @@ def main():
                                      'album-name=',
                                      'album-dir=',
                                      'album-format=',
+                                     'path=',
                                      'copyright=',
                                      'template=',
                                      'style=',
@@ -138,23 +140,24 @@ def main():
  Options                      Default values
  --album-name=STRING          [output dir's name]
  --album-dir=STRING           [output dir]
- --album-format=STRING        [yaml] (yaml|json|all)
- --copyright=STRING           [None]
- --template=STRING            [None]
- --style=STRING               [None]
- --ppp=INTEGER                [12]
- --images-quality=INTEGER     [95] (0..100)
- --images-sharpness=FLOAT     [1.4]
+ --album-format=STRING        [%(album_format)s] (yaml|json|all)
+ --path=STRING                ['']
+ --copyright=STRING           [%(copyright)s]
+ --template=STRING            [%(template)s]
+ --style=STRING               [%(style)s]
+ --ppp=INTEGER                [%(ppp)s]
+ --images-quality=INTEGER     [%(images_quality)s] (0..100)
+ --images-sharpness=FLOAT     [%(images_sharpness)s]
  --images-maxsize=WxH         [900x640]
  --images-default-size=WxH    [None]
  --thumbs-skip                [False]
- --thumbs-quality=INTEGER     [90] (0..100)
+ --thumbs-quality=INTEGER     [%(thumbs_quality)s] (0..100)
  --thumbs-size=WxH            [180x180]
- --show-geo                   [True]
- --correct-orientation        [True]
- --skip-image-gen             [False]
- --skip-thumb-gen             [False]
-"""
+ --show-geo                   [%(show_geo)s]
+ --correct-orientation        [%(correct_orientation)s]
+ --skip-image-gen             [%(skip_image_gen)s]
+ --skip-thumb-gen             [%(skip_thumb_gen)s]
+""" % opts
         sys.exit(1)
 
     if not os.path.exists(opts['outputdir']):
@@ -162,7 +165,7 @@ def main():
 
     album = {
         'meta': {
-            'path': '',
+            'path': opts['path'],
             'title': '',
             'ppp': opts['ppp'],
             'columns': 4,
@@ -207,7 +210,6 @@ def main():
 
     album_name = opts['album_name'] or \
         os.path.basename(opts['outputdir']) or 'foo'
-    album['meta']['path'] = album_name + '/'
 
     album_dir = opts['album_dir'] or opts['outputdir']
 
@@ -298,7 +300,7 @@ def process_image(opts, album, fname):
                     gps_data[sub_decoded] = value[t]
 
     for k, v in exif_data.items():
-        exif_data[k] = exif_tags[k](v)
+        exif_data[k] = str(exif_tags[k](v)).strip()
     if exif_data:
         data['exif'] = exif_data
 

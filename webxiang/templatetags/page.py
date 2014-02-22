@@ -1,4 +1,4 @@
-#  WebXiangpianbu Copyright (C) 2013 Wojciech Polak
+#  WebXiangpianbu Copyright (C) 2014 Wojciech Polak
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by the
@@ -14,19 +14,22 @@
 #  with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from django import template
-from django.utils.safestring import mark_safe
+from django.core.urlresolvers import get_urlconf
+from django.utils.translation import ugettext as _
 
 register = template.Library()
 
 
-@register.filter
-def embed(entry):
-    s = ''
-    if entry['video']:
-        if entry['type'] == 'youtube':
-            s = '<div class="video"><iframe width="853" height="480" src="//www.youtube.com/embed/%s?rel=0" frameborder="0" allowfullscreen></iframe></div>' % entry[
-                'vid']
-        elif entry['type'] == 'vimeo':
-            s = '<div class="video vimeo"><iframe width="854" height="480" src="//player.vimeo.com/video/%s" frameborder="0" allowfullscreen></iframe></div>' % entry[
-                'vid']
-    return mark_safe(s)
+@register.simple_tag(takes_context=True)
+def page(context, album_name, album_url, page_number):
+    if get_urlconf() == 'webxiang.urls_static':
+        if page_number > 1:
+            # Translators: this is an URL
+            return _('page-%(number)s.html') % {'number': page_number}
+        else:
+            return 'index.html'
+    else:
+        if page_number > 1:
+            return '?page=%s' % page_number
+        else:
+            return album_url
