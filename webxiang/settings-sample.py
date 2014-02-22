@@ -151,7 +151,7 @@ WEBXIANG_PHOTOS_ROOT = '/home/user/photos/data/'
 # Photos lazy loading (requires jQuery plugin)
 WEBXIANG_PHOTOS_LAZY = False
 
-ALBUM_DIR = os.path.join(SITE_ROOT, 'albums')
-CACHE_DIR = os.path.join(SITE_ROOT, 'cached')
+ALBUM_DIR = os.path.join(SITE_ROOT, '../albums')
+CACHE_DIR = os.path.join(SITE_ROOT, '../cached')
 
 COPYRIGHT_OWNER = 'Your Name'
