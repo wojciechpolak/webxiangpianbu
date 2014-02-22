@@ -3,7 +3,7 @@ WebXiangpianbu
 
 WebXiangpianbu is a photo album organizer written in Python/Django.
 It can work as a dynamic web application photo gallery or as a static
-photo gallery (website) generator.
+site generator.
 
 Features
 --------
@@ -52,8 +52,8 @@ convert.py -- converts albums between different file formats (YAML, JSON).
 
     $ tools/convert.py 'albums/*.yaml' tmp/
 
-Static Website Generation
--------------------------
+Static Site Generator
+---------------------
 
     $ tools/generate.py ~/photos/vacation/ ~/tmp/vacation
     $ tools/staticgen.py --quick=~/tmp/vacation --copy
