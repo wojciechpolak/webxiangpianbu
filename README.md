@@ -31,17 +31,20 @@ or without virtualenv:
 
 Before you install `Pillow` via PIP (from requirements.txt), make sure
 you already have installed `libjpeg-devel` (or similar package).
+You will also need the `python-devel` package.
 
-Web Application Deployment
---------------------------
+Next steps:
 
 1. Copy `webxiang/settings-sample.py` to `webxiang/settings.py`
    and modify it to your needs.
 2. Make sure that `cached` directory (settings.CACHE_DIR) exists
    and has write permissions by your web server.
 3. Optionally, run `python manage.py compilemessages` (if you have
-   'gettext' installed).
+   `gettext` installed).
 4. python manage.py collectstatic
+
+Web Application Deployment
+--------------------------
 
 See https://docs.djangoproject.com/en/dev/howto/deployment/
 for usual Django applications deployment.

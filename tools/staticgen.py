@@ -33,7 +33,15 @@ os.environ['DJANGO_SETTINGS_MODULE'] = 'webxiang.settings'
 sys.path.insert(0, os.path.join(SITE_ROOT, '../'))
 
 from django.conf import settings
-from django.shortcuts import render
+
+try:
+    from django.shortcuts import render
+except ImportError as e:
+    print e
+    print "Copy `webxiang/settings-sample.py` to " \
+        "`webxiang/settings.py` and modify it to your needs."
+    sys.exit(1)
+
 from django.core.urlresolvers import set_urlconf, set_script_prefix
 from django.template import TemplateDoesNotExist
 from django.template.loader import render_to_string
@@ -67,6 +75,7 @@ def main():
                                     ['help',
                                      'verbose=',
                                      'lang=',
+                                     'output-dir=',
                                      'album-dir=',
                                      'photo-dir=',
                                      'root=',
@@ -82,6 +91,8 @@ def main():
                 raise getopt.GetoptError('')
             elif o in ('-v', '--verbose'):
                 opts['verbose'] = int(arg)
+            elif o == '--output-dir':
+                opts['output_dir'] = arg
             elif o == '--album-dir':
                 opts['album_dir'] = os.path.abspath(arg)
                 settings.ALBUM_DIR = opts['album_dir']
@@ -125,6 +136,7 @@ def main():
         print """
  Options               Default values
  -v, --verbose         [%(verbose)s]
+     --output-dir      [output-DATETIME/]
      --album-dir       [%(album_dir)s]
      --photo-dir       [%(photo_dir)s]
      --root            [%(root)s]
@@ -153,7 +165,8 @@ def main():
     set_urlconf('webxiang.urls_static')
     set_script_prefix(opts['root'])
 
-    root_dir = opts['output_dir'] or \
+    root_dir = opts['output_dir'] and os.path.abspath(
+        os.path.expanduser(opts['output_dir'])) or \
         'output-%s' % datetime.now().strftime('%Y%m%d-%H%M%S')
 
     output_dir = os.path.join(root_dir, opts['root'].lstrip('/'))
@@ -185,13 +198,11 @@ def main():
 
         if opts['copy']:
             print 'Copying photos "%s" into "%s"' % \
-                (opts['photo_dir'].rstrip('/'), photos_url.lstrip('/'))
+                (opts['photo_dir'].rstrip('/'), photos_url)
             try:
-                d = photos_url.lstrip('/')
-                if not os.path.exists(d):
-                    os.makedirs(d)
-                __copytree(opts['photo_dir'].rstrip('/'),
-                           photos_url.lstrip('/'))
+                if not os.path.exists(photos_url):
+                    os.makedirs(photos_url)
+                __copytree(opts['photo_dir'].rstrip('/'), photos_url)
             except Exception as e:
                 print 'Copying photos', e
 
