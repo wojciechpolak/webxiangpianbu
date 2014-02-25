@@ -23,6 +23,11 @@ import yaml
 from datetime import date
 
 try:
+    from collections import OrderedDict
+except ImportError:
+    OrderedDict = None
+
+try:
     import simplejson as json
 except ImportError:
     import json
@@ -45,9 +50,9 @@ def main():
         'album_dir': None,
         'album_format': 'yaml',
         'path': '',
-        'copyright': None,
-        'template': None,
-        'style': None,
+        'copyright': '',
+        'template': 'default',
+        'style': 'base',
         'ppp': 12,  # pictures per page
         'images_quality': 95,
         'images_maxsize': [900, 640],
@@ -79,8 +84,8 @@ def main():
                                      'thumbs-skip',
                                      'thumbs-quality=',
                                      'thumbs-size=',
-                                     'show-geo',
-                                     'correct-orientation',
+                                     'show-geo=',
+                                     'correct-orientation=',
                                      'skip-image-gen',
                                      'skip-thumb-gen',
                                      ])
@@ -102,7 +107,9 @@ def main():
             elif o == '--ppp':
                 opts['ppp'] = int(arg)
             elif o == '--show-geo':
-                opts['show_geo'] = True
+                opts['show_geo'] = bool(int(arg))
+            elif o == '--correct-orientation':
+                opts['correct_orientation'] = bool(int(arg))
 
             elif o in ('-q', '--images-quality'):
                 opts['images_quality'] = int(arg)
@@ -142,15 +149,15 @@ def main():
  --album-dir=STRING           [output dir]
  --album-format=STRING        [%(album_format)s] (yaml|json|all)
  --path=STRING                ['']
- --copyright=STRING           [%(copyright)s]
- --template=STRING            [%(template)s]
- --style=STRING               [%(style)s]
+ --copyright=STRING           ['']
+ --template=STRING            ['']
+ --style=STRING               ['']
  --ppp=INTEGER                [%(ppp)s]
  --images-quality=INTEGER     [%(images_quality)s] (0..100)
  --images-sharpness=FLOAT     [%(images_sharpness)s]
  --images-maxsize=WxH         [900x640]
  --images-default-size=WxH    [None]
- --thumbs-skip                [False]
+ --thumbs-skip                [%(thumbs_skip)s]
  --thumbs-quality=INTEGER     [%(thumbs_quality)s] (0..100)
  --thumbs-size=WxH            [180x180]
  --show-geo                   [%(show_geo)s]
@@ -169,7 +176,11 @@ def main():
             'title': '',
             'ppp': opts['ppp'],
             'columns': 4,
+            'template': opts['template'],
+            'thumbs_skip': opts['thumbs_skip'],
+            'style': opts['style'],
             'copyright': '%s' % date.today().year,
+            'geo': opts['show_geo'],
             'default_image_size': [],
             'default_thumb_size': opts['thumbs_size'],
         },
@@ -178,13 +189,8 @@ def main():
 
     if opts['copyright']:
         album['meta']['copyright'] = opts['copyright']
-    if opts['template']:
-        album['meta']['template'] = opts['template']
+    if opts['template'] == 'story':
         album['meta']['thumbs_skip'] = True
-    if opts['style']:
-        album['meta']['style'] = opts['style']
-    if opts['show_geo']:
-        album['meta']['geo'] = True
     if 'default_image_size' in opts:
         album['meta']['default_image_size'] = opts['default_image_size']
 
@@ -209,7 +215,7 @@ def main():
             opts['idx'] += 1
 
     album_name = opts['album_name'] or \
-        os.path.basename(opts['outputdir']) or 'foo'
+        os.path.basename(opts['outputdir'].rstrip('/')) or 'foo'
 
     album_dir = opts['album_dir'] or opts['outputdir']
 
@@ -233,6 +239,16 @@ def main():
         if os.path.exists(filename):
             overwrite = confirm('Overwrite album file %s?' % filename)
         if overwrite:
+            if OrderedDict:
+                def order_rep(dumper, data):
+                    return dumper.represent_mapping(u'tag:yaml.org,2002:map',
+                                                    data.items(), flow_style=False)
+                yaml.add_representer(OrderedDict, order_rep)
+                album = OrderedDict({
+                        'meta': album['meta'],
+                        'entries': album['entries'],
+                        })
+
             album_file_yaml = file(filename, 'w')
             yaml.dump(album, album_file_yaml, encoding='utf-8',
                       default_flow_style=None, indent=4, width=70)
@@ -264,13 +280,15 @@ def process_image(opts, album, fname):
     fn = fname.split('.')
     fname = '%s.%s' % (''.join(fn[0:-1]), fn[-1].lower())
 
-    data = {
-        'idx': opts['idx'],
-        'image': fname,
-    }
+    data = OrderedDict() if OrderedDict else {}
+    data['idx'] = opts['idx']
+    data['image'] = fname
 
     if img.mode != 'RGB':
         img = img.convert('RGB')
+
+    if not opts['thumbs_skip']:
+        data['thumb'] = gen_thumbnails(opts, img, fname)
 
     try:
         exif = img._getexif()
@@ -301,15 +319,13 @@ def process_image(opts, album, fname):
 
     for k, v in exif_data.items():
         exif_data[k] = str(exif_tags[k](v)).strip()
-    if exif_data:
-        data['exif'] = exif_data
-
-    if not opts['thumbs_skip']:
-        data['thumb'] = gen_thumbnails(opts, img, fname)
 
     lat, lng = get_latlng(gps_data)
     if lat and lng:
         data['geo'] = '%s,%s' % (lat, lng)
+
+    if exif_data:
+        data['exif'] = exif_data
 
     album['entries'].append(data)
 
