@@ -150,7 +150,7 @@ def main():
  --album-format=STRING        [%(album_format)s] (yaml|json|all)
  --path=STRING                ['']
  --copyright=STRING           ['']
- --template=STRING            ['']
+ --template=STRING            [''] (default|floating|story)
  --style=STRING               ['']
  --ppp=INTEGER                [%(ppp)s]
  --images-quality=INTEGER     [%(images_quality)s] (0..100)

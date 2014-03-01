@@ -52,12 +52,13 @@ for usual Django applications deployment.
 Tools
 -----
 
-generate.py -- generates albums from photo files.
+generate.py -- generate albums from photo files.
 
     $ tools/generate.py --album-dir=albums/ ~/photos/vacation/ ~/webxiang/static/data/vacation
     $ tools/generate.py --help
+    next, adjust the generated vacation.yaml
 
-convert.py -- converts albums between different file formats (YAML, JSON).
+convert.py -- convert albums between different file formats (YAML, JSON).
 
     $ tools/convert.py 'albums/*.yaml' tmp/
 
