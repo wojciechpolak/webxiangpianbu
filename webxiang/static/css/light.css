@@ -1,0 +1,34 @@
+@import url("base.css");
+
+body {
+  color: #333;
+  background-color: #f4f4f4;
+  text-shadow: 0 1px 1px #fff;
+}
+
+.story { max-width: 995px; }
+.photo { max-width: 995px; margin-left: auto; margin-right: auto; }
+div.geo { max-width: 995px; }
+div.video { max-width: 995px; }
+
+a { color: #008edd !important; }
+a img { border-style: none; }
+.pages { text-shadow: none; }
+
+.thumbnails img, .photo img {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.pages a:hover {
+  color: white !important;
+  background-color: #0063dc;
+}
+
+p.description {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 21px;
+  color: #222;
+  opacity: 0.85;
+}
+
+#show-help { color: #777; }
+#show-help:hover { color: #333; }
