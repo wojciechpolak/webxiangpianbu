@@ -12,7 +12,8 @@ Features
 - No database required
 - Highly customizable (albums, templates, styles)
 - Mobile friendly
-- Localization
+- EXIF and Geotagging extracting
+- Language localization
 
 Installation
 ------------
