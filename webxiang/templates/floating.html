@@ -56,11 +56,17 @@
 
 <div class="thumbnails float">
   {% for entry in entries.object_list %}
-  <div class="item">
+  <div class="item{% if entry.video %} type-video{% endif %}">
     {% if entry.title %}<h3>{{ entry.title }}</h3>{% endif %}
+    {% if entry.video %}
+      {{ entry|embed }}
+    {% elif entry.html %}
+      {{ entry.html|safe }}
+    {% else %}
     <a href="{{ entry.link }}" data-index="{{ entry.index }}">
       <img src="{{ entry.url }}" alt="[photo]" {% if entry.size %}width="{{ entry.size.0 }}" height="{{ entry.size.1 }}"{% endif %} />
     </a>
+    {% endif %}
     {% if entry.comment %}<div class="comment">{{ entry.comment }}</div>{% endif %}
   </div>
   {% endfor %}

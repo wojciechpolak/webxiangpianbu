@@ -93,6 +93,9 @@ h2#title {
   float: left;
   margin: 4px 4px 0 4px;
 }
+.thumbnails.float div.item.type-video {
+  float: none;
+}
 .thumbnails .row {
   display: table-row;
 }

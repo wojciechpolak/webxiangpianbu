@@ -37,7 +37,7 @@ except ImportError:
     import json
 
 
-def get_data(album, photo=None, page=1, site_url=None):
+def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
     data = {
         'URL_PHOTOS': getattr(settings, 'WEBXIANG_PHOTOS_URL', 'data/'),
         'LAZY_LOADING': getattr(settings, 'WEBXIANG_PHOTOS_LAZY', False),
@@ -63,6 +63,11 @@ def get_data(album, photo=None, page=1, site_url=None):
     data['meta'].update(album_data.get('meta', {}))
     data['meta']['title_gallery'] = data['meta']['title'] or album
     data['entries'] = album_data.get('entries', [])
+
+    # force mobile template
+    if data['meta']['template'] == 'story' and is_mobile:
+        data['meta']['template'] = 'floating'
+        data['meta']['thumbs_skip'] = False
 
     baseurl = data['URL_PHOTOS']
     meta_path = data['meta'].get('path', '')

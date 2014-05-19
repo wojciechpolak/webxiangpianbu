@@ -39,20 +39,16 @@ def display(request, album='index', photo=None):
     except ValueError:
         page = 1
 
+    is_mobile = ('Mobi' in request.META.get('HTTP_USER_AGENT', '') or
+                 request.GET.get('mobile'))
+
     data = webxiang.get_data(album=album, photo=photo, page=page,
-                             site_url=site_url)
+                             site_url=site_url, is_mobile=is_mobile)
     if not data:
         raise Http404
     elif 'canonical_url' in data \
             and data['canonical_url'] != request.path:
         return HttpResponsePermanentRedirect(data['canonical_url'])
-
-    # force mobile template
-    if data['meta']['template'] == 'story' and (
-        'Mobi' in request.META.get('HTTP_USER_AGENT', '') or
-            request.GET.get('mobile')):
-        data['meta']['template'] = 'floating'
-        data['meta']['thumbs_skip'] = False
 
     tpl = data['meta'].get('template') or 'default.html'
     if not tpl.endswith('.html'):
