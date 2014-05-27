@@ -306,7 +306,7 @@ def _parse_video_entry(entry):
     if video:
         if 'youtube.com/' in video:
             for v in re.findall(r'https?://(www\.)?youtube\.com/'
-                                'watch\?v=([\-\w]+)(\S*)', video):
+                                r'watch\?v=([\-\w]+)(\S*)', video):
                 entry['type'] = 'youtube'
                 entry['vid'] = v[1]
         elif 'vimeo.com/' in video:
