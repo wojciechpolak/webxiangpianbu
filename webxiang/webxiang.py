@@ -211,6 +211,15 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
         paginator.page_range_limited = paginator.page_range[cmin:cmax]
 
         for i, entry in enumerate(data['entries'].object_list):
+
+            img = entry.get('image')
+            path = data['meta'].get('path', meta_path)
+            path = urlparse.urljoin(baseurl, path)
+            if isinstance(img, basestring):
+                entry['url_full'] = urlparse.urljoin(path, img)
+            elif img:
+                entry['url_full'] = urlparse.urljoin(path, img['file'])
+
             if data['meta'].get('thumbs_skip'):
                 img = entry.get('image')
                 path = data['meta'].get('path', meta_path)
@@ -235,9 +244,6 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
 
                 path = urlparse.urljoin(baseurl, path)
                 entry['url'] = urlparse.urljoin(path, f)
-
-                if 'image' in entry:
-                    entry['url_full'] = urlparse.urljoin(path, f)
 
                 if 'link' in entry:
                     pass
@@ -339,9 +345,8 @@ def _open_albumfile(album_name):
 
     loc = {}
     try:
-        fp = open(cachefile + 'c', 'rb')
-        pcd = fp.read()
-        fp.close()
+        with open(cachefile + 'c', 'rb') as fp:
+            pcd = fp.read()
         code = marshal.loads(pcd[8:])
         exec code in {}, loc
     except:
@@ -368,9 +373,8 @@ def _open_albumfile(album_name):
 
     # save cache file
     if cachefile:
-        fp = open(cachefile, 'w')
-        fp.write('cache=' + str(data))
-        fp.close()
+        with open(cachefile, 'w') as fp:
+            fp.write('cache=' + str(data))
         py_compile.compile(cachefile)
         os.unlink(cachefile)
 

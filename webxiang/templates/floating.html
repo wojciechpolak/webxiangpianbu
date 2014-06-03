@@ -74,5 +74,12 @@
 <div class="clear"></div>
 {% endif %}
 
+{% if mode == "geomap" %}
+<div id="geomap"></div>
+<script type="text/javascript">
+var wxpb_geo_points = {{ points|safe }};
+</script>
+{% endif %}
+
 <p class="copyright">&copy; {{ meta.copyright }}</p>
 {% endblock main %}

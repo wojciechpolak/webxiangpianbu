@@ -220,10 +220,10 @@
       follow ('levelIndex') || follow ('levelParent') || follow ('levelTop');
       break;
     case 77: /* m */
-      if (GID ('story')) {
+      if (GID ('story') || $('.thumbnails').length) {
         if (GID ('geomap'))
           window.location = './';
-        else if ($('#story').hasClass ('has-geomap'))
+        else if ($('.has-geomap').length)
           window.location = 'geomap';
       }
       else {
