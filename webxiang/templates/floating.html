@@ -54,7 +54,7 @@
 {% endif %}
 {% endspaceless %}
 
-<div class="thumbnails float">
+<div class="thumbnails float{% if meta.geo %} has-geomap{% endif %}">
   {% for entry in entries.object_list %}
   <div class="item{% if entry.video %} type-video{% endif %}">
     {% if entry.title %}<h3>{{ entry.title }}</h3>{% endif %}

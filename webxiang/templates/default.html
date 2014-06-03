@@ -53,7 +53,7 @@
 {% endif %}
 {% endspaceless %}
 
-<div class="thumbnails">
+<div class="thumbnails{% if meta.geo %} has-geomap{% endif %}">
   {% for group in groups %}
   <div class="row">
     {% for entry in group %}
