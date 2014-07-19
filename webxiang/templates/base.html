@@ -1,16 +1,18 @@
 {% load i18n %}<!DOCTYPE html>
 <html>
-  <head>
+  <head prefix="og: http://ogp.me/ns#">
     <title>{{ meta.title }}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="generator" content="WebXiangpianbu">
     <meta name="robots" content="{{ meta.robots }}">
     <meta name="description" content="{% filter striptags %}{% firstof meta.description meta.title %}{% endfilter %}">
+    <meta property="og:title" content="{{ meta.title }}">
     <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/{% firstof meta.style 'base.css' %}">
     <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.8/jquery.min.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/gallery.js"></script>
-    {% if meta.cover and mode != "photo" %}<link rel="image_src" href="{{ meta.cover }}">{% endif %}
+    {% if meta.cover and mode != "photo" %}<link rel="image_src" href="{{ meta.cover }}">
+    <meta property="og:image" content="{{ meta.cover }}">{% endif %}
     {% if meta.custom_css %}<style type="text/css">
       {{ meta.custom_css }}
     </style>{% endif %}
