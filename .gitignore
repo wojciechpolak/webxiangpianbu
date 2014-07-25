@@ -5,6 +5,7 @@
 bin/
 include/
 lib/
+lib64
 settings.py
 cached/
 static/

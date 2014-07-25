@@ -28,6 +28,7 @@ p.description {
   font-size: 21px;
   color: #222;
   opacity: 0.85;
+  margin-top: 0.8em;
 }
 
 #show-help { color: #777; }

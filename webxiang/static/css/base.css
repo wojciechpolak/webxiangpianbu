@@ -21,7 +21,7 @@ body {
   color: #aaa;
   background-color: #111;
   font-family: arial, helvetica, sans-serif;
-  font-size: 12pt;
+  font-size: 100%;
   text-align: center;
   overflow-y: scroll;
 }
@@ -33,7 +33,7 @@ body {
 }
 
 #menu {
-  font-size: smaller;
+  font-size: 90%;
   text-align: center;
 }
 
@@ -49,23 +49,27 @@ h2#title {
 }
 
 #navigation {
-  font-size: smaller;
+  font-size: 90%;
   margin-top: 1.12em;
   margin-bottom: 1em;
 }
 
 #otherSizes {
-  font-size: x-small;
+  font-size: 80%;
   margin-top: 1.12em;
 }
 
+.comment {
+  margin-top: 0.5em;
+}
+
 .pages {
-  font-size: smaller;
+  font-size: 90%;
   margin-bottom: 2em;
 }
 .pages a {
-  padding: 2px 6px;
-  margin-right: 4px;
+  padding: 0.2em 0.4em;
+  margin-right: 0.4em;
   border: 1px solid #333;
 }
 .pages a:hover {
@@ -75,10 +79,10 @@ h2#title {
   text-decoration: none;
 }
 .thisPage {
-  color: #ff0084;
-  margin-right: 4px;
-  padding: 2px 6px;
+  padding: 0.2em 0.4em;
+  margin-right: 0.4em;
   border: 1px solid #333;
+  color: #ff0084;
 }
 
 .thumbnails {
@@ -95,6 +99,8 @@ h2#title {
 }
 .thumbnails.float div.item.type-video {
   float: none;
+  clear: both;
+  padding-top: 1em;
 }
 .thumbnails .row {
   display: table-row;
@@ -180,9 +186,10 @@ div.video.vimeo {
 }
 
 .date {
-  font-size: smaller;
+  font-size: 90%;
   font-weight: normal;
   vertical-align: top;
+  margin-top: 0.3em;
 }
 
 .center {
@@ -315,6 +322,9 @@ div.video.vimeo {
   .pages a, .thisPage {
     padding: 2px 8px;
     margin-right: 4px;
+  }
+  p.description {
+    font-size: 95% !important;
   }
 }
 @media screen and (max-width: 480px) {
