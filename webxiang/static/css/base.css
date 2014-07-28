@@ -309,11 +309,15 @@ div.video.vimeo {
   }
   .thumbnails .cell {
     display: block;
-    width: auto;
+    width: auto !important;
     float: none;
     margin-left: auto;
     margin-right: auto;
     padding: 0.5em;
+  }
+  .thumbnails img {
+    max-width: 100%;
+    height: auto;
   }
   .thumbnails.float img {
     max-width: 160px;
