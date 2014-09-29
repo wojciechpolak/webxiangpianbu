@@ -2,6 +2,7 @@
 
 import os
 SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
+BASE_DIR = SITE_ROOT
 
 DEBUG = False
 TEMPLATE_DEBUG = DEBUG
@@ -32,15 +33,14 @@ LOCALE_PATHS = (
     os.path.join(SITE_ROOT, '../locale'),
 )
 
-SITE_ID = 1
-
-# CACHES = {
-#     'default': {
-#         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-#         'LOCATION': '127.0.0.1:11211',
-#         'KEY_PREFIX': 'webxiang',
-#     },
-# }
+CACHES = {
+    'default': {
+#       'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        'LOCATION': '127.0.0.1:11211',
+        'KEY_PREFIX': 'webxiang',
+    },
+}
 
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
