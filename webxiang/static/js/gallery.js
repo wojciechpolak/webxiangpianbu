@@ -17,7 +17,7 @@
 */
 
 /*jshint white: true, browser: true, expr: true */
-/*global $, jQuery, google, wxpb_geo_points */
+/*global $, L, jQuery, google, wxpb_settings */
 
 (function () {
     var nua = navigator.userAgent.toLowerCase ();
@@ -255,6 +255,8 @@
     };
 
     $(document).ready (function () {
+        wxpb_settings = window.wxpb_settings || {};
+
         if (GID ('story')) {
             /* support image lazy loading plugins */
             if ($.fn.lazyload) {
@@ -331,81 +333,202 @@
         });
 
         if (GID ('geomap')) {
-            window.wxpb_init_map = function () {
-                var gmap = new google.maps.Map (GID ('geomap'), {
-                    mapTypeId: google.maps.MapTypeId.ROADMAP,
-                    zoomControlOptions: {style: google.maps.ZoomControlStyle.LARGE},
-                    keyboardShortcuts: false,
-                    center: new google.maps.LatLng (0, 0),
-                    zoom: 1
-                });
-                var bounds = new google.maps.LatLngBounds ();
-                for (var i = 0; i < wxpb_geo_points.length; i++) {
-                    add_marker (gmap, bounds, wxpb_geo_points[i]);
-                }
-                if (!bounds.isEmpty ()) {
-                    gmap.setCenter (bounds.getCenter ());
-                    gmap.fitBounds (bounds);
-                }
-
-                $(document).keyup (function (e) {
-                    switch (e.which) {
-                    case 37: /* left */
-                        if (!streetview)
-                            $('.inav.prev').click ();
-                        break;
-                    case 39: /* right */
-                        if (!streetview)
-                            $('.inav.next').click ();
-                        break;
-                    case 83: /* s - toggle streetview */
-                        if (streetview && streetview.getVisible ()) {
-                            streetview.setVisible (false);
-                            streetview = null;
-                        }
-                        else if (last_marker) {
-                            streetview = gmap.getStreetView ();
-                            streetview.setPosition (last_marker.getPosition ());
-                            streetview.setVisible (true);
-                            google.maps.event
-                                .addListener (streetview, 'visible_changed', function () {
-                                    if (!this.getVisible ())
-                                        streetview = null;
-                                });
-                        }
-                        break;
-                    }
-                });
-            };
-
-            var lang = (window.navigator.userLanguage ||
-                        window.navigator.language || 'en').substr (0, 2);
-
-            var script = document.createElement ('script');
-            var src = 'https://maps-api-ssl.google.com/maps/api/js?sensor=false';
-            script.type = 'text/javascript';
-            script.src = src + '&language=' + lang + '&callback=wxpb_init_map';
-            document.body.appendChild (script);
-
-            $(document).on ('click', '.inav', function (e) {
-                e.preventDefault ();
-                var $this = $(this);
-                var cur = $this.data ('idx');
-                var idx;
-                if ($this.hasClass ('prev'))
-                    idx = cur > 0 ? cur - 1 : markers.length - 1;
-                else if ($this.hasClass ('next'))
-                    idx = cur < markers.length - 1 ? cur + 1 : 0;
-                google.maps.event.trigger (markers[idx], 'click');
-            });
+            switch (wxpb_settings.geo_map_plugin) {
+            case 'leaflet':
+            case 'mapbox':
+                map_init_leaflet ();
+                break;
+            case 'google':
+                map_init_google ();
+                break;
+            }
         }
     });
+
+    function map_init_leaflet () {
+        function wxpb_init_map () {
+            if (wxpb_settings.geo_map_plugin == 'mapbox')
+                L.mapbox.accessToken = wxpb_settings.mapbox_accessToken;
+
+            var layers = {};
+            var layers_count = 0;
+            var layers_default = [];
+            var _layers = wxpb_settings.geo_leaflet_layers || {};
+
+            for (var name in _layers) {
+                var l;
+                var meta = $.extend ({
+                    type: 'osm'
+                }, _layers[name] || {});
+
+                if (meta.type == 'osm') {
+                    if (meta.id == 'osm.mapnik')
+                        layer = L.tileLayer ('//{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        });
+                }
+                else if (meta.type == 'mapbox') {
+                    layer = L.mapbox.tileLayer (meta.id);
+                }
+
+                layers[name] = layer;
+                layers_count++;
+                if (!layers_default.length || meta.is_default)
+                    layers_default.push (layer);
+            }
+
+            var map = L.map ('geomap', {
+                center: [0, 0],
+                zoom: 1,
+                keyboard: false,
+                layers: layers_default
+            });
+
+            L.control.scale().addTo (map);
+            if (layers_count > 1)
+                L.control.layers(layers).addTo (map);
+
+            var bounds = L.latLngBounds ([]);
+            for (var i = 0; i < wxpb_settings.geo_points.length; i++) {
+                add_marker_leaflet (map, bounds, wxpb_settings.geo_points[i]);
+            }
+            if (bounds.isValid ()) {
+                map.panTo (bounds.getCenter ());
+                map.fitBounds (bounds);
+            }
+
+            $(document).keyup (function (e) {
+                switch (e.which) {
+                case 37: /* left */
+                    $('.inav.prev').click ();
+                    break;
+                case 39: /* right */
+                    $('.inav.next').click ();
+                    break;
+                }
+            });
+        };
+
+        switch (wxpb_settings.geo_map_plugin) {
+        case 'leaflet':
+            $('<link/>', {
+                rel: 'stylesheet',
+                type: 'text/css',
+                href: '//cdn.leafletjs.com/leaflet-0.7.3/leaflet.css'
+            }).appendTo ('head');
+            $.getScript ('//cdn.leafletjs.com/leaflet-0.7.3/leaflet.js', wxpb_init_map);
+            break;
+        case 'mapbox':
+            $('<link/>', {
+                rel: 'stylesheet',
+                type: 'text/css',
+                href: '//api.tiles.mapbox.com/mapbox.js/v2.1.2/mapbox.css'
+            }).appendTo ('head');
+            $.getScript ('//api.tiles.mapbox.com/mapbox.js/v2.1.2/mapbox.js', wxpb_init_map);
+            break;
+        }
+
+        $(document).on ('click', '.inav', function (e) {
+            e.preventDefault ();
+            var $this = $(this);
+            var cur = $this.data ('idx');
+            var idx;
+            if ($this.hasClass ('prev'))
+                idx = cur > 0 ? cur - 1 : markers.length - 1;
+            else if ($this.hasClass ('next'))
+                idx = cur < markers.length - 1 ? cur + 1 : 0;
+            markers[idx].openPopup ();
+        });
+    }
+
+    function map_init_google () {
+        window.wxpb_init_map = function () {
+            var gmap = new google.maps.Map (GID ('geomap'), {
+                mapTypeId: google.maps.MapTypeId.ROADMAP,
+                zoomControlOptions: {style: google.maps.ZoomControlStyle.LARGE},
+                keyboardShortcuts: false,
+                center: new google.maps.LatLng (0, 0),
+                zoom: 1
+            });
+            var bounds = new google.maps.LatLngBounds ();
+            for (var i = 0; i < wxpb_settings.geo_points.length; i++) {
+                add_marker_google (gmap, bounds, wxpb_settings.geo_points[i]);
+            }
+            if (!bounds.isEmpty ()) {
+                gmap.setCenter (bounds.getCenter ());
+                gmap.fitBounds (bounds);
+            }
+
+            $(document).keyup (function (e) {
+                switch (e.which) {
+                case 37: /* left */
+                    if (!streetview)
+                        $('.inav.prev').click ();
+                    break;
+                case 39: /* right */
+                    if (!streetview)
+                        $('.inav.next').click ();
+                    break;
+                case 83: /* s - toggle streetview */
+                    if (streetview && streetview.getVisible ()) {
+                        streetview.setVisible (false);
+                        streetview = null;
+                    }
+                    else if (last_marker) {
+                        streetview = gmap.getStreetView ();
+                        streetview.setPosition (last_marker.getPosition ());
+                        streetview.setVisible (true);
+                        google.maps.event
+                            .addListener (streetview, 'visible_changed', function () {
+                                if (!this.getVisible ())
+                                    streetview = null;
+                            });
+                    }
+                    break;
+                }
+            });
+        };
+
+        var lang = (window.navigator.userLanguage ||
+                    window.navigator.language || 'en').substr (0, 2);
+
+        var script = document.createElement ('script');
+        var src = 'https://maps-api-ssl.google.com/maps/api/js?sensor=false';
+        script.type = 'text/javascript';
+        script.src = src + '&language=' + lang + '&callback=wxpb_init_map';
+        document.body.appendChild (script);
+
+        $(document).on ('click', '.inav', function (e) {
+            e.preventDefault ();
+            var $this = $(this);
+            var cur = $this.data ('idx');
+            var idx;
+            if ($this.hasClass ('prev'))
+                idx = cur > 0 ? cur - 1 : markers.length - 1;
+            else if ($this.hasClass ('next'))
+                idx = cur < markers.length - 1 ? cur + 1 : 0;
+            google.maps.event.trigger (markers[idx], 'click');
+        });
+    }
 
     var last_marker = null;
     var streetview = null;
     var markers = [];
 
-    function add_marker (gmap, bounds, data) {
+    function add_marker_leaflet (map, bounds, data) {
+        var gs = data[0].split (',');
+        var mark = L.marker (gs).addTo (map);
+        mark.chain_idx = markers.length;
+        markers.push (mark);
+        bounds.extend (mark.getLatLng ());
+
+        var content = _build_popup_content (mark, data);
+        mark.bindPopup (content.join (''), {
+            maxWidth: 330
+        });
+    }
+
+    function add_marker_google (gmap, bounds, data) {
         var gs = data[0].split (',');
         var mark = new google.maps.Marker ({
             map: gmap,
@@ -417,43 +540,48 @@
 
         google.maps.event.addListener (mark, 'click', function () {
             last_marker && last_marker.close ();
-            var content = [];
-            for (var i = 0; i < data[1].length; i++) {
-                var x = data[1][i];
-
-                var maxwidth = 300, maxheight = 270;
-                var size = x.image.size || x.size;
-                var rw = size[0] / maxwidth;
-                var rh = size[1] / maxheight;
-                var width, height;
-                if (rw > rh) {
-                    width = maxwidth;
-                    height = parseInt (size[1] / rw);
-                }
-                else {
-                    width = parseInt (size[0] / rh);
-                    height = maxheight;
-                }
-
-                content.push ('<p><a class="gminiphoto" href="'+ x.link +
-                              '" target="_blank"><img src="' + x.url_full +
-                              '" width="'+ width +'" height="'+ height +
-                              '" alt="[photo]"></a></p>');
-                if (x.description)
-                    content.push ('<p>' + x.description + '</p>');
-            }
-            content.push ('<p>');
-            content.push ('<a href="#" class="inav prev" data-idx="' +
-                          this.chain_idx + '">&lt;&lt;</a> ');
-            content.push ('| <a href="#" class="inav next" data-idx="' +
-                          this.chain_idx + '">&gt;&gt;</a>');
-            content.push ('</p>');
+            var content = _build_popup_content (mark, data);
             last_marker = new google.maps.InfoWindow ({
                 content: content.join ('')
             });
             last_marker.setPosition (this.getPosition ());
             last_marker.open (streetview || gmap, this);
         });
+    }
+
+    function _build_popup_content (mark, data) {
+        var content = [];
+        for (var i = 0; i < data[1].length; i++) {
+            var x = data[1][i];
+
+            var maxwidth = 300, maxheight = 270;
+            var size = x.image.size || x.size;
+            var rw = size[0] / maxwidth;
+            var rh = size[1] / maxheight;
+            var width, height;
+            if (rw > rh) {
+                width = maxwidth;
+                height = parseInt (size[1] / rw);
+            }
+            else {
+                width = parseInt (size[0] / rh);
+                height = maxheight;
+            }
+
+            content.push ('<p><a class="gminiphoto" href="'+ x.link +
+                          '" target="_blank"><img src="' + x.url_full +
+                          '" width="'+ width +'" height="'+ height +
+                          '" alt="[photo]"></a></p>');
+            if (x.description)
+                content.push ('<p>' + x.description + '</p>');
+        }
+        content.push ('<p>');
+        content.push ('<a href="#" class="inav prev" data-idx="' +
+                      mark.chain_idx + '">&lt;&lt;</a> ');
+        content.push ('| <a href="#" class="inav next" data-idx="' +
+                      mark.chain_idx + '">&gt;&gt;</a>');
+        content.push ('</p>');
+        return content;
     }
 
     function read_cookie (name) {

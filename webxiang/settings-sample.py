@@ -155,3 +155,12 @@ ALBUM_DIR = os.path.join(SITE_ROOT, '../albums')
 CACHE_DIR = os.path.join(SITE_ROOT, '../cached')
 
 COPYRIGHT_OWNER = 'Your Name'
+
+WXPB_SETTINGS = {
+    'geo_map_plugin': 'leaflet',  # leaflet, mapbox, google
+    'geo_leaflet_layers': {
+        'OpenStreetMap': {'id': 'osm.mapnik', 'is_default': True},
+        # 'Custom': {'id': 'MAPID', 'type': 'mapbox'}
+    },
+    #'mapbox_accessToken': '',
+}

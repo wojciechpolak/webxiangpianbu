@@ -284,7 +284,10 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
                     points[p].append(entry)
             points = sorted([(k, v) for k, v in points.items()],
                             key=lambda x: x[1][0]['index'])
-            data['points'] = json.dumps(points)
+            wxpb_settings = getattr(settings, 'WXPB_SETTINGS', None) or {}
+            wxpb_settings.update(data.get('settings') or {})
+            wxpb_settings['geo_points'] = points
+            data['wxpb_settings'] = json.dumps(wxpb_settings)
             del data['entries']
 
     if data['meta']['style'] and not data['meta']['style'].endswith('.css'):

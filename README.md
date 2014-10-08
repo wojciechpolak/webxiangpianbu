@@ -13,6 +13,7 @@ Features
 - Highly customizable (albums, templates, styles)
 - Mobile friendly
 - EXIF and Geotagging extracting
+- Map feature (Leaflet, Mapbox, Google Maps)
 - Language localization
 
 Installation
