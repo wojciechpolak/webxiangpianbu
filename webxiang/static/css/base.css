@@ -17,7 +17,13 @@ a:hover {
   color: #ffcc00;
 }
 
+html {
+  height: 100%;
+}
+
 body {
+  min-height: 100%;
+  margin: 0;
   color: #aaa;
   background-color: #111;
   font-family: arial, helvetica, sans-serif;
@@ -27,7 +33,9 @@ body {
 }
 
 #content {
-  padding-top: 1px;
+  height: 100vh;
+  box-sizing: border-box;
+  padding: 8px;
   margin-left: auto;
   margin-right: auto;
 }
@@ -282,8 +290,7 @@ div.video.vimeo {
 
 #geomap {
   width: 100%;
-  max-width: 995px;
-  height: 500px;
+  height: 77%;
   margin: 0 auto;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   text-align: left;
