@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  WebXiangpianbu Copyright (C) 2013, 2014 Wojciech Polak
+#  WebXiangpianbu Copyright (C) 2013, 2014, 2015 Wojciech Polak
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by the
@@ -98,6 +98,8 @@ def main():
                 opts['album_dir'] = arg
             elif o == '--album-format':
                 opts['album_format'] = arg.lower()
+            elif o == '--path':
+                opts['path'] = arg
             elif o == '--copyright':
                 opts['copyright'] = arg
             elif o == '--template':
