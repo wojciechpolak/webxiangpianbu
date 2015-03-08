@@ -1,4 +1,4 @@
-#  WebXiangpianbu Copyright (C) 2013, 2014 Wojciech Polak
+#  WebXiangpianbu Copyright (C) 2013, 2014, 2015 Wojciech Polak
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by the
@@ -16,10 +16,11 @@
 import re
 import os
 import math
-import itertools
-import urlparse
 import marshal
 import py_compile
+
+from django.utils import six
+from django.utils.six.moves import urllib, zip_longest
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -92,7 +93,7 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
             if not photo.lower().endswith('.jpg'):
                 photo += '.jpg'
             for idx, ent in enumerate(data['entries']):
-                if isinstance(ent['image'], basestring):
+                if isinstance(ent['image'], six.string_types):
                     f = ent['image']
                 else:
                     f = ent['image']['file']
@@ -152,7 +153,7 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
             data['next_entry'] = None
 
         img = entry.get('image')
-        if isinstance(img, basestring):
+        if isinstance(img, six.string_types):
             f = entry['image']
             path = meta_path
             size = entry.get('size') or data[
@@ -167,8 +168,8 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
             path = meta_path
             f = size = ''
 
-        path = urlparse.urljoin(baseurl, path)
-        entry['url'] = urlparse.urljoin(path, f)
+        path = urllib.parse.urljoin(baseurl, path)
+        entry['url'] = urllib.parse.urljoin(path, f)
         entry['size'] = size
 
         if reverse_order:
@@ -214,11 +215,11 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
 
             img = entry.get('image')
             path = data['meta'].get('path', meta_path)
-            path = urlparse.urljoin(baseurl, path)
-            if isinstance(img, basestring):
-                entry['url_full'] = urlparse.urljoin(path, img)
+            path = urllib.parse.urljoin(baseurl, path)
+            if isinstance(img, six.string_types):
+                entry['url_full'] = urllib.parse.urljoin(path, img)
             elif img:
-                entry['url_full'] = urlparse.urljoin(path, img['file'])
+                entry['url_full'] = urllib.parse.urljoin(path, img['file'])
 
             if data['meta'].get('thumbs_skip'):
                 img = entry.get('image')
@@ -230,7 +231,7 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
                 item_type = 'thumb'
 
             if img:
-                if isinstance(img, basestring):
+                if isinstance(img, six.string_types):
                     f = img
                     entry['size'] = data['meta'].get('default_%s_size' %
                                                      item_type)
@@ -242,8 +243,8 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
                         'size',
                         data['meta'].get('default_%s_size' % item_type))
 
-                path = urlparse.urljoin(baseurl, path)
-                entry['url'] = urlparse.urljoin(path, f)
+                path = urllib.parse.urljoin(baseurl, path)
+                entry['url'] = urllib.parse.urljoin(path, f)
 
                 if 'link' in entry:
                     pass
@@ -259,7 +260,7 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
                         'photo': link})
 
             else:  # non-image entries
-                path = urlparse.urljoin(baseurl, meta_path)
+                path = urllib.parse.urljoin(baseurl, meta_path)
                 _parse_video_entry(entry)
 
         # grouping entries into columns
@@ -267,8 +268,8 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
         if columns:
             data['groups'] = (
                 (e for e in t if e != None)
-                for t in itertools.izip_longest(
-                    *(iter(data['entries'].object_list),) * columns)
+                for t in zip_longest(
+                        *(iter(data['entries'].object_list),) * columns)
             )
 
         # set up geo points
@@ -282,7 +283,7 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
                     if 'exif' in entry:
                         del entry['exif']
                     points[p].append(entry)
-            points = sorted([(k, v) for k, v in points.items()],
+            points = sorted([(k, v) for k, v in list(points.items())],
                             key=lambda x: x[1][0]['index'])
             wxpb_settings = getattr(settings, 'WXPB_SETTINGS', None) or {}
             wxpb_settings.update(data.get('settings') or {})
@@ -296,9 +297,9 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
     # handle cover's URL
     cover = data['meta']['cover']
     if cover and not cover.startswith('/'):
-        cover = urlparse.urljoin(path, cover)
+        cover = urllib.parse.urljoin(path, cover)
     if cover and site_url:
-        cover = urlparse.urljoin(site_url, cover)
+        cover = urllib.parse.urljoin(site_url, cover)
     data['meta']['cover'] = cover
 
     ctx = {
@@ -351,7 +352,7 @@ def _open_albumfile(album_name):
         with open(cachefile + 'c', 'rb') as fp:
             pcd = fp.read()
         code = marshal.loads(pcd[8:])
-        exec code in {}, loc
+        exec(code, {}, loc)
     except:
         pass
 
@@ -363,13 +364,13 @@ def _open_albumfile(album_name):
         try:
             album_content = open(albumfile_yaml, 'r').read()
             data = yaml.load(album_content)
-        except Exception, e:
+        except Exception as e:
             raise e
     elif os.path.isfile(albumfile_json):
         try:
             album_content = open(albumfile_json, 'r').read()
             data = json.loads(album_content)
-        except Exception, e:
+        except Exception as e:
             raise e
     else:
         return None

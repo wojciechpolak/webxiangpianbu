@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  WebXiangpianbu Copyright (C) 2014 Wojciech Polak
+#  WebXiangpianbu Copyright (C) 2014, 2015 Wojciech Polak
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by the
@@ -16,6 +16,8 @@
 #  You should have received a copy of the GNU General Public License along
 #  with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
+
 import os
 import sys
 import glob
@@ -23,10 +25,10 @@ import getopt
 import shutil
 import signal
 import codecs
-import urlparse
-import SimpleHTTPServer
-import SocketServer
 from datetime import datetime
+
+from django.utils import six
+from django.utils.six.moves import urllib, SimpleHTTPServer, socketserver
 
 SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
 os.environ['DJANGO_SETTINGS_MODULE'] = 'webxiang.settings'
@@ -41,9 +43,9 @@ from django.conf import settings
 try:
     from django.shortcuts import render
 except ImportError as e:
-    print e
-    print "Copy `webxiang/settings-sample.py` to " \
-        "`webxiang/settings.py` and modify it to your needs."
+    print(e)
+    print("Copy `webxiang/settings-sample.py` to " \
+          "`webxiang/settings.py` and modify it to your needs.")
     sys.exit(1)
 
 from django.core.urlresolvers import set_urlconf, set_script_prefix
@@ -135,9 +137,9 @@ def main():
             opts['names'] = 'index'
 
     except getopt.GetoptError:
-        print "Usage: %s [OPTION...] [ALBUM-NAME1,NAME2]" % sys.argv[0]
-        print "%s -- album static HTML generator" % sys.argv[0]
-        print """
+        print("Usage: %s [OPTION...] [ALBUM-NAME1,NAME2]" % sys.argv[0])
+        print("%s -- album static HTML generator" % sys.argv[0])
+        print("""
  Options               Default values
  -v, --verbose         [%(verbose)s]
      --output-dir      [output-DATETIME/]
@@ -151,7 +153,7 @@ def main():
      --quick           [folder's name]
  -s, --serve           [output dir]
  -p, --port            [%(port)s]
-""" % opts
+""" % opts)
         sys.exit(1)
 
     signal.signal(signal.SIGTERM, lambda signum, frame: __quit_app())
@@ -163,7 +165,7 @@ def main():
 
     if opts['lang']:
         if opts['verbose'] > 1:
-            print 'Switching language to %s' % opts['lang']
+            print('Switching language to %s' % opts['lang'])
         translation.activate(opts['lang'])
 
     set_urlconf('webxiang.urls_static')
@@ -184,13 +186,13 @@ def main():
         opts['photo_dir'] = opts['album_dir']
         settings.ALBUM_DIR = opts['album_dir']
 
-    opts['assets_url'] = urlparse.urljoin(opts['root'], opts['assets_url'])
-    opts['photos_url'] = urlparse.urljoin(opts['root'], opts['photos_url'])
+    opts['assets_url'] = urllib.parse.urljoin(opts['root'], opts['assets_url'])
+    opts['photos_url'] = urllib.parse.urljoin(opts['root'], opts['photos_url'])
     settings.WEBXIANG_PHOTOS_URL = opts['photos_url']
 
     try:
         if not os.path.exists(output_dir):
-            print 'Creating directory "%s"' % output_dir
+            print('Creating directory "%s"' % output_dir)
             os.makedirs(output_dir)
     except Exception as e:
         pass
@@ -201,18 +203,18 @@ def main():
         photos_url = os.path.join(output_dir, photos_url)
 
         if opts['copy']:
-            print 'Copying photos "%s" into "%s"' % \
-                (opts['photo_dir'].rstrip('/'), photos_url)
+            print('Copying photos "%s" into "%s"' % \
+                (opts['photo_dir'].rstrip('/'), photos_url))
             try:
                 if not os.path.exists(photos_url):
                     os.makedirs(photos_url)
                 __copytree(opts['photo_dir'].rstrip('/'), photos_url)
             except Exception as e:
-                print 'Copying photos', e
+                print('Copying photos', e)
 
         else:
-            print 'Linking photos: ln -s %s %s' % \
-                (opts['photo_dir'].rstrip('/'), photos_url.rstrip('/'))
+            print('Linking photos: ln -s %s %s' % \
+                (opts['photo_dir'].rstrip('/'), photos_url.rstrip('/')))
             try:
                 d = os.path.dirname(photos_url.rstrip('/'))
                 if not os.path.exists(d):
@@ -220,44 +222,44 @@ def main():
                 os.symlink(opts['photo_dir'].rstrip('/'),
                            photos_url.rstrip('/'))
             except Exception as e:
-                print 'Linking photos', e
+                print('Linking photos', e)
 
-    print 'Copying assets (JS, CSS, etc.) into "%s"' % \
-        os.path.join(root_dir, opts['assets_url'].lstrip('/'))
+    print('Copying assets (JS, CSS, etc.) into "%s"' % \
+        os.path.join(root_dir, opts['assets_url'].lstrip('/')))
     try:
         __copytree(settings.STATIC_ROOT,
                    os.path.join(root_dir,
                                 opts['assets_url'].lstrip('/')))
     except Exception as e:
-        print 'Copying assets', e
+        print('Copying assets', e)
 
-    print 'Generating static pages.'
+    print('Generating static pages.')
     for album_name in opts['names'].split(','):
         __gen_html_album(opts, album_name, output_dir=output_dir)
 
-    print 'Finished %s' % output_dir
-    print 'Done. Created %d files.' % __items_no
+    print('Finished %s' % output_dir)
+    print('Done. Created %d files.' % __items_no)
 
     if opts['serve'] is not False:
         serve(opts, root_dir)
 
 
 def __quit_app(code=0):
-    print
+    print()
     sys.exit(code)
 
 
 def serve(opts, root_dir=None):
-    class SimpleServer(SocketServer.TCPServer):
+    class SimpleServer(six.moves.socketserver.TCPServer):
         allow_reuse_address = True
 
     if root_dir:
         os.chdir(root_dir)
 
     httpd = SimpleServer(('localhost', opts['port']),
-                         SimpleHTTPServer.SimpleHTTPRequestHandler)
-    print 'Serving at %s%s' % ('localhost:%d' % opts['port'], opts['root'])
-    print 'Quit the server with CONTROL-C.'
+                         six.moves.SimpleHTTPServer.SimpleHTTPRequestHandler)
+    print('Serving at %s%s' % ('localhost:%d' % opts['port'], opts['root']))
+    print('Quit the server with CONTROL-C.')
     httpd.serve_forever()
 
 
@@ -270,7 +272,7 @@ def __gen_html_album(opts, album_name, output_dir='.', page=1):
     __generated.add(entry_id)
 
     if page == 1:
-        print album_name,
+        print(album_name, end=' ')
 
     data = webxiang.get_data(album=album_name, page=page)
     if not data:
@@ -293,7 +295,7 @@ def __gen_html_album(opts, album_name, output_dir='.', page=1):
         output_file = os.path.join(output_dir, album_name, 'index.html')
 
     if opts['verbose'] > 1:
-        print 'writing %s' % output_file
+        print('writing %s' % output_file)
     elif opts['verbose'] == 1:
         sys.stdout.write('.')
         sys.stdout.flush()
@@ -302,7 +304,7 @@ def __gen_html_album(opts, album_name, output_dir='.', page=1):
         os.makedirs(os.path.dirname(output_file))
 
     f = codecs.open(output_file, 'w', 'utf-8')
-    f.write(unicode(html))
+    f.write(six.text_type(html))
     f.close()
     __items_no += 1
 
@@ -363,13 +365,13 @@ def __gen_html_photo(opts, album_name, entry_idx, output_dir='.'):
         os.makedirs(os.path.dirname(output_file))
 
     if opts['verbose'] > 1:
-        print 'writing %s' % output_file
+        print('writing %s' % output_file)
     elif opts['verbose'] == 1:
         sys.stdout.write('.')
         sys.stdout.flush()
 
     f = codecs.open(output_file, 'w', 'utf-8')
-    f.write(unicode(html))
+    f.write(six.text_type(html))
     f.close()
     __items_no += 1
 

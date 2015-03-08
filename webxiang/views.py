@@ -1,4 +1,4 @@
-#  WebXiangpianbu Copyright (C) 2013, 2014 Wojciech Polak
+#  WebXiangpianbu Copyright (C) 2013, 2014, 2015 Wojciech Polak
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by the
@@ -13,7 +13,7 @@
 #  You should have received a copy of the GNU General Public License along
 #  with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import urlparse
+from django.utils.six.moves import urllib
 
 from django.conf import settings
 from django.http import Http404, HttpResponsePermanentRedirect
@@ -72,7 +72,7 @@ def onephoto(request, photo):
                                                   '')),
         },
         'entry': {
-            'url': urlparse.urljoin(baseurl, photo),
+            'url': urllib.parse.urljoin(baseurl, photo),
         },
     }
     return render(request, 'photo.html', ctx)

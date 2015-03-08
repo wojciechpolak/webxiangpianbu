@@ -21,6 +21,7 @@ import sys
 import getopt
 import yaml
 from datetime import date
+from django.utils.six.moves import input
 
 try:
     from collections import OrderedDict
@@ -143,9 +144,9 @@ def main():
         else:
             raise getopt.GetoptError('')
     except getopt.GetoptError:
-        print "Usage: %s [OPTION...] INPUT-DIR OUTPUT-DIR" % sys.argv[0]
-        print "%s -- album generator" % sys.argv[0]
-        print """
+        print("Usage: %s [OPTION...] INPUT-DIR OUTPUT-DIR" % sys.argv[0])
+        print("%s -- album generator" % sys.argv[0])
+        print("""
  Options                      Default values
  --album-name=STRING          [output dir's name]
  --album-dir=STRING           [output dir]
@@ -166,7 +167,7 @@ def main():
  --correct-orientation        [%(correct_orientation)s]
  --skip-image-gen             [%(skip_image_gen)s]
  --skip-thumb-gen             [%(skip_thumb_gen)s]
-""" % opts
+""" % opts)
         sys.exit(1)
 
     if not os.path.exists(opts['outputdir']):
@@ -197,9 +198,8 @@ def main():
         album['meta']['default_image_size'] = opts['default_image_size']
 
     if opts['inputdir'].endswith('.in'):
-        fp = open(opts['inputdir'])
-        data = fp.readlines()
-        fp.close()
+        with open(opts['inputdir']) as fp:
+            data = fp.readlines()
         opts['inputdir'] = data[0].strip()  # first line points directory
         files = []
         for line in data[1:]:
@@ -228,11 +228,10 @@ def main():
         if os.path.exists(filename):
             overwrite = confirm('Overwrite album file %s?' % filename)
         if overwrite:
-            album_file_json = file(filename, 'w')
-            json.dump(album, album_file_json, indent=4)
-            album_file_json.write('\n')
-            album_file_json.close()
-            print 'saved %s' % album_file_json.name
+            with open(filename, 'w') as album_file_json:
+                json.dump(album, album_file_json, indent=4)
+                album_file_json.write('\n')
+                print('saved %s' % album_file_json.name)
 
     if opts['album_format'] in ('yaml', 'all'):
         # output yaml
@@ -244,20 +243,20 @@ def main():
             if OrderedDict:
                 def order_rep(dumper, data):
                     return dumper.represent_mapping(u'tag:yaml.org,2002:map',
-                                                    data.items(), flow_style=False)
+                                                    list(data.items()),
+                                                    flow_style=False)
                 yaml.add_representer(OrderedDict, order_rep)
                 album = OrderedDict({
                         'meta': album['meta'],
                         'entries': album['entries'],
                         })
 
-            album_file_yaml = file(filename, 'w')
-            yaml.dump(album, album_file_yaml, encoding='utf-8',
-                      default_flow_style=None, indent=4, width=70)
-            album_file_yaml.close()
-            print 'saved %s' % album_file_yaml.name
+            with open(filename, 'w') as album_file_yaml:
+                yaml.dump(album, album_file_yaml, encoding='utf-8',
+                          default_flow_style=None, indent=4, width=70)
+                print('saved %s' % album_file_yaml.name)
 
-    print 'done'
+    print('done')
 
 
 exif_tags = {
@@ -302,7 +301,7 @@ def process_image(opts, album, fname):
     exif_accepted = set(exif_tags.keys())
 
     if exif != None:
-        for tag, value in exif.items():
+        for tag, value in list(exif.items()):
             decoded = ExifTags.TAGS.get(tag, tag)
             if decoded in exif_accepted:
                 exif_data[decoded] = value
@@ -319,7 +318,7 @@ def process_image(opts, album, fname):
                     sub_decoded = ExifTags.GPSTAGS.get(t, t)
                     gps_data[sub_decoded] = value[t]
 
-    for k, v in exif_data.items():
+    for k, v in list(exif_data.items()):
         exif_data[k] = str(exif_tags[k](v)).strip()
 
     lat, lng = get_latlng(gps_data)
@@ -337,7 +336,7 @@ def process_image(opts, album, fname):
 
     output_fname = os.path.join(opts['outputdir'], fname)
     if os.path.exists(output_fname):
-        print 'file exists, skipping... %s' % output_fname
+        print('file exists, skipping... %s' % output_fname)
         return
 
     if not opts['skip_image_gen']:
@@ -349,7 +348,7 @@ def process_image(opts, album, fname):
         img.save(output_fname, 'JPEG', optimize=True,
                  quality=opts['images_quality'], progressive=False)
 
-        print 'saved %s' % output_fname
+        print('saved %s' % output_fname)
 
 
 def gen_thumbnails(opts, img_blob, fname):
@@ -362,7 +361,7 @@ def gen_thumbnails(opts, img_blob, fname):
 
     output_fname = os.path.join(opts['outputdir'], fname)
     if os.path.exists(output_fname):
-        print 'file exists, skipping... %s' % output_fname
+        print('file exists, skipping... %s' % output_fname)
         return fname
 
     img = img_blob.copy()
@@ -387,7 +386,7 @@ def gen_thumbnails(opts, img_blob, fname):
     img.save(output_fname, 'JPEG', optimize=True,
              quality=opts['thumbs_quality'], progressive=True)
 
-    print 'saved %s' % output_fname
+    print('saved %s' % output_fname)
     return fname
 
 
@@ -437,7 +436,7 @@ def confirm(question, default=False):
     else:
         defval = 'y/N'
     while True:
-        res = raw_input("%s [%s] " % (question, defval)).lower()
+        res = input("%s [%s] " % (question, defval)).lower()
         if not res:
             return default
         elif res in ('y', 'yes'):

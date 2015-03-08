@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  WebXiangpianbu Copyright (C) 2013, 2014 Wojciech Polak
+#  WebXiangpianbu Copyright (C) 2013, 2014, 2015 Wojciech Polak
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by the
@@ -21,6 +21,7 @@ import sys
 import glob
 import getopt
 import yaml
+from django.utils.six.moves import input
 
 try:
     import simplejson as json
@@ -51,12 +52,12 @@ def main():
             opts['output_dir'] = os.path.dirname(args[1])
             opts['output_name'] = os.path.basename(args[1])
     except getopt.GetoptError:
-        print "Usage: %s [OPTION...] INPUT OUTPUT" % sys.argv[0]
-        print "%s -- album converter" % sys.argv[0]
-        print """
+        print("Usage: %s [OPTION...] INPUT OUTPUT" % sys.argv[0])
+        print("%s -- album converter" % sys.argv[0])
+        print("""
  Options               Default values
  -y, --overwrite       [False]
-"""
+""")
         sys.exit(1)
 
     if opts['output_dir'] and not os.path.exists(opts['output_dir']):
@@ -69,7 +70,7 @@ def main():
                 to_yaml(opts, name, data)
             elif name.endswith('.yaml'):
                 to_json(opts, name, data)
-    print 'done'
+    print('done')
 
 
 def read_albumfile(name):
@@ -77,14 +78,14 @@ def read_albumfile(name):
         try:
             album_content = open(name, 'r').read()
             return yaml.load(album_content)
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
     elif os.path.isfile(name) and name.endswith('.json'):
         try:
             album_content = open(name, 'r').read()
             return json.loads(album_content)
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
     return None
 
 
@@ -97,11 +98,10 @@ def to_yaml(opts, name, data):
         overwrite = opts['overwrite'] or \
             confirm('Overwrite album file %s?' % filename)
     if overwrite:
-        album_file_yaml = file(filename, 'w')
-        yaml.dump(data, album_file_yaml, encoding='utf-8',
-                  default_flow_style=False, indent=4, width=70)
-        album_file_yaml.close()
-        print 'saved %s' % album_file_yaml.name
+        with open(filename, 'w') as album_file_yaml:
+            yaml.dump(data, album_file_yaml, encoding='utf-8',
+                      default_flow_style=False, indent=4, width=70)
+            print('saved %s' % album_file_yaml.name)
 
 
 def to_json(opts, name, data):
@@ -113,11 +113,10 @@ def to_json(opts, name, data):
         overwrite = opts['overwrite'] or \
             confirm('Overwrite album file %s?' % filename)
     if overwrite:
-        album_file_json = file(filename, 'w')
-        json.dump(data, album_file_json, indent=4)
-        album_file_json.write('\n')
-        album_file_json.close()
-        print 'saved %s' % album_file_json.name
+        with open(filename, 'w') as album_file_json:
+            json.dump(data, album_file_json, indent=4)
+            album_file_json.write('\n')
+            print('saved %s' % album_file_json.name)
 
 
 def confirm(question, default=False):
@@ -126,7 +125,7 @@ def confirm(question, default=False):
     else:
         defval = 'y/N'
     while True:
-        res = raw_input("%s [%s] " % (question, defval)).lower()
+        res = input("%s [%s] " % (question, defval)).lower()
         if not res:
             return default
         elif res in ('y', 'yes'):
