@@ -1,6 +1,6 @@
 /*
   WebXiangpianbu gallery.js
-  Copyright (C) 2005-2006, 2010, 2013, 2014 Wojciech Polak
+  Copyright (C) 2005-2006, 2010, 2013, 2014, 2015 Wojciech Polak
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -356,7 +356,7 @@
             var _layers = wxpb_settings.geo_leaflet_layers || {};
 
             for (var name in _layers) {
-                var l;
+                var layer;
                 var meta = $.extend ({
                     type: 'osm'
                 }, _layers[name] || {});
