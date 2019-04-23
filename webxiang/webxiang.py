@@ -187,6 +187,21 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
         data['meta']['copyright'] = entry.get('copyright') or \
             data['meta'].get('copyright')
 
+        points = {}
+        if 'geo' in entry:
+            p = entry['geo']
+            if p not in points:
+                points[p] = []
+            if 'exif' in entry:
+                del entry['exif']
+            points[p].append(entry)
+        points = sorted([(k, v) for k, v in list(points.items())],
+                        key=lambda x: x[1][0]['index'])
+        wxpb_settings = getattr(settings, 'WXPB_SETTINGS', None) or {}
+        wxpb_settings.update(data.get('settings') or {})
+        wxpb_settings['geo_points'] = points
+        data['wxpb_settings'] = json.dumps(wxpb_settings)
+
     else:
         if photo == 'geomap':
             mode = 'geomap'
