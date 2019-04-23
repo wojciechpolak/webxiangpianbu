@@ -24,7 +24,7 @@
     <img src="{{ entry.url }}" alt="[photo]" {% if entry.size %}width="{{ entry.size.0 }}" height="{{ entry.size.1 }}"{% endif %} />
   </a>
   {% endif %}
-  {% if entry.geo and meta.geo %}<div class="geo" data-geo="{{ entry.geo }}"></div>{% endif %}
+  {% if entry.geo and meta.geo %}<div id="geomap-mini" class="geo" data-geo="{{ entry.geo }}"></div>{% endif %}
   {% if entry.date %}<div class="date">{{ entry.date }}</div>{% endif %}
   {% if entry.description %}<p class="description">{{ entry.description|safe }}</p>{% endif %}
 </div>

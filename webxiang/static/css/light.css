@@ -15,7 +15,7 @@ a { color: #008edd !important; }
 a img { border-style: none; }
 .pages { text-shadow: none; }
 
-.thumbnails img, .photo img {
+.thumbnails img, .photo a img {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 .pages a:hover {

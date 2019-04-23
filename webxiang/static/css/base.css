@@ -162,13 +162,8 @@ h2#title {
 div.geo {
   width: 100%;
   max-width: 900px;
-  height: auto;
+  height: 200px;
   margin: 4px auto;
-  overflow: hidden;
-}
-div.geo img {
-  width: 100%;
-  height: auto;
 }
 
 div.video {
