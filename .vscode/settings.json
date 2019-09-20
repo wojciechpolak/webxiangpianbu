@@ -1,0 +1,16 @@
+{
+    "python.pythonPath": "bin/python",
+    "editor.tabCompletion": "on",
+    "workbench.editor.labelFormat": "short",
+    "files.exclude": {
+        "**/*.pyc": {"when": "$(basename).py"},
+        "**/__pycache__": true
+    },
+    "cSpell.enabledLanguageIds": [
+        "markdown",
+        "plaintext",
+        "text"
+    ],
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true
+}

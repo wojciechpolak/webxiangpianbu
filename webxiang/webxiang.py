@@ -40,6 +40,7 @@ except ImportError:
 
 def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
     data = {
+        'STATIC_URL': getattr(settings, 'STATIC_URL', ''),
         'URL_PHOTOS': getattr(settings, 'WEBXIANG_PHOTOS_URL', 'data/'),
         'LAZY_LOADING': getattr(settings, 'WEBXIANG_PHOTOS_LAZY', False),
         'meta': {

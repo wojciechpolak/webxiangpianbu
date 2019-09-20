@@ -15,10 +15,10 @@
 
 import os
 import sys
+from django.core.wsgi import get_wsgi_application
 
 SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
 os.environ['DJANGO_SETTINGS_MODULE'] = 'webxiang.settings'
 sys.path.insert(0, os.path.join(SITE_ROOT, '../'))
 
-from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
