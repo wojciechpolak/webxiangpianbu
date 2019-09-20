@@ -2,6 +2,11 @@
 *.pyc
 *.pyo
 *.mo
+*.iml
+.idea/
+pip-selfcheck.json
+pyvenv.cfg
+venv*/
 bin/
 include/
 lib/

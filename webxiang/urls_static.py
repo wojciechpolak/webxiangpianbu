@@ -13,13 +13,13 @@
 #  You should have received a copy of the GNU General Public License along
 #  with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from django.conf.urls import patterns, url
+from django.conf.urls import url
+from webxiang import views
 
-urlpatterns = patterns(
-    'webxiang',
-    url(r'^$', 'views.display', name='index'),
-    url(r'^(?P<photo>[\w-]+\.jpg)$', 'views.onephoto', name='onephoto'),
-    url(r'^(?P<album>[\w-]+)/$', 'views.display', name='album'),
-    url(r'^(?P<album>[\w-]+)/(?P<photo>[\w\-\./]+)\.html$', 'views.display',
+urlpatterns = [
+    url(r'^$', views.display, name='index'),
+    url(r'^(?P<photo>[\w-]+\.jpg)$', views.onephoto, name='onephoto'),
+    url(r'^(?P<album>[\w-]+)/$', views.display, name='album'),
+    url(r'^(?P<album>[\w-]+)/(?P<photo>[\w\-\./]+)\.html$', views.display,
         name='photo'),
-)
+]

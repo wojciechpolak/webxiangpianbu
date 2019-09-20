@@ -5,7 +5,6 @@ SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
 BASE_DIR = SITE_ROOT
 
 DEBUG = False
-TEMPLATE_DEBUG = DEBUG
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
@@ -74,17 +73,18 @@ STATICFILES_DIRS = (
     os.path.join(SITE_ROOT, 'static'),
 )
 
-PIPELINE_DISABLE_WRAPPER = True
-PIPELINE_JS_COMPRESSOR = None
-PIPELINE_CSS_COMPRESSOR = None
-
-PIPELINE_JS = {
-    'gallery': {
-        'source_filenames': (
-            'js/gallery.js',
-        ),
-        'output_filename': 'js/gallery.js',
-    },
+PIPELINE = {
+    'DISABLE_WRAPPER': True,
+    'JS_COMPRESSOR': None,
+    'CSS_COMPRESSOR': None,
+    'JAVASCRIPT': {
+        'gallery': {
+            'source_filenames': (
+                'js/gallery.js',
+            ),
+            'output_filename': 'js/gallery.js',
+        },
+    }
 }
 
 # Make this unique, and don't share it with anybody.
@@ -99,18 +99,37 @@ MIDDLEWARE_CLASSES = (
 
 ROOT_URLCONF = 'webxiang.urls'
 
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [
+            os.path.join(SITE_ROOT, 'templates'),
+        ],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'webxiang.wsgi.application'
 
-TEMPLATE_DIRS = (
-    os.path.join(SITE_ROOT, 'templates'),
-)
-
 INSTALLED_APPS = (
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sites',
     'django.contrib.staticfiles',
     'pipeline',
     'webxiang',
 )
+
+SITE_ID = 1
 
 # A sample logging configuration. The only tangible logging
 # performed by this configuration is to send an email to
