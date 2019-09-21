@@ -17,7 +17,7 @@ from django.conf import settings
 from django.conf.urls import url
 from django.conf.urls.static import static
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-from webxiang import views
+from . import views
 
 urlpatterns = static(settings.WEBXIANG_PHOTOS_URL,
                      document_root=settings.WEBXIANG_PHOTOS_ROOT)

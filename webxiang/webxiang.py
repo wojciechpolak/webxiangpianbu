@@ -221,11 +221,13 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
 
         # use a limited page range
         pg_range = 6
-        cindex = paginator.page_range.index(page)
+        x_page_range = paginator.page_range
+        page_range = range(x_page_range[0], x_page_range[-1] + 1)
+        cindex = page_range.index(page)
         cmin, cmax = cindex - pg_range, cindex + pg_range
         if cmin < 0:
             cmin = 0
-        paginator.page_range_limited = paginator.page_range[cmin:cmax]
+        paginator.page_range_limited = page_range[cmin:cmax]
 
         for i, entry in enumerate(data['entries'].object_list):
 
