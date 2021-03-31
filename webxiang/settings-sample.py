@@ -80,6 +80,7 @@ PIPELINE = {
     'JAVASCRIPT': {
         'gallery': {
             'source_filenames': (
+                'js/jquery.min.js',
                 'js/gallery.js',
             ),
             'output_filename': 'js/gallery.js',

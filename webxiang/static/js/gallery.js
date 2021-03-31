@@ -405,22 +405,24 @@
         };
 
         switch (wxpb_settings.geo_map_plugin) {
-        case 'leaflet':
-            $('<link/>', {
-                rel: 'stylesheet',
-                type: 'text/css',
-                href: '//cdn.leafletjs.com/leaflet-0.7.3/leaflet.css'
-            }).appendTo ('head');
-            $.getScript ('//cdn.leafletjs.com/leaflet-0.7.3/leaflet.js', wxpb_init_map);
-            break;
-        case 'mapbox':
-            $('<link/>', {
-                rel: 'stylesheet',
-                type: 'text/css',
-                href: '//api.tiles.mapbox.com/mapbox.js/v2.1.2/mapbox.css'
-            }).appendTo ('head');
-            $.getScript ('//api.tiles.mapbox.com/mapbox.js/v2.1.2/mapbox.js', wxpb_init_map);
-            break;
+            case 'leaflet':
+                $('<link/>', {
+                    rel: 'stylesheet',
+                    type: 'text/css',
+                    href: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.min.css',
+                    integrity: 'sha512-1xoFisiGdy9nvho8EgXuXvnpR5GAMSjFwp40gSRE3NwdUdIMIKuPa7bqoUhLD0O/5tPNhteAsE5XyyMi5reQVA==',
+                    crossorigin: ''
+                }).appendTo('head');
+                $.getScript('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.min.js', wxpb_init_map);
+                break;
+            case 'mapbox':
+                $('<link/>', {
+                    rel: 'stylesheet',
+                    type: 'text/css',
+                    href: 'https://api.tiles.mapbox.com/mapbox.js/v2.1.2/mapbox.css'
+                }).appendTo('head');
+                $.getScript('https://api.tiles.mapbox.com/mapbox.js/v2.1.2/mapbox.js', wxpb_init_map);
+                break;
         }
 
         $(document).on ('click', '.inav', function (e) {
