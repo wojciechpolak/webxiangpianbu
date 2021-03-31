@@ -14,7 +14,7 @@
 #  with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from django import template
-from django.core.urlresolvers import get_urlconf
+from django.urls import get_urlconf
 from django.utils.translation import ugettext as _
 
 register = template.Library()

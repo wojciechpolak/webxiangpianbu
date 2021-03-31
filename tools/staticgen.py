@@ -304,7 +304,7 @@ def __gen_html_album(opts, album_name, output_dir='.', page=1):
         os.makedirs(os.path.dirname(output_file))
 
     f = codecs.open(output_file, 'w', 'utf-8')
-    f.write(six.text_type(html))
+    f.write(str(html))
     f.close()
     __items_no += 1
 
@@ -371,7 +371,7 @@ def __gen_html_photo(opts, album_name, entry_idx, output_dir='.'):
         sys.stdout.flush()
 
     f = codecs.open(output_file, 'w', 'utf-8')
-    f.write(six.text_type(html))
+    f.write(str(html))
     f.close()
     __items_no += 1
 

@@ -62,11 +62,10 @@ STATIC_ROOT = os.path.abspath(os.path.join(SITE_ROOT, '../static'))
 # Example: "http://example.com/static/", "http://static.example.com/"
 STATIC_URL = '/static/'
 
-STATICFILES_STORAGE = 'pipeline.storage.PipelineCachedStorage'
+STATICFILES_STORAGE = 'pipeline.storage.PipelineManifestStorage'
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-    'pipeline.finders.CachedFileFinder',
     'pipeline.finders.PipelineFinder',
 )
 STATICFILES_DIRS = (
@@ -91,12 +90,12 @@ PIPELINE = {
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'r(nrah(*_7afg06%!)j^k*^(*i9i7(&+*q2*capg$$8hhpan(t'
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = [
     'django.middleware.cache.UpdateCacheMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.cache.FetchFromCacheMiddleware',
-)
+]
 
 ROOT_URLCONF = 'webxiang.urls'
 

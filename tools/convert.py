@@ -21,12 +21,7 @@ import sys
 import glob
 import getopt
 import yaml
-from django.utils.six.moves import input
-
-try:
-    import simplejson as json
-except ImportError:
-    import json
+import json
 
 
 def main():

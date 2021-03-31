@@ -15,15 +15,16 @@
 
 import re
 import os
+import json
 import math
 import marshal
 import py_compile
 
-from django.utils import six
-from django.utils.six.moves import urllib, zip_longest
+from urllib.parse import urljoin
+from itertools import zip_longest
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.core.paginator import Paginator, InvalidPage, EmptyPage
 from .templatetags.page import page as page_url
 
@@ -31,11 +32,6 @@ try:
     import yaml
 except ImportError:
     yaml = None
-
-try:
-    import simplejson as json
-except ImportError:
-    import json
 
 
 def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
@@ -94,7 +90,7 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
             if not photo.lower().endswith('.jpg'):
                 photo += '.jpg'
             for idx, ent in enumerate(data['entries']):
-                if isinstance(ent['image'], six.string_types):
+                if isinstance(ent['image'], str):
                     f = ent['image']
                 else:
                     f = ent['image']['file']
@@ -154,7 +150,7 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
             data['next_entry'] = None
 
         img = entry.get('image')
-        if isinstance(img, six.string_types):
+        if isinstance(img, str):
             f = entry['image']
             path = meta_path
             size = entry.get('size') or data[
@@ -169,8 +165,8 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
             path = meta_path
             f = size = ''
 
-        path = urllib.parse.urljoin(baseurl, path)
-        entry['url'] = urllib.parse.urljoin(path, f)
+        path = urljoin(baseurl, path)
+        entry['url'] = urljoin(path, f)
         entry['size'] = size
 
         if reverse_order:
@@ -233,11 +229,11 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
 
             img = entry.get('image')
             path = data['meta'].get('path', meta_path)
-            path = urllib.parse.urljoin(baseurl, path)
-            if isinstance(img, six.string_types):
-                entry['url_full'] = urllib.parse.urljoin(path, img)
+            path = urljoin(baseurl, path)
+            if isinstance(img, str):
+                entry['url_full'] = urljoin(path, img)
             elif img:
-                entry['url_full'] = urllib.parse.urljoin(path, img['file'])
+                entry['url_full'] = urljoin(path, img['file'])
 
             if data['meta'].get('thumbs_skip'):
                 img = entry.get('image')
@@ -249,7 +245,7 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
                 item_type = 'thumb'
 
             if img:
-                if isinstance(img, six.string_types):
+                if isinstance(img, str):
                     f = img
                     entry['size'] = data['meta'].get('default_%s_size' %
                                                      item_type)
@@ -261,8 +257,8 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
                         'size',
                         data['meta'].get('default_%s_size' % item_type))
 
-                path = urllib.parse.urljoin(baseurl, path)
-                entry['url'] = urllib.parse.urljoin(path, f)
+                path = urljoin(baseurl, path)
+                entry['url'] = urljoin(path, f)
 
                 if 'link' in entry:
                     pass
@@ -278,7 +274,7 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
                         'photo': link})
 
             else:  # non-image entries
-                path = urllib.parse.urljoin(baseurl, meta_path)
+                path = urljoin(baseurl, meta_path)
                 _parse_video_entry(entry)
 
         # grouping entries into columns
@@ -315,9 +311,9 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
     # handle cover's URL
     cover = data['meta']['cover']
     if cover and not cover.startswith('/'):
-        cover = urllib.parse.urljoin(path, cover)
+        cover = urljoin(path, cover)
     if cover and site_url:
-        cover = urllib.parse.urljoin(site_url, cover)
+        cover = urljoin(site_url, cover)
     data['meta']['cover'] = cover
 
     ctx = {

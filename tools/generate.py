@@ -18,20 +18,15 @@
 
 import os
 import sys
+import json
 import getopt
 import yaml
 from datetime import date
-from django.utils.six.moves import input
 
 try:
     from collections import OrderedDict
 except ImportError:
     OrderedDict = None
-
-try:
-    import simplejson as json
-except ImportError:
-    import json
 
 try:
     from PIL import Image
@@ -300,7 +295,7 @@ def process_image(opts, album, fname):
     exif_data = {}
     exif_accepted = set(exif_tags.keys())
 
-    if exif != None:
+    if exif is not None:
         for tag, value in list(exif.items()):
             decoded = ExifTags.TAGS.get(tag, tag)
             if decoded in exif_accepted:
