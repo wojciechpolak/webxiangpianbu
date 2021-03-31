@@ -1,6 +1,6 @@
 /*
   WebXiangpianbu gallery.js
-  Copyright (C) 2005-2006, 2010, 2013, 2014, 2015, 2019 Wojciech Polak
+  Copyright (C) 2005-2021 Wojciech Polak
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -21,13 +21,14 @@
 
 (function () {
     var nua = navigator.userAgent.toLowerCase ();
-    var opera = nua.indexOf ('opera') != -1;
-    var msie = nua.indexOf ('msie') != -1 && (document.all && !opera);
+    var opera = nua.indexOf ('opera') !== -1;
+    var msie = nua.indexOf ('msie') !== -1 && (document.all && !opera);
     var inprogress = 0;
     var queue = [];
     var mem = {};
     var memCnt = 0;
     var cookie_showmap = 'showMap';
+    var useRandomFadeIn = false;
 
     function GID (id) {
         return document.getElementById (id);
@@ -166,7 +167,7 @@
 
     function scrollToElement (el, offset) {
         offset = offset || 0;
-        if (offset == 'c') {
+        if (offset === 'c') {
             var diff = $(window).height () - $(el).height ();
             offset = diff > 16 ? - parseInt (diff / 2, 10) : 0;
         }
@@ -187,7 +188,7 @@
     window.navigateBack = function (a) {
         if (typeof document.referrer != 'undefined' &&
             typeof a != 'undefined') {
-            if (document.referrer == a.href) {
+            if (document.referrer === a.href) {
                 window.history.back ();
                 return false;
             }
@@ -198,9 +199,15 @@
     document.onkeydown = function (e) {
         if (!e) e = window.event;
         var code;
-        if (e.keyCode) code = e.keyCode;
-        else if (e.which) code = e.which;
-        if (e.ctrlKey || e.altKey) return;
+        if (e.keyCode) {
+            code = e.keyCode;
+        }
+        else if (e.which) {
+            code = e.which;
+        }
+        if (e.ctrlKey || e.altKey) {
+            return;
+        }
 
         switch (code) {
         case 39: /* right */
@@ -225,10 +232,12 @@
             break;
         case 77: /* m */
             if (GID ('story') || $('.thumbnails').length) {
-                if (GID ('geomap'))
+                if (GID ('geomap')) {
                     window.location = './';
-                else if ($('.has-geomap').length)
+                }
+                else if ($('.has-geomap').length) {
                     window.location = 'geomap';
+                }
             }
             else {
                 $('.geo').trigger ('toggle').each (function () {
@@ -281,11 +290,16 @@
                     }
                 });
             }
-            else
-                fadeInAll ();
+            else {
+                fadeInAll();
+            }
         }
-        else
-            fadeInRandomly ();
+        else if (useRandomFadeIn) {
+            fadeInRandomly();
+        }
+        else {
+            fadeInAll();
+        }
 
         $('.geo')
             .bind ('toggle', function () {
@@ -302,21 +316,25 @@
                 $(this).empty ().hide ();
             })
             .each (function () {
-                if (!read_cookie (cookie_showmap))
+                if (!read_cookie (cookie_showmap)) {
                     $(this).trigger ('hide');
-                else
+                }
+                else {
                     $(this).trigger ('show');
+                }
             });
 
         $('html').swipe ()
             .bind ('swipeLeft', function () {
-                if (window.getSelection && window.getSelection ().toString ())
+                if (window.getSelection && window.getSelection ().toString ()) {
                     return;
+                }
                 follow (GID ('nextPhoto') || GID ('nextPage'));
             })
             .bind ('swipeRight', function () {
-                if (window.getSelection && window.getSelection ().toString ())
+                if (window.getSelection && window.getSelection ().toString ()) {
                     return;
+                }
                 follow (GID ('prevPhoto') || GID ('prevPage'));
             });
 
@@ -341,8 +359,9 @@
 
     function map_init_leaflet (containerId) {
         function wxpb_init_map () {
-            if (wxpb_settings.geo_map_plugin == 'mapbox')
+            if (wxpb_settings.geo_map_plugin === 'mapbox') {
                 L.mapbox.accessToken = wxpb_settings.mapbox_accessToken;
+            }
 
             var layers = {};
             var layers_count = 0;
@@ -355,20 +374,22 @@
                     type: 'osm'
                 }, _layers[name] || {});
 
-                if (meta.type == 'osm') {
-                    if (meta.id == 'osm.mapnik')
-                        layer = L.tileLayer ('//{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                if (meta.type === 'osm') {
+                    if (meta.id === 'osm.mapnik') {
+                        layer = L.tileLayer ('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         });
+                    }
                 }
-                else if (meta.type == 'mapbox') {
+                else if (meta.type === 'mapbox') {
                     layer = L.mapbox.tileLayer (meta.id);
                 }
 
                 layers[name] = layer;
                 layers_count++;
-                if (!layers_default.length || meta.is_default)
+                if (!layers_default.length || meta.is_default) {
                     layers_default.push (layer);
+                }
             }
 
             var map = L.map (containerId, {
@@ -380,8 +401,9 @@
             window.map = map;
 
             L.control.scale().addTo (map);
-            if (layers_count > 1)
+            if (layers_count > 1) {
                 L.control.layers(layers).addTo (map);
+            }
 
             var bounds = L.latLngBounds ([]);
             for (var i = 0; i < wxpb_settings.geo_points.length; i++) {
@@ -402,7 +424,7 @@
                     break;
                 }
             });
-        };
+        }
 
         switch (wxpb_settings.geo_map_plugin) {
             case 'leaflet':
@@ -430,10 +452,12 @@
             var $this = $(this);
             var cur = $this.data ('idx');
             var idx;
-            if ($this.hasClass ('prev'))
+            if ($this.hasClass ('prev')) {
                 idx = cur > 0 ? cur - 1 : markers.length - 1;
-            else if ($this.hasClass ('next'))
+            }
+            else if ($this.hasClass ('next')) {
                 idx = cur < markers.length - 1 ? cur + 1 : 0;
+            }
             markers[idx].openPopup ();
         });
     }
@@ -478,8 +502,9 @@
                           '" target="_blank"><img src="' + x.url_full +
                           '" width="'+ width +'" height="'+ height +
                           '" alt="[photo]"></a></p>');
-            if (x.description)
+            if (x.description) {
                 content.push ('<p>' + x.description + '</p>');
+            }
         }
         content.push ('<p>');
         content.push ('<a href="#" class="inav prev" data-idx="' +
@@ -495,10 +520,11 @@
         var ca = document.cookie.split (';');
         for (var i = 0; i < ca.length; i++) {
             var c = ca[i];
-            while (c.charAt (0) == ' ')
+            while (c.charAt (0) === ' ')
                 c = c.substring (1, c.length);
-            if (c.indexOf (nameEq) === 0)
+            if (c.indexOf (nameEq) === 0) {
                 return c.substring (nameEq.length, c.length);
+            }
         }
         return null;
     }
@@ -523,12 +549,14 @@
             var step = 50;
             var $this = $(this);
 
-            if (has_touch)
+            if (has_touch) {
                 $this.bind ('touchstart', touchstart);
+            }
 
             function touchstart (event) {
-                if (preventDefault)
+                if (preventDefault) {
                     event.preventDefault ();
+                }
                 var t = event.originalEvent.touches;
                 if (t && t.length) {
                     startX = t[0].pageX;
@@ -538,21 +566,26 @@
             }
 
             function touchmove (event) {
-                if (preventDefault)
+                if (preventDefault) {
                     event.preventDefault ();
+                }
                 var t = event.originalEvent.touches;
                 if (t && t.length) {
                     var deltaX = startX - t[0].pageX;
                     var deltaY = startY - t[0].pageY;
 
-                    if (deltaX >= step)
+                    if (deltaX >= step) {
                         $this.trigger ('swipeLeft');
-                    else if (deltaX <= -step)
+                    }
+                    else if (deltaX <= -step) {
                         $this.trigger ('swipeRight');
-                    if (deltaY >= step)
+                    }
+                    if (deltaY >= step) {
                         $this.trigger ('swipeUp');
-                    else if (deltaY <= -step)
+                    }
+                    else if (deltaY <= -step) {
                         $this.trigger ('swipeDown');
+                    }
 
                     if (Math.abs (deltaX) >= step ||
                         Math.abs (deltaY) >= step) {

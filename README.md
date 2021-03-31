@@ -74,4 +74,4 @@ Static Site Generator
 Sample Galleries
 ----------------
 
-* http://wojciechpolak.org/photos/
+* https://wojciechpolak.org/photos/

@@ -3,6 +3,7 @@
 *.pyo
 *.mo
 *.iml
+.DS_Store
 .idea/
 pip-selfcheck.json
 pyvenv.cfg
