@@ -87,8 +87,10 @@ PIPELINE = {
     }
 }
 
-# Make this unique, and don't share it with anybody.
-SECRET_KEY = 'r(nrah(*_7afg06%!)j^k*^(*i9i7(&+*q2*capg$$8hhpan(t'
+# Make this unique, long, and don't share it with anybody.
+SECRET_KEY = ''
+
+assert SECRET_KEY != '', 'SECRET_KEY must be long and unique.'
 
 MIDDLEWARE = [
     'django.middleware.cache.UpdateCacheMiddleware',

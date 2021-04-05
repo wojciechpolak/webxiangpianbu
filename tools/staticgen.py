@@ -44,7 +44,7 @@ try:
     from django.shortcuts import render
 except ImportError as e:
     print(e)
-    print("Copy `webxiang/settings-sample.py` to " \
+    print("Copy `webxiang/settings_sample.py` to " \
           "`webxiang/settings.py` and modify it to your needs.")
     sys.exit(1)
 
