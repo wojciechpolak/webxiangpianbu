@@ -37,7 +37,7 @@ You will also need the `python-devel` package.
 
 Next steps:
 
-1. Copy `webxiang/settings-sample.py` to `webxiang/settings.py`
+1. Copy `webxiang/settings_sample.py` to `webxiang/settings.py`
    and modify it to your needs.
 2. Make sure that `cached` directory (settings.CACHE_DIR) exists
    and has write permissions by your web server.
