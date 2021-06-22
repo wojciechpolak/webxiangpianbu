@@ -1,5 +1,5 @@
 Django ==3.2.*
 django-pipeline ==2.0.*
 python-memcached ==1.59
-Pillow ==8.1.*
+Pillow ==8.2.*
 PyYAML >=3.10
