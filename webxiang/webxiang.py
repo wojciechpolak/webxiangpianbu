@@ -376,13 +376,13 @@ def _open_albumfile(album_name):
 
     if os.path.isfile(albumfile_yaml) and yaml:
         try:
-            album_content = open(albumfile_yaml, 'r').read()
+            album_content = open(albumfile_yaml, 'r', encoding='utf-8').read()
             data = yaml.load(album_content)
         except Exception as e:
             raise e
     elif os.path.isfile(albumfile_json):
         try:
-            album_content = open(albumfile_json, 'r').read()
+            album_content = open(albumfile_json, 'r', encoding='utf-8').read()
             data = json.loads(album_content)
         except Exception as e:
             raise e
@@ -391,7 +391,7 @@ def _open_albumfile(album_name):
 
     # save cache file
     if cachefile:
-        with open(cachefile, 'w') as fp:
+        with open(cachefile, 'w', encoding='utf-8') as fp:
             fp.write('cache=' + str(data))
         py_compile.compile(cachefile)
         os.unlink(cachefile)
