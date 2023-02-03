@@ -1,9 +1,27 @@
 @import url("base.css");
 
+:root {
+  --color-background: #f4f4f4;
+  --color-background-pages: #0063dc;
+  --color-font: #333;
+  --color-text-shadow: #fff;
+  --color-link: #008edd;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #222;
+    --color-background-pages: #0063dc;
+    --color-font: #ccc;
+    --color-text-shadow: #333;
+    --color-link: #769dff;
+  }
+}
+
 body {
-  color: #333;
-  background-color: #f4f4f4;
-  text-shadow: 0 1px 1px #fff;
+  color: var(--color-font, #333);
+  background-color: var(--color-background, #f4f4f4);
+  text-shadow: 0 1px 1px var(--color-text-shadow, #fff);
 }
 
 .story { max-width: 995px; }
@@ -11,7 +29,7 @@ body {
 div.geo { max-width: 995px; }
 div.video { max-width: 995px; }
 
-a { color: #008edd !important; }
+a { color: var(--color-link, #008edd) !important; }
 a img { border-style: none; }
 .pages { text-shadow: none; }
 
@@ -26,10 +44,14 @@ a img { border-style: none; }
 p.description {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 21px;
-  color: #222;
+  color: var(--color-font, #222);
   opacity: 0.85;
   margin-top: 0.8em;
 }
 
 #show-help { color: #777; }
 #show-help:hover { color: #333; }
+
+.dialog-content {
+  text-shadow: none;
+}
