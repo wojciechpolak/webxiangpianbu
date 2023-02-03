@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "WebXiangpianbu"
+version = "0.1.0"
+description = "A photo album organizer"
+authors = ["WAP"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+Django = "^3.2"
+django-pipeline = "^2.0"
+libsasscompiler = "0.1.8"
+python-memcached = "1.59"
+Pillow = "^9.0"
+PyYAML = ">=3.10"
+
+[tool.poetry.dev-dependencies]
+pylint = "2.13.9"
+pylint_django = "2.5.3"
+pytest = "7.1.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

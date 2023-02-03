@@ -1,0 +1,16 @@
+services:
+  webxiang:
+    container_name: webxiang
+    image: webxiang:latest
+    build: .
+    volumes:
+        - ./run:/app/run
+        - ./run/data:/app/data
+    ports:
+        - "8080:80"
+  memcached:
+      container_name: memcached
+      image: memcached:1.6
+      entrypoint:
+          - memcached
+          - -m 2

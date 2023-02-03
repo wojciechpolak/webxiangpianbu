@@ -1,0 +1,35 @@
+upstream backend {
+    server 127.0.0.1:8080;
+}
+
+server {
+    listen 80;
+    server_name _;
+    root /app;
+    index index.html;
+
+    gzip_static on;
+    client_max_body_size 10M;
+
+    location ~* \.(js|css|png|jpg|jpeg|gif|webp|ico|woff|woff2)$ {
+        expires 365d;
+    }
+
+    location /static {
+        access_log off;
+        add_header Cache-Control public;
+    }
+
+    location = /favicon.ico {
+        rewrite (.*) /static/favicon.ico;
+        access_log off;
+    }
+    location = /robots.txt {
+        rewrite (.*) /static/robots.txt;
+        access_log off;
+    }
+
+    location / {
+      proxy_pass http://backend;
+    }
+}

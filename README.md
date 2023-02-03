@@ -19,21 +19,13 @@ Features
 Installation
 ------------
 
-    $ git clone https://github.com/wojciechpolak/webxiangpianbu.git
-    $ cd webxiangpianbu
-    $ virtualenv .
-    $ source bin/activate
-    $ pip install -r requirements.txt
+Install all needed dependencies using [Poetry](https://python-poetry.org/) or PIP.
 
-or without virtualenv:
-
-    $ git clone...
-    $ cd webxiangpianbu
-    $ sudo pip install -r requirements.txt
-
-Before you install `Pillow` via PIP (from requirements.txt), make sure
-you already have installed `libjpeg-devel` (or similar package).
-You will also need the `python-devel` package.
+```shell
+$ poetry install
+or
+$ pip install -r requirements.txt
+```
 
 Next steps:
 
@@ -50,6 +42,15 @@ Web Application Deployment
 
 See https://docs.djangoproject.com/en/dev/howto/deployment/
 for usual Django applications deployment.
+
+Docker Deployment
+-----------------
+
+```shell
+./scripts/build-docker.sh
+[adjust files in the `run` folder]
+docker-compose up
+```
 
 Tools
 -----
