@@ -9,8 +9,8 @@ BASE_DIR = SITE_ROOT
 DEBUG = False
 
 ALLOWED_HOSTS = [
+    os.getenv('VIRTUAL_HOST', ''),
     'localhost',
-    '127.0.0.1',
     'backend',
 ]
 
@@ -125,7 +125,7 @@ PIPELINE = {
     'JS_COMPRESSOR': None,
     'CSS_COMPRESSOR': None,
     'COMPILERS': ('pipeline.compilers.sass.SASSCompiler',),
-    'SASS_BINARY': 'sassc',
+    'SASS_BINARY': 'pysassc',
     'JAVASCRIPT': {
         'gallery': {
             'source_filenames': (

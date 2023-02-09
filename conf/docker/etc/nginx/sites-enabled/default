@@ -30,6 +30,7 @@ server {
     }
 
     location / {
-      proxy_pass http://backend;
+        include uwsgi_params;
+        uwsgi_pass uwsgi://backend;
     }
 }

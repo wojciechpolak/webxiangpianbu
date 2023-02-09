@@ -18,7 +18,8 @@ import sys
 from django.core.wsgi import get_wsgi_application
 
 SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
-os.environ['DJANGO_SETTINGS_MODULE'] = 'webxiang.settings'
+if 'DJANGO_SETTINGS_MODULE' not in os.environ:
+    os.environ['DJANGO_SETTINGS_MODULE'] = 'webxiang.settings'
 
 activate_this = os.path.join(SITE_ROOT, '../bin/activate_this.py')
 execfile(activate_this, dict(__file__=activate_this))

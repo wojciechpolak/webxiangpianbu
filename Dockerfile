@@ -2,6 +2,7 @@ ARG python=python:3.10-slim
 
 FROM ${python} AS webxiang-builder-python
 RUN apt update -y
+RUN apt install -y gcc
 RUN apt-get clean
 WORKDIR /app
 RUN python -m venv /venv
