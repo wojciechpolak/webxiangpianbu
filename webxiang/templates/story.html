@@ -63,7 +63,7 @@
       {{ entry.html|safe }}
     {% else %}
     <a href="{{ entry.link }}" data-index="{{ entry.index }}">
-      <img {% if LAZY_LOADING %}src="{{ STATIC_URL }}pixel.png" data-src="{{ entry.url }}"{% else %}src="{{ entry.url }}"{% endif %} alt="[photo]" {% if entry.size %}width="{{ entry.size.0 }}" height="{{ entry.size.1 }}"{% endif %} />
+      <img src="{{ entry.url }}" alt="[photo]" loading="lazy" {% if entry.size %}width="{{ entry.size.0 }}" height="{{ entry.size.1 }}"{% endif %} />
     </a>
     {% endif %}
     {% if entry.comment %}<div class="comment">{{ entry.comment }}</div>{% endif %}

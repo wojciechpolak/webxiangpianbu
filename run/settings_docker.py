@@ -149,9 +149,6 @@ WEBXIANG_PHOTOS_URL = os.getenv('PHOTOS_BASE_URL', '/photos/data/')
 # Absolute path to the directory containing photo files (JPEGs).
 WEBXIANG_PHOTOS_ROOT = '/app/data/'
 
-# Photos lazy loading (requires jQuery plugin)
-WEBXIANG_PHOTOS_LAZY = False
-
 ALBUM_DIR = os.path.join(SITE_ROOT, '../run/albums')
 CACHE_DIR = os.path.join(SITE_ROOT, '../run/cached')
 

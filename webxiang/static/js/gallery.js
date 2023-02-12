@@ -1,6 +1,6 @@
 /*
   WebXiangpianbu gallery.js
-  Copyright (C) 2005-2021 Wojciech Polak
+  Copyright (C) 2005-2023 Wojciech Polak
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -289,32 +289,7 @@
         wxpb_settings = window.wxpb_settings || {};
 
         if (GID('story')) {
-            /* support image lazy loading plugins */
-            if ($.fn.lazyload) {
-                $('img').lazyload({
-                    threshold: 1200,
-                    effect: 'fadeIn',
-                    data_attribute: 'src',
-                    load: function() {
-                        $(this).addClass('loaded');
-                    }
-                });
-            }
-            else if ($.fn.lazy) {
-                $('img').lazy({
-                    threshold: 1200,
-                    effect: 'fadeIn',
-                    effectTime: 250,
-                    enableThrottle: true,
-                    throttle: 250,
-                    afterLoad: function() {
-                        $(this).addClass('loaded');
-                    }
-                });
-            }
-            else {
-                fadeInAll();
-            }
+            fadeInAll();
         }
         else if (useRandomFadeIn) {
             fadeInRandomly();
