@@ -1,4 +1,4 @@
-ARG python=python:3.10-slim
+ARG python=python:3.11-slim
 
 FROM ${python} AS webxiang-builder-python
 RUN apt update -y

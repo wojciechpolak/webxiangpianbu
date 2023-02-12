@@ -1,5 +1,5 @@
 services:
-  webxiang:
+  app:
     image: webxiang:latest
     build: .
     volumes:
