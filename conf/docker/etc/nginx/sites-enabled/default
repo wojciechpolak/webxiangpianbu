@@ -8,6 +8,9 @@ server {
     root /app;
     index index.html;
 
+    access_log /proc/1/fd/1;
+    error_log /proc/1/fd/2;
+
     gzip_static on;
     client_max_body_size 10M;
 

@@ -1,6 +1,6 @@
 services:
   app:
-    image: webxiang:latest
+    image: wap/webxiang:latest
     build: .
     volumes:
         - ./run:/app/run

@@ -2,4 +2,4 @@
 
 set -xe
 
-docker build . -t webxiang
+docker build . -t wap/webxiang
