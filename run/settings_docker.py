@@ -117,6 +117,11 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'ERROR'
         },
+        'main': {
+            'level': 'INFO',
+            'handlers': ['console'],
+            'propagate': False,
+        },
     }
 }
 
@@ -150,7 +155,6 @@ WEBXIANG_PHOTOS_URL = os.getenv('PHOTOS_BASE_URL', '/photos/data/')
 WEBXIANG_PHOTOS_ROOT = '/app/data/'
 
 ALBUM_DIR = os.path.join(SITE_ROOT, '../run/albums')
-CACHE_DIR = os.path.join(SITE_ROOT, '../run/cached')
 
 COPYRIGHT_OWNER = 'Your Name'
 

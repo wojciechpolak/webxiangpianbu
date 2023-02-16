@@ -141,6 +141,12 @@ SITE_ID = 1
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {
+            'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+    },
     'filters': {
         'require_debug_false': {
             '()': 'django.utils.log.RequireDebugFalse'
@@ -151,13 +157,22 @@ LOGGING = {
             'level': 'ERROR',
             'filters': ['require_debug_false'],
             'class': 'django.utils.log.AdminEmailHandler'
-        }
+        },
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
     },
     'loggers': {
         'django.request': {
             'handlers': ['mail_admins'],
             'level': 'ERROR',
             'propagate': True,
+        },
+        'main': {
+            'level': 'INFO',
+            'handlers': ['console'],
+            'propagate': False,
         },
     }
 }
@@ -174,7 +189,6 @@ WEBXIANG_PHOTOS_URL = '/data/'
 WEBXIANG_PHOTOS_ROOT = '/home/user/photos/data/'
 
 ALBUM_DIR = os.path.join(SITE_ROOT, '../albums')
-CACHE_DIR = os.path.join(SITE_ROOT, '../cached')
 
 COPYRIGHT_OWNER = 'Your Name'
 

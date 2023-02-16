@@ -21,7 +21,7 @@
       {% block main %}{% endblock main %}
     </div><!-- /content -->
 
-    {% if album != "index" %}<aside>
+    {% if album != "index" and not exception %}<aside>
       <div id="overlay" style="display:none"></div>
       <div id="show-help" title="{% trans 'Help' %}">?</div>
       <div id="help" class="dialog" style="display:none">

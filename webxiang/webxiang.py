@@ -1,4 +1,4 @@
-#  WebXiangpianbu Copyright (C) 2013, 2014, 2015 Wojciech Polak
+#  WebXiangpianbu Copyright (C) 2013, 2014, 2015, 2023 Wojciech Polak
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by the
@@ -17,14 +17,14 @@ import re
 import os
 import json
 import math
-import marshal
-import py_compile
+import logging
 
 from urllib.parse import urljoin
 from itertools import zip_longest
 
 from django.conf import settings
 from django.urls import reverse
+from django.core.cache import cache
 from django.core.paginator import Paginator, InvalidPage, EmptyPage
 from .templatetags.page import page as page_url
 
@@ -33,6 +33,7 @@ try:
 except ImportError:
     yaml = None
 
+logger = logging.getLogger('main')
 
 def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
     data = {
@@ -343,56 +344,43 @@ def _open_albumfile(album_name):
     albumfile_yaml = os.path.join(settings.ALBUM_DIR, album_name + '.yaml')
     albumfile_json = os.path.join(settings.ALBUM_DIR, album_name + '.json')
 
-    if hasattr(settings, 'CACHE_DIR'):
-        cachefile = os.path.join(settings.CACHE_DIR, album_name + '.py')
-    else:
-        cachefile = None
+    cache_key = 'album:' + album_name
+    cache_data = cache.get(cache_key)
 
     try:
         mt1 = os.path.getmtime(albumfile_yaml)
-    except:
+    except Exception:
         try:
             mt1 = os.path.getmtime(albumfile_json)
-        except:
+        except Exception:
             return None
     try:
-        mt2 = os.path.getmtime(cachefile + 'c')
-    except:
+        mt2 = cache_data['mtime']
+    except Exception:
         mt2 = 0
 
-    loc = {}
-    try:
-        with open(cachefile + 'c', 'rb') as fp:
-            pcd = fp.read()
-        code = marshal.loads(pcd[8:])
-        exec(code, {}, loc)
-    except:
-        pass
-
-    if mt2 > mt1 and 'cache' in loc:
-        data = loc['cache']
+    if cache_data and 'data' in cache_data and mt2 >= mt1:
+        logger.debug('cache: get %s (%s)', cache_key, mt1)
+        data = cache_data['data']
         return data
 
     if os.path.isfile(albumfile_yaml) and yaml:
         try:
-            album_content = open(albumfile_yaml, 'r', encoding='utf-8').read()
-            data = yaml.load(album_content)
+            with open(albumfile_yaml, 'r', encoding='utf-8') as fp:
+                data = yaml.load(fp.read())
         except Exception as e:
             raise e
     elif os.path.isfile(albumfile_json):
         try:
-            album_content = open(albumfile_json, 'r', encoding='utf-8').read()
-            data = json.loads(album_content)
+            with open(albumfile_json, 'r', encoding='utf-8') as fp:
+                data = json.loads(fp.read())
         except Exception as e:
             raise e
     else:
         return None
 
-    # save cache file
-    if cachefile:
-        with open(cachefile, 'w', encoding='utf-8') as fp:
-            fp.write('cache=' + str(data))
-        py_compile.compile(cachefile)
-        os.unlink(cachefile)
+    # save cache
+    logger.debug('cache: set %s (%s)', cache_key, mt1)
+    cache.set(cache_key, {'mtime': mt1, 'data': data}, None)
 
     return data

@@ -1,4 +1,4 @@
-#  WebXiangpianbu Copyright (C) 2013, 2014, 2015 Wojciech Polak
+#  WebXiangpianbu Copyright (C) 2013, 2014, 2015, 2023 Wojciech Polak
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by the
@@ -13,6 +13,7 @@
 #  You should have received a copy of the GNU General Public License along
 #  with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import logging
 from urllib.parse import urljoin
 
 from django.conf import settings
@@ -21,6 +22,8 @@ from django.shortcuts import render
 from django.template import TemplateDoesNotExist
 
 from . import webxiang
+
+logger = logging.getLogger('main')
 
 
 def display(request, album='index', photo=None):
@@ -45,6 +48,7 @@ def display(request, album='index', photo=None):
     data = webxiang.get_data(album=album, photo=photo, page=page,
                              site_url=site_url, is_mobile=is_mobile)
     if not data:
+        logger.error('Album not found: %s', album)
         raise Http404
     elif 'canonical_url' in data \
             and data['canonical_url'] != request.path:
