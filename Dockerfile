@@ -29,8 +29,9 @@ ADD run run
 ADD locale locale
 ADD webxiang webxiang
 COPY manage.py .
+RUN usermod -a -G users www-data
+RUN chgrp -R users /app/webxiang/static && chmod -R g+w /app/webxiang/static
 RUN python manage.py compilemessages
-RUN python manage.py collectstatic --no-input
 ENV PYTHONPATH "${PYTHONPATH}:/app"
 EXPOSE 80
 COPY conf/docker/etc/supervisord.conf /etc/supervisord.conf
