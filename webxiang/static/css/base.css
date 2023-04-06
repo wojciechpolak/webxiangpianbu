@@ -181,6 +181,13 @@ div.video iframe {
   top: 0;
   width: 100%;
 }
+div.video.html5 {
+  padding-top: 0;
+}
+div.video.html5 video {
+  width: 100%;
+  height: auto;
+}
 div.video.w43 {
   padding-bottom: 67.5%;
 }

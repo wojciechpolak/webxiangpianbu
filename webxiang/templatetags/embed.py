@@ -29,4 +29,9 @@ def embed(entry):
         elif entry['type'] == 'vimeo':
             s = '<div class="video vimeo"><iframe width="854" height="480" src="//player.vimeo.com/video/%s" frameborder="0" allowfullscreen></iframe></div>' % entry[
                 'vid']
+        elif entry['type'] == 'html5':
+            poster = ' poster="' + entry['poster'] + '"' if entry.get('poster', False) else ''
+            s = '<div class="video html5"><video controls' + \
+                poster + '><source src="' + \
+                entry['vid'] + '"></video></div>'
     return mark_safe(s)

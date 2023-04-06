@@ -338,6 +338,9 @@ def _parse_video_entry(entry):
                     r'https?://(www\.)?vimeo\.com/(\d+)', video):
                 entry['type'] = 'vimeo'
                 entry['vid'] = v[1]
+        else:
+            entry['type'] = 'html5'
+            entry['vid'] = video
 
 
 def _open_albumfile(album_name):
