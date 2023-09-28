@@ -163,6 +163,10 @@ LOGGING = {
             'formatter': 'simple',
         },
     },
+    'root': {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
     'loggers': {
         'django.request': {
             'handlers': ['mail_admins'],

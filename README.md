@@ -31,11 +31,9 @@ Next steps:
 
 1. Copy `webxiang/settings_sample.py` to `webxiang/settings.py`
    and modify it to your needs.
-2. Make sure that `cached` directory (settings.CACHE_DIR) exists
-   and has write permissions by your web server.
-3. Optionally, run `python manage.py compilemessages` (if you have
+2. Optionally, run `python manage.py compilemessages` (if you have
    `gettext` installed).
-4. python manage.py collectstatic
+3. python manage.py collectstatic
 
 Web Application Deployment
 --------------------------

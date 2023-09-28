@@ -112,6 +112,10 @@ LOGGING = {
             'formatter': 'simple',
         },
     },
+    'root': {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
     'loggers': {
         'django.server': {
             'handlers': ['console'],
