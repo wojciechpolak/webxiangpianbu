@@ -1,0 +1,33 @@
+{
+    "meta": {
+        "style": "base.css",
+        "path": "2007-01-fireworks/",
+        "path_thumb": "2007-01-fireworks/tiny/",
+        "ppp": 15,
+        "columns": 3,
+        "title": "Fireworks",
+        "cover": "tiny-dsc08340.jpg",
+        "copyright": "2007 WAP",
+        "default_thumb_size": [
+            200,
+            133
+        ]
+    },
+    "entries": [
+        {
+            "thumb": "tiny-dsc08340.jpg",
+            "image": "dsc08340.jpg",
+            "copyright": "2007 WAP"
+        },
+        {
+            "thumb": "tiny-dsc08340.jpg",
+            "image": "dsc08340.jpg",
+            "copyright": "2007 WAP"
+        },
+        {
+            "thumb": "tiny-dsc08340.jpg",
+            "image": "dsc08340.jpg",
+            "copyright": "2007 WAP"
+        }
+    ]
+}

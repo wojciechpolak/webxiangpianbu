@@ -1,3 +1,5 @@
+server_tokens off;
+
 log_format custom '$remote_addr - $remote_user [$time_local] '
                   '"$request" $status $body_bytes_sent '
                   '"$http_referer" "$http_user_agent" "$http_x_forwarded_for"';
@@ -18,13 +20,16 @@ server {
     gzip_static on;
     client_max_body_size 10M;
 
-    location ~* \.(js|css|png|jpg|jpeg|gif|webp|ico|woff|woff2)$ {
+    location ^~ /data/ {
+        alias /app/run/data/;
+        add_header Cache-Control public;
         expires 365d;
     }
 
-    location /static {
+    location ~* \.(js|css|png|jpg|jpeg|gif|webp|ico|woff|woff2)$ {
         access_log off;
         add_header Cache-Control public;
+        expires 365d;
     }
 
     location = /favicon.ico {

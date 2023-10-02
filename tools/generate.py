@@ -48,7 +48,7 @@ def main():
         'path': '',
         'copyright': '',
         'template': 'default',
-        'style': 'base',
+        'style': 'base.css',
         'ppp': 12,  # pictures per page
         'images_quality': 95,
         'images_maxsize': [900, 640],

@@ -84,7 +84,27 @@ PIPELINE = {
             ),
             'output_filename': 'js/gallery.js',
         },
-    }
+    },
+    'STYLESHEETS': {
+        'base.css': {
+            'source_filenames': (
+                'css/base.css',
+            ),
+            'output_filename': 'css/base.css',
+        },
+        'light.css': {
+            'source_filenames': (
+                'css/light.css',
+            ),
+            'output_filename': 'css/light.css',
+        },
+        'photo.css': {
+            'source_filenames': (
+                'css/photo.css',
+            ),
+            'output_filename': 'css/photo.css',
+        },
+    },
 }
 
 # Make this unique, long, and don't share it with anybody.
@@ -185,14 +205,14 @@ LOGGING = {
 # WebXiangpianbu specific settings.
 #
 
-SITE_URL = 'www.example.org/'
+SITE_URL = 'https://www.example.org/'
 
 WEBXIANG_PHOTOS_URL = '/data/'
 
 # Absolute path to the directory containing photo files (JPEGs).
-WEBXIANG_PHOTOS_ROOT = '/home/user/photos/data/'
+WEBXIANG_PHOTOS_ROOT = os.path.join(SITE_ROOT, '../run/data')
 
-ALBUM_DIR = os.path.join(SITE_ROOT, '../albums')
+ALBUM_DIR = os.path.join(SITE_ROOT, '../run/albums')
 
 COPYRIGHT_OWNER = 'Your Name'
 

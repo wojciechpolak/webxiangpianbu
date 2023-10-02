@@ -8,7 +8,7 @@
     <meta name="robots" content="{{ meta.robots }}">
     <meta name="description" content="{% filter striptags %}{% firstof meta.description meta.title %}{% endfilter %}">
     <meta property="og:title" content="{{ meta.title }}">
-    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/{% firstof meta.style 'base.css' %}">
+    {% stylesheet meta.style %}
     {% javascript "gallery" %}
     {% if meta.cover and mode != "photo" %}<link rel="image_src" href="{{ meta.cover }}">
     <meta property="og:image" content="{{ meta.cover }}">{% endif %}

@@ -1,0 +1,24 @@
+{
+    "meta": {
+        "path": "tiny/",
+        "style": "light.css",
+        "title": "Photo Albums",
+        "robots": "index,nofollow",
+        "copyright": "2007",
+        "columns": 3,
+        "ppp": 36,
+        "default_thumb_size": [
+            300,
+            200
+        ],
+        "custom_menu": false,
+        "custom_css": ""
+    },
+    "entries": [
+        {
+            "album": "album-one",
+            "thumb": {"path": "2007-01-fireworks/", "file": "dsc08340-300x200.jpg"},
+            "comment": "First Album: Fireworks!"
+        }
+    ]
+}

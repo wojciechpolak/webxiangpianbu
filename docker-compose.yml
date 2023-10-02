@@ -3,8 +3,7 @@ services:
     image: wap/webxiang:latest
     build: .
     volumes:
-        - ./run:/app/run
-        - ./run/data:/app/data
+        - ${RUN_DIR:-./run}:/app/run
     ports:
         - "8080:80"
   memcached:

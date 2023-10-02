@@ -84,7 +84,7 @@ INSTALLED_APPS = (
 SITE_ID = 1
 
 STATIC_ROOT = os.path.abspath(os.path.join(SITE_ROOT, '../static'))
-STATIC_URL = os.getenv('VIRTUAL_PATH', '') + '/static/'
+STATIC_URL = os.getenv('VIRTUAL_PATH', '/') + 'static/'
 
 STATICFILES_STORAGE = 'pipeline.storage.PipelineManifestStorage'
 STATICFILES_FINDERS = (
@@ -144,6 +144,26 @@ PIPELINE = {
             'output_filename': 'js/gallery.js',
         },
     },
+    'STYLESHEETS': {
+        'base.css': {
+            'source_filenames': (
+                'css/base.css',
+            ),
+            'output_filename': 'css/base.css',
+        },
+        'light.css': {
+            'source_filenames': (
+                'css/light.css',
+            ),
+            'output_filename': 'css/light.css',
+        },
+        'photo.css': {
+            'source_filenames': (
+                'css/photo.css',
+            ),
+            'output_filename': 'css/photo.css',
+        },
+    },
 }
 
 #
@@ -153,12 +173,12 @@ PIPELINE = {
 SITE_URL = os.getenv('VIRTUAL_PATH', 'http://localhost:8080')
 FORCE_SCRIPT_NAME = os.getenv('VIRTUAL_PATH', '/')
 
-WEBXIANG_PHOTOS_URL = os.getenv('PHOTOS_BASE_URL', '/photos/data/')
+WEBXIANG_PHOTOS_URL = os.getenv('PHOTOS_BASE_URL', '/data/')
 
 # Absolute path to the directory containing photo files (JPEGs).
-WEBXIANG_PHOTOS_ROOT = '/app/data/'
+WEBXIANG_PHOTOS_ROOT = '/app/run/data/'
 
-ALBUM_DIR = os.path.join(SITE_ROOT, '../run/albums')
+ALBUM_DIR = '/app/run/albums'
 
 COPYRIGHT_OWNER = 'Your Name'
 
