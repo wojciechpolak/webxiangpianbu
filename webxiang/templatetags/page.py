@@ -15,7 +15,7 @@
 
 from django import template
 from django.urls import get_urlconf
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 register = template.Library()
 
@@ -26,10 +26,7 @@ def page(context, album_name, album_url, page_number):
         if page_number > 1:
             # Translators: this is an URL
             return _('page-%(number)s.html') % {'number': page_number}
-        else:
-            return 'index.html'
-    else:
-        if page_number > 1:
-            return '?page=%s' % page_number
-        else:
-            return album_url
+        return 'index.html'
+    if page_number > 1:
+        return '?page=%s' % page_number
+    return album_url

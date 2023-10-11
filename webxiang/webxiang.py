@@ -30,12 +30,18 @@ from .templatetags.page import page as page_url
 
 try:
     import yaml
+    try:
+        from yaml import CLoader as YamlLoader
+    except ImportError:
+        from yaml import Loader as YamlLoader
 except ImportError:
     yaml = None
 
 logger = logging.getLogger('main')
 
-def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
+
+def get_data(album, photo=None, page=1, site_url=None,
+             is_mobile=False, staticgen=False, relative_links=False):
     data = {
         'STATIC_URL': getattr(settings, 'STATIC_URL', ''),
         'URL_PHOTOS': getattr(settings, 'WEBXIANG_PHOTOS_URL', 'data/'),
@@ -131,9 +137,13 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
             else:
                 slug = data['entries'][prev_idx - 1].get('slug')
             prev_photo = '%s/%s' % (prev_idx, slug) if slug else prev_idx
-            data['prev_entry'] = reverse('photo', kwargs={
-                'album': album,
-                'photo': prev_photo})
+            if relative_links:
+                data['prev_entry'] = reverse('photo_relative', kwargs={
+                    'photo': prev_photo}).replace('/', '')
+            else:
+                data['prev_entry'] = reverse('photo', kwargs={
+                    'album': album,
+                    'photo': prev_photo})
         else:
             data['prev_entry'] = None
 
@@ -143,9 +153,13 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
             else:
                 slug = data['entries'][next_idx - 1].get('slug')
             next_photo = '%s/%s' % (next_idx, slug) if slug else next_idx
-            data['next_entry'] = reverse('photo', kwargs={
-                'album': album,
-                'photo': next_photo})
+            if relative_links:
+                data['next_entry'] = reverse('photo_relative', kwargs={
+                    'photo': next_photo}).replace('/', '')
+            else:
+                data['next_entry'] = reverse('photo', kwargs={
+                    'album': album,
+                    'photo': next_photo})
         else:
             data['next_entry'] = None
 
@@ -165,7 +179,10 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
             path = meta_path
             f = size = ''
 
-        path = urljoin(baseurl, path)
+        if staticgen:
+            path = baseurl
+        else:
+            path = urljoin(baseurl, path)
         entry['url'] = urljoin(path, f)
         entry['size'] = size
 
@@ -176,6 +193,9 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
             page = int(math.ceil(photo_idx / float(data['meta']['ppp'])))
 
         entry['link'] = reverse('album', kwargs={'album': album})
+        if relative_links:
+            entry['link'] = 'index.html'
+
         if page > 1:
             entry['link'] += page_url({}, album, '', page)
 
@@ -257,7 +277,10 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
                         'size',
                         data['meta'].get('default_%s_size' % item_type))
 
-                path = urljoin(baseurl, path)
+                if staticgen:
+                    path = baseurl
+                else:
+                    path = urljoin(baseurl, path)
                 entry['url'] = urljoin(path, f)
 
                 if 'link' in entry:
@@ -269,9 +292,13 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
                     slug = entry.get('slug')
                     link = '%s/%s' % (entry['index'], slug) \
                         if slug else entry['index']
-                    entry['link'] = reverse('photo', kwargs={
-                        'album': album,
-                        'photo': link})
+                    if relative_links:
+                        entry['link'] = reverse('photo_relative',
+                                                kwargs={'photo': link}).replace('/', '')
+                    else:
+                        entry['link'] = reverse('photo', kwargs={
+                            'album': album,
+                            'photo': link})
 
             else:  # non-image entries
                 path = urljoin(baseurl, meta_path)
@@ -281,7 +308,7 @@ def get_data(album, photo=None, page=1, site_url=None, is_mobile=False):
         columns = int(data['meta'].get('columns', 3))
         if columns:
             data['groups'] = (
-                (e for e in t if e != None)
+                (e for e in t if e is not None)
                 for t in zip_longest(
                         *(iter(data['entries'].object_list),) * columns)
             )
@@ -355,7 +382,8 @@ def _open_albumfile(album_name):
     except Exception:
         try:
             mt1 = os.path.getmtime(albumfile_json)
-        except Exception:
+        except Exception as exc:
+            print('_open_albumfile exception', exc)
             return None
     try:
         mt2 = cache_data['mtime']
@@ -370,7 +398,7 @@ def _open_albumfile(album_name):
     if os.path.isfile(albumfile_yaml) and yaml:
         try:
             with open(albumfile_yaml, 'r', encoding='utf-8') as fp:
-                data = yaml.load(fp.read())
+                data = yaml.load(fp.read(), Loader=YamlLoader)
         except Exception as e:
             raise e
     elif os.path.isfile(albumfile_json):

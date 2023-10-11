@@ -20,9 +20,10 @@ ADMINS = (
 MANAGERS = ADMINS
 
 TIME_ZONE = 'UTC'
+USE_TZ = True
+
 LANGUAGE_CODE = 'en-us'
 USE_I18N = True
-USE_L10N = False
 
 # Directories where Django looks for translation files.
 LOCALE_PATHS = (
@@ -32,7 +33,7 @@ LOCALE_PATHS = (
 # Caching, see http://docs.djangoproject.com/en/dev/topics/cache/#topics-cache
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
         'LOCATION': 'memcached:11211',
         'KEY_PREFIX': 'webxiang',
     },

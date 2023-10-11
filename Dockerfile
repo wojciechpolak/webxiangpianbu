@@ -11,7 +11,7 @@ RUN pip install --no-cache-dir poetry
 COPY pyproject.toml .
 COPY poetry.lock .
 RUN poetry config virtualenvs.create false
-RUN poetry install -n
+RUN poetry install --no-dev -n
 
 FROM ${python}
 RUN apt update -y

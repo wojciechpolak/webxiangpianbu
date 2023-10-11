@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  WebXiangpianbu Copyright (C) 2014, 2015 Wojciech Polak
+#  WebXiangpianbu Copyright (C) 2014, 2015, 2023 Wojciech Polak
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by the
@@ -16,19 +16,19 @@
 #  You should have received a copy of the GNU General Public License along
 #  with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import print_function
-
 import os
 import sys
-import glob
+import json
 import getopt
 import shutil
 import signal
 import codecs
 from datetime import datetime
+from urllib.parse import urljoin
 
-from django.utils import six
-from django.utils.six.moves import urllib, SimpleHTTPServer, socketserver
+import urllib
+import http.server
+import socketserver
 
 SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
 os.environ['DJANGO_SETTINGS_MODULE'] = 'webxiang.settings'
@@ -42,17 +42,17 @@ from django.conf import settings
 
 try:
     from django.shortcuts import render
-except ImportError as e:
-    print(e)
+except ImportError as exc:
+    print(exc)
     print("Copy `webxiang/settings_sample.py` to " \
           "`webxiang/settings.py` and modify it to your needs.")
     sys.exit(1)
 
-from django.core.urlresolvers import set_urlconf, set_script_prefix
+from django.urls import set_urlconf, set_script_prefix
 from django.template import TemplateDoesNotExist
 from django.template.loader import render_to_string
 from django.utils import translation
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from webxiang import webxiang
 
 __generated = set()
@@ -63,11 +63,12 @@ def main():
     opts = {
         'verbose': 1,
         'output_dir': None,
-        'album_dir': os.path.abspath(getattr(settings, 'ALBUM_DIR', 'albums')),
-        'photo_dir': os.path.abspath(getattr(settings, 'WEBXIANG_PHOTOS_ROOT', '')),
+        'album_dir_in': getattr(settings, 'ALBUM_DIR', 'albums'),
+        'photo_dir_in': getattr(settings, 'WEBXIANG_PHOTOS_ROOT', ''),
         'root': '/',
         'assets_url': getattr(settings, 'STATIC_URL', 'assets/'),
         'photos_url': getattr(settings, 'WEBXIANG_PHOTOS_URL', 'data/'),
+        'relative_links': False,
         'names': 'index',
         'lang': 'en',
         'quick': False,
@@ -87,6 +88,7 @@ def main():
                                      'root=',
                                      'assets-url=',
                                      'photos-url=',
+                                     'relative-links',
                                      'copy',
                                      'quick=',
                                      'serve=',
@@ -95,17 +97,20 @@ def main():
         for o, arg in gopts:
             if o == '--help':
                 raise getopt.GetoptError('')
-            elif o in ('-v', '--verbose'):
+            if o in ('-v', '--verbose'):
                 opts['verbose'] = int(arg)
             elif o == '--output-dir':
                 opts['output_dir'] = arg
             elif o == '--album-dir':
-                opts['album_dir'] = os.path.abspath(arg)
-                settings.ALBUM_DIR = opts['album_dir']
+                opts['album_dir_in'] = arg
+                settings.ALBUM_DIR = opts['album_dir_in']
             elif o == '--photo-dir':
-                opts['photo_dir'] = os.path.abspath(arg)
+                opts['photo_dir_in'] = arg
+            elif o == '--relative-links':
+                opts['relative_links'] = True
+                opts['root'] = ''
             elif o == '--root':
-                if not arg.endswith('/'):
+                if arg and not arg.endswith('/'):
                     arg += '/'
                 opts['root'] = arg
             elif o == '--assets-url':
@@ -139,15 +144,17 @@ def main():
     except getopt.GetoptError:
         print("Usage: %s [OPTION...] [ALBUM-NAME1,NAME2]" % sys.argv[0])
         print("%s -- album static HTML generator" % sys.argv[0])
+        opts['output_dir_help'] = opts['output_dir'] or 'output-DATETIME/'
         print("""
  Options               Default values
  -v, --verbose         [%(verbose)s]
-     --output-dir      [output-DATETIME/]
-     --album-dir       [%(album_dir)s]
-     --photo-dir       [%(photo_dir)s]
+     --output-dir      [%(output_dir_help)s]
+     --album-dir       [%(album_dir_in)s]
+     --photo-dir       [%(photo_dir_in)s]
      --root            [%(root)s]
      --assets-url      [%(assets_url)s]
      --photos-url      [%(photos_url)s]
+     --relative-links  [%(relative_links)s]
  -l, --lang            [%(lang)s]
      --copy            [%(copy)s]
      --quick           [folder's name]
@@ -171,72 +178,84 @@ def main():
     set_urlconf('webxiang.urls_static')
     set_script_prefix(opts['root'])
 
-    root_dir = opts['output_dir'] and os.path.abspath(
-        os.path.expanduser(opts['output_dir'])) or \
-        'output-%s' % datetime.now().strftime('%Y%m%d-%H%M%S')
+    root_dir = opts['output_dir'] and \
+               os.path.expanduser(opts['output_dir']) or \
+               'output-%s' % datetime.now().strftime('%Y%m%d-%H%M%S')
 
     output_dir = os.path.join(root_dir, opts['root'].lstrip('/'))
 
     if opts['quick']:
+        cwd = os.getcwd()
         arg = opts['quick']
         arg_basename = os.path.basename(arg)
-        opts['assets_url'] = '%s/assets/' % arg_basename
-        opts['photos_url'] = '%s/data/' % arg_basename
-        opts['album_dir'] = os.path.abspath(arg + '/')
-        opts['photo_dir'] = opts['album_dir']
-        settings.ALBUM_DIR = opts['album_dir']
+        opts['assets_dir'] = 'assets/'
+        opts['assets_url'] = opts['assets_dir']
+        opts['photo_dir_out'] = os.path.join(arg_basename, 'data/')
+        if opts['relative_links']:
+            opts['photos_url'] = 'data/'
+        else:
+            opts['photos_url'] = opts['photo_dir_out']
+        opts['album_dir_in'] = os.path.relpath(arg, cwd) + '/'
+        opts['photo_dir_in'] = opts['album_dir_in']
+        settings.ALBUM_DIR = opts['album_dir_in']
 
-    opts['assets_url'] = urllib.parse.urljoin(opts['root'], opts['assets_url'])
-    opts['photos_url'] = urllib.parse.urljoin(opts['root'], opts['photos_url'])
+    if not opts['relative_links']:
+        opts['assets_url'] = urljoin(opts['root'], opts['assets_url'])
+        opts['photos_url'] = urljoin(opts['root'], opts['photos_url'])
+
     settings.WEBXIANG_PHOTOS_URL = opts['photos_url']
+
+    if opts['verbose'] > 1:
+        print('WEBXIANG_PHOTOS_URL', settings.WEBXIANG_PHOTOS_URL)
+        print('OPTIONS', json.dumps(opts, indent=2, sort_keys=True))
 
     try:
         if not os.path.exists(output_dir):
             print('Creating directory "%s"' % output_dir)
             os.makedirs(output_dir)
-    except Exception as e:
+    except Exception:
         pass
 
     if not opts['photos_url'].startswith('http'):
-        photos_url = opts['photos_url'].\
-            replace(opts['root'], '', 1).lstrip('/')
-        photos_url = os.path.join(output_dir, photos_url)
+        photo_dir_out = os.path.join(output_dir, opts['photo_dir_out'])
 
         if opts['copy']:
             print('Copying photos "%s" into "%s"' % \
-                (opts['photo_dir'].rstrip('/'), photos_url))
+                (opts['photo_dir_in'].rstrip('/'), photo_dir_out))
             try:
-                if not os.path.exists(photos_url):
-                    os.makedirs(photos_url)
-                __copytree(opts['photo_dir'].rstrip('/'), photos_url)
-            except Exception as e:
-                print('Copying photos', e)
+                if not os.path.exists(photo_dir_out):
+                    os.makedirs(photo_dir_out)
+                __copytree(opts['photo_dir_in'].rstrip('/'), photo_dir_out)
+            except Exception as exc:
+                print('Copying photos', exc)
 
         else:
             print('Linking photos: ln -s %s %s' % \
-                (opts['photo_dir'].rstrip('/'), photos_url.rstrip('/')))
+                (opts['photo_dir_in'].rstrip('/'), photo_dir_out.rstrip('/')))
             try:
-                d = os.path.dirname(photos_url.rstrip('/'))
+                d = os.path.dirname(photo_dir_out.rstrip('/'))
                 if not os.path.exists(d):
                     os.makedirs(d)
-                os.symlink(opts['photo_dir'].rstrip('/'),
-                           photos_url.rstrip('/'))
-            except Exception as e:
-                print('Linking photos', e)
+                os.symlink(opts['photo_dir_in'].rstrip('/'),
+                           photo_dir_out.rstrip('/'))
+            except Exception as exc:
+                print('Linking photos', exc)
 
     print('Copying assets (JS, CSS, etc.) into "%s"' % \
-        os.path.join(root_dir, opts['assets_url'].lstrip('/')))
+        os.path.join(root_dir, opts['assets_dir'].lstrip('/')))
     try:
         __copytree(settings.STATIC_ROOT,
                    os.path.join(root_dir,
-                                opts['assets_url'].lstrip('/')))
-    except Exception as e:
-        print('Copying assets', e)
+                                opts['assets_dir'].lstrip('/')))
+    except Exception as exc:
+        print('Copying assets', exc)
 
     print('Generating static pages.')
     for album_name in opts['names'].split(','):
         __gen_html_album(opts, album_name, output_dir=output_dir)
 
+    if opts['verbose'] > 0:
+        print()
     print('Finished %s' % output_dir)
     print('Done. Created %d files.' % __items_no)
 
@@ -250,14 +269,14 @@ def __quit_app(code=0):
 
 
 def serve(opts, root_dir=None):
-    class SimpleServer(six.moves.socketserver.TCPServer):
+    class SimpleServer(socketserver.TCPServer):
         allow_reuse_address = True
 
     if root_dir:
         os.chdir(root_dir)
 
     httpd = SimpleServer(('localhost', opts['port']),
-                         six.moves.SimpleHTTPServer.SimpleHTTPRequestHandler)
+                        http.server.SimpleHTTPRequestHandler)
     print('Serving at %s%s' % ('localhost:%d' % opts['port'], opts['root']))
     print('Quit the server with CONTROL-C.')
     httpd.serve_forever()
@@ -274,7 +293,9 @@ def __gen_html_album(opts, album_name, output_dir='.', page=1):
     if page == 1:
         print(album_name, end=' ')
 
-    data = webxiang.get_data(album=album_name, page=page)
+    data = webxiang.get_data(album=album_name, page=page,
+                             staticgen=True,
+                             relative_links=opts['relative_links'])
     if not data:
         return
 
@@ -282,11 +303,15 @@ def __gen_html_album(opts, album_name, output_dir='.', page=1):
     if not tpl.endswith('.html'):
         tpl += '.html'
 
-    data['STATIC_URL'] = opts['assets_url']
+    settings.STATIC_URL = opts['assets_url']
+
     try:
         html = render_to_string(tpl, data)
     except TemplateDoesNotExist:
         html = render_to_string('default.html', data)
+
+    if opts['relative_links']:
+        html = html.replace('/' + opts['assets_url'], '../' + opts['assets_url'])
 
     if page > 1:
         output_file = os.path.join(output_dir, album_name,
@@ -304,7 +329,7 @@ def __gen_html_album(opts, album_name, output_dir='.', page=1):
         os.makedirs(os.path.dirname(output_file))
 
     f = codecs.open(output_file, 'w', 'utf-8')
-    f.write(str(html))
+    f.write(html)
     f.close()
     __items_no += 1
 
@@ -334,7 +359,9 @@ def __gen_html_photo(opts, album_name, entry_idx, output_dir='.'):
 
     photo_idx = entry_idx.split('/')[0]
 
-    data = webxiang.get_data(album=album_name, photo=entry_idx)
+    data = webxiang.get_data(album=album_name, photo=entry_idx,
+                             staticgen=True,
+                             relative_links=opts['relative_links'])
     if not data:
         return
 
@@ -342,16 +369,17 @@ def __gen_html_photo(opts, album_name, entry_idx, output_dir='.'):
     if not tpl.endswith('.html'):
         tpl += '.html'
 
-    data['STATIC_URL'] = opts['assets_url']
+    settings.STATIC_URL = opts['assets_url']
+
     try:
         html = render_to_string(tpl, data)
     except TemplateDoesNotExist:
         html = render_to_string('default.html', data)
 
-    try:
-        os.makedirs(os.path.join(output_dir, album_name))
-    except:
-        pass
+    if opts['relative_links']:
+        html = html.replace('/' + opts['assets_url'], '../' + opts['assets_url'])
+
+    os.makedirs(os.path.join(output_dir, album_name), exist_ok=True)
 
     entry = data['entries'][int(photo_idx) - 1]
     if 'slug' in entry:
@@ -364,14 +392,14 @@ def __gen_html_photo(opts, album_name, entry_idx, output_dir='.'):
     if not os.path.exists(os.path.dirname(output_file)):
         os.makedirs(os.path.dirname(output_file))
 
-    if opts['verbose'] > 1:
+    if opts['verbose'] > 2:
         print('writing %s' % output_file)
-    elif opts['verbose'] == 1:
+    elif opts['verbose'] >= 1:
         sys.stdout.write('.')
         sys.stdout.flush()
 
     f = codecs.open(output_file, 'w', 'utf-8')
-    f.write(str(html))
+    f.write(html)
     f.close()
     __items_no += 1
 
@@ -381,7 +409,7 @@ def __copytree(src, dst, symlinks=False, ignore=None):
         s = os.path.join(src, item)
         d = os.path.join(dst, item)
         if os.path.isdir(s):
-            shutil.copytree(s, d, symlinks, ignore)
+            shutil.copytree(s, d, symlinks, ignore, dirs_exist_ok=True)
         else:
             shutil.copy2(s, d)
 

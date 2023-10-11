@@ -1,4 +1,4 @@
-#  WebXiangpianbu Copyright (C) 2014 Wojciech Polak
+#  WebXiangpianbu Copyright (C) 2014, 2023 Wojciech Polak
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by the
@@ -13,13 +13,15 @@
 #  You should have received a copy of the GNU General Public License along
 #  with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from django.conf.urls import url
+from django.urls import re_path
 from webxiang import views
 
 urlpatterns = [
-    url(r'^$', views.display, name='index'),
-    url(r'^(?P<photo>[\w-]+\.jpg)$', views.onephoto, name='onephoto'),
-    url(r'^(?P<album>[\w-]+)/$', views.display, name='album'),
-    url(r'^(?P<album>[\w-]+)/(?P<photo>[\w\-\./]+)\.html$', views.display,
+    re_path(r'^$', views.display, name='index'),
+    re_path(r'^(?P<photo>[\w-]+\.jpg)$', views.onephoto, name='onephoto'),
+    re_path(r'^(?P<album>[\w-]+)/$', views.display, name='album'),
+    re_path(r'^(?P<album>[\w-]+)/(?P<photo>[\w\-\./]+)\.html$', views.display,
         name='photo'),
+    re_path(r'^(?P<photo>[\w\-\./]+)\.html$', views.display,
+            name='photo_relative'),
 ]

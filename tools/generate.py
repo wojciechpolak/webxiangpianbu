@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  WebXiangpianbu Copyright (C) 2013, 2014, 2015 Wojciech Polak
+#  WebXiangpianbu Copyright (C) 2013, 2014, 2015, 2023 Wojciech Polak
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by the
@@ -20,8 +20,9 @@ import os
 import sys
 import json
 import getopt
-import yaml
 from datetime import date
+
+import yaml
 
 try:
     from collections import OrderedDict
@@ -50,6 +51,7 @@ def main():
         'template': 'default',
         'style': 'base.css',
         'ppp': 12,  # pictures per page
+        'images_format': 'JPEG',
         'images_quality': 95,
         'images_maxsize': [900, 640],
         'images_sharpness': 1.4,
@@ -73,6 +75,7 @@ def main():
                                      'template=',
                                      'style=',
                                      'ppp=',
+                                     'images-format=',
                                      'images-quality=',
                                      'images-sharpness=',
                                      'images-maxsize=',
@@ -88,7 +91,7 @@ def main():
         for o, arg in gopts:
             if o == '--help':
                 raise getopt.GetoptError('')
-            elif o == '--album-name':
+            if o == '--album-name':
                 opts['album_name'] = arg
             elif o == '--album-dir':
                 opts['album_dir'] = arg
@@ -109,6 +112,8 @@ def main():
             elif o == '--correct-orientation':
                 opts['correct_orientation'] = bool(int(arg))
 
+            elif o == '--images-format':
+                opts['images_format'] = arg
             elif o in ('-q', '--images-quality'):
                 opts['images_quality'] = int(arg)
             elif o == '--images-sharpness':
@@ -151,6 +156,7 @@ def main():
  --template=STRING            [''] (default|floating|story)
  --style=STRING               ['']
  --ppp=INTEGER                [%(ppp)s]
+ --images-format=FORMAT       [%(images_format)s] (JPEG|WEBP)
  --images-quality=INTEGER     [%(images_quality)s] (0..100)
  --images-sharpness=FLOAT     [%(images_sharpness)s]
  --images-maxsize=WxH         [900x640]
@@ -193,7 +199,7 @@ def main():
         album['meta']['default_image_size'] = opts['default_image_size']
 
     if opts['inputdir'].endswith('.in'):
-        with open(opts['inputdir']) as fp:
+        with open(opts['inputdir'], encoding='utf-8') as fp:
             data = fp.readlines()
         opts['inputdir'] = data[0].strip()  # first line points directory
         files = []
@@ -207,7 +213,7 @@ def main():
 
     opts['idx'] = 1
     for fname in files:
-        if fname.lower().endswith('.jpg'):
+        if fname.lower().endswith('.jpg') or fname.lower().endswith('.jpeg'):
             process_image(opts, album, fname)
             opts['idx'] += 1
 
@@ -223,7 +229,7 @@ def main():
         if os.path.exists(filename):
             overwrite = confirm('Overwrite album file %s?' % filename)
         if overwrite:
-            with open(filename, 'w') as album_file_json:
+            with open(filename, 'w', encoding='utf-8') as album_file_json:
                 json.dump(album, album_file_json, indent=4)
                 album_file_json.write('\n')
                 print('saved %s' % album_file_json.name)
@@ -237,7 +243,7 @@ def main():
         if overwrite:
             if OrderedDict:
                 def order_rep(dumper, data):
-                    return dumper.represent_mapping(u'tag:yaml.org,2002:map',
+                    return dumper.represent_mapping('tag:yaml.org,2002:map',
                                                     list(data.items()),
                                                     flow_style=False)
                 yaml.add_representer(OrderedDict, order_rep)
@@ -246,7 +252,7 @@ def main():
                         'entries': album['entries'],
                         })
 
-            with open(filename, 'w') as album_file_yaml:
+            with open(filename, 'w', encoding='utf-8') as album_file_yaml:
                 yaml.dump(album, album_file_yaml, encoding='utf-8',
                           default_flow_style=None, indent=4, width=70)
                 print('saved %s' % album_file_yaml.name)
@@ -255,12 +261,12 @@ def main():
 
 
 exif_tags = {
-    'ApertureValue': lambda v: 'f/%s' % round(v[0] / float(v[1]), 1),
+    'ApertureValue': lambda v: 'f/%s' % float(v),
     'DateTimeOriginal': lambda v: v,
     'ExposureBiasValue': lambda v: '%s EV' % v,
-    'ExposureTime': lambda v: '%s/%s sec' % (v[0], v[1]),
-    'FNumber': lambda v: 'f/%s' % round(v[0] / float(v[1]), 1),
-    'FocalLength': lambda v: '%smm' % v[0],
+    'ExposureTime': lambda v: '1/%s sec' % int(1 / float(v)),
+    'FNumber': lambda v: 'f/%s' % float(v),
+    'FocalLength': lambda v: '%smm' % float(v),
     'ISOSpeedRatings': lambda v: v,
     'LensMake': lambda v: v,
     'LensModel': lambda v: v,
@@ -274,7 +280,8 @@ def process_image(opts, album, fname):
 
     # lower case for file suffix
     fn = fname.split('.')
-    fname = '%s.%s' % (''.join(fn[0:-1]), fn[-1].lower())
+    suffix = 'webp' if opts['images_format'] == 'WEBP' else 'jpg'
+    fname = '%s.%s' % (''.join(fn[0:-1]), suffix)
 
     data = OrderedDict() if OrderedDict else {}
     data['idx'] = opts['idx']
@@ -325,7 +332,7 @@ def process_image(opts, album, fname):
 
     album['entries'].append(data)
 
-    img.thumbnail(opts['images_maxsize'], Image.ANTIALIAS)
+    img.thumbnail(opts['images_maxsize'], Image.LANCZOS)
     if list(img.size) != album['meta']['default_image_size']:
         data['image'] = {'file': fname, 'size': list(img.size)}
 
@@ -340,7 +347,7 @@ def process_image(opts, album, fname):
             img = sharpener.enhance(opts['images_sharpness'])
 
         ImageFile.MAXBLOCK = img.size[0] * img.size[1]
-        img.save(output_fname, 'JPEG', optimize=True,
+        img.save(output_fname, opts['images_format'], optimize=True,
                  quality=opts['images_quality'], progressive=False)
 
         print('saved %s' % output_fname)
@@ -376,9 +383,9 @@ def gen_thumbnails(opts, img_blob, fname):
         lower = width + upper
 
     img = img.crop((left, upper, right, lower))
-    img.thumbnail(size, Image.ANTIALIAS)
+    img.thumbnail(size, Image.LANCZOS)
     ImageFile.MAXBLOCK = 131072
-    img.save(output_fname, 'JPEG', optimize=True,
+    img.save(output_fname, opts['images_format'], optimize=True,
              quality=opts['thumbs_quality'], progressive=True)
 
     print('saved %s' % output_fname)
@@ -386,17 +393,9 @@ def gen_thumbnails(opts, img_blob, fname):
 
 
 def _geo_convert_to_degress(value):
-    d0 = value[0][0]
-    d1 = value[0][1]
-    d = float(d0) / float(d1)
-
-    m0 = value[1][0]
-    m1 = value[1][1]
-    m = float(m0) / float(m1)
-
-    s0 = value[2][0]
-    s1 = value[2][1]
-    s = float(s0) / float(s1)
+    d = float(value[0])
+    m = float(value[1])
+    s = float(value[2])
     return d + (m / 60.0) + (s / 3600.0)
 
 
@@ -421,8 +420,7 @@ def get_latlng(gps_data):
 
     if lat and lng:
         return round(lat, 6), round(lng, 6)
-    else:
-        return None, None
+    return None, None
 
 
 def confirm(question, default=False):
@@ -434,9 +432,9 @@ def confirm(question, default=False):
         res = input("%s [%s] " % (question, defval)).lower()
         if not res:
             return default
-        elif res in ('y', 'yes'):
+        if res in ('y', 'yes'):
             return True
-        elif res in ('n', 'no'):
+        if res in ('n', 'no'):
             return False
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  WebXiangpianbu Copyright (C) 2013, 2014, 2015 Wojciech Polak
+#  WebXiangpianbu Copyright (C) 2013, 2014, 2015, 2023 Wojciech Polak
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by the
@@ -20,8 +20,16 @@ import os
 import sys
 import glob
 import getopt
-import yaml
 import json
+
+try:
+    import yaml
+    try:
+        from yaml import CLoader as YamlLoader, CDumper as YamlDumper
+    except ImportError:
+        from yaml import Loader as YamlLoader, Dumper as YamlDumper
+except ImportError:
+    yaml = None
 
 
 def main():
@@ -35,7 +43,7 @@ def main():
         gopts, args = getopt.getopt(sys.argv[1:], 'y',
                                     ['overwrite=',
                                      ])
-        for o, arg in gopts:
+        for o, _arg in gopts:
             if o in ('-y', '--overwrite'):
                 opts['overwrite'] = True
 
@@ -71,13 +79,13 @@ def main():
 def read_albumfile(name):
     if os.path.isfile(name) and name.endswith('.yaml'):
         try:
-            album_content = open(name, 'r').read()
-            return yaml.load(album_content)
+            album_content = open(name, 'r', encoding='utf-8').read()
+            return yaml.load(album_content, Loader=YamlLoader)
         except Exception as e:
             print(e)
     elif os.path.isfile(name) and name.endswith('.json'):
         try:
-            album_content = open(name, 'r').read()
+            album_content = open(name, 'r', encoding='utf-8').read()
             return json.loads(album_content)
         except Exception as e:
             print(e)
@@ -93,9 +101,10 @@ def to_yaml(opts, name, data):
         overwrite = opts['overwrite'] or \
             confirm('Overwrite album file %s?' % filename)
     if overwrite:
-        with open(filename, 'w') as album_file_yaml:
+        with open(filename, 'w', encoding='utf-8') as album_file_yaml:
             yaml.dump(data, album_file_yaml, encoding='utf-8',
-                      default_flow_style=False, indent=4, width=70)
+                      default_flow_style=False, indent=4, width=70,
+                      Dumper=YamlDumper)
             print('saved %s' % album_file_yaml.name)
 
 
@@ -108,7 +117,7 @@ def to_json(opts, name, data):
         overwrite = opts['overwrite'] or \
             confirm('Overwrite album file %s?' % filename)
     if overwrite:
-        with open(filename, 'w') as album_file_json:
+        with open(filename, 'w', encoding='utf-8') as album_file_json:
             json.dump(data, album_file_json, indent=4)
             album_file_json.write('\n')
             print('saved %s' % album_file_json.name)
@@ -123,9 +132,9 @@ def confirm(question, default=False):
         res = input("%s [%s] " % (question, defval)).lower()
         if not res:
             return default
-        elif res in ('y', 'yes'):
+        if res in ('y', 'yes'):
             return True
-        elif res in ('n', 'no'):
+        if res in ('n', 'no'):
             return False
 
 
