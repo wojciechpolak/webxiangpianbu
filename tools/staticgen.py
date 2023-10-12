@@ -26,7 +26,6 @@ import codecs
 from datetime import datetime
 from urllib.parse import urljoin
 
-import urllib
 import http.server
 import socketserver
 
@@ -221,7 +220,7 @@ def main():
 
         if opts['copy']:
             print('Copying photos "%s" into "%s"' % \
-                (opts['photo_dir_in'].rstrip('/'), photo_dir_out))
+                  (opts['photo_dir_in'].rstrip('/'), photo_dir_out))
             try:
                 if not os.path.exists(photo_dir_out):
                     os.makedirs(photo_dir_out)
@@ -231,7 +230,7 @@ def main():
 
         else:
             print('Linking photos: ln -s %s %s' % \
-                (opts['photo_dir_in'].rstrip('/'), photo_dir_out.rstrip('/')))
+                  (opts['photo_dir_in'].rstrip('/'), photo_dir_out.rstrip('/')))
             try:
                 d = os.path.dirname(photo_dir_out.rstrip('/'))
                 if not os.path.exists(d):
@@ -276,13 +275,13 @@ def serve(opts, root_dir=None):
         os.chdir(root_dir)
 
     httpd = SimpleServer(('localhost', opts['port']),
-                        http.server.SimpleHTTPRequestHandler)
+                         http.server.SimpleHTTPRequestHandler)
     print('Serving at %s%s' % ('localhost:%d' % opts['port'], opts['root']))
     print('Quit the server with CONTROL-C.')
     httpd.serve_forever()
 
 
-def __gen_html_album(opts, album_name, output_dir='.', page=1):
+def __gen_html_album(opts, album_name: str, output_dir='.', page=1):
     global __generated, __items_no
 
     entry_id = '%s:%s' % (album_name, page)
@@ -349,7 +348,7 @@ def __gen_html_album(opts, album_name, output_dir='.', page=1):
                              '%s/' % entry['index'], output_dir)
 
 
-def __gen_html_photo(opts, album_name, entry_idx, output_dir='.'):
+def __gen_html_photo(opts, album_name: str, entry_idx: int, output_dir='.'):
     global __generated, __items_no
 
     entry_id = '%s/%s' % (album_name, entry_idx)
@@ -404,7 +403,7 @@ def __gen_html_photo(opts, album_name, entry_idx, output_dir='.'):
     __items_no += 1
 
 
-def __copytree(src, dst, symlinks=False, ignore=None):
+def __copytree(src: str, dst: str, symlinks=False, ignore=None):
     for item in os.listdir(src):
         s = os.path.join(src, item)
         d = os.path.join(dst, item)

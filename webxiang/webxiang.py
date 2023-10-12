@@ -16,6 +16,8 @@
 import re
 import os
 import json
+from typing import cast
+
 import math
 import logging
 
@@ -27,6 +29,7 @@ from django.urls import reverse
 from django.core.cache import cache
 from django.core.paginator import Paginator, InvalidPage, EmptyPage
 from .templatetags.page import page as page_url
+from .typing import Album, Entry
 
 try:
     import yaml
@@ -40,9 +43,9 @@ except ImportError:
 logger = logging.getLogger('main')
 
 
-def get_data(album, photo=None, page=1, site_url=None,
-             is_mobile=False, staticgen=False, relative_links=False):
-    data = {
+def get_data(album: str, photo=None, page=1, site_url=None,
+             is_mobile=False, staticgen=False, relative_links=False) -> Album | None:
+    data: Album = {
         'STATIC_URL': getattr(settings, 'STATIC_URL', ''),
         'URL_PHOTOS': getattr(settings, 'WEBXIANG_PHOTOS_URL', 'data/'),
         'meta': {
@@ -245,7 +248,11 @@ def get_data(album, photo=None, page=1, site_url=None,
             cmin = 0
         paginator.page_range_limited = page_range[cmin:cmax]
 
-        for i, entry in enumerate(data['entries'].object_list):
+        i: int
+        entry: Entry
+        entries_paginated: Paginator = cast(Paginator, data['entries'])
+
+        for i, entry in enumerate(entries_paginated.object_list):
 
             img = entry.get('image')
             path = data['meta'].get('path', meta_path)
@@ -265,17 +272,17 @@ def get_data(album, photo=None, page=1, site_url=None,
                 item_type = 'thumb'
 
             if img:
+                size_key: str = 'default_%s_size' % item_type
                 if isinstance(img, str):
                     f = img
-                    entry['size'] = data['meta'].get('default_%s_size' %
-                                                     item_type)
+                    entry['size'] = data['meta'].get(size_key)
                 else:
                     f = img['file']
                     path = img.get('path',
                                    data['meta'].get('path_thumb', meta_path))
                     entry['size'] = img.get(
                         'size',
-                        data['meta'].get('default_%s_size' % item_type))
+                        data['meta'].get(size_key))
 
                 if staticgen:
                     path = baseurl
@@ -310,13 +317,13 @@ def get_data(album, photo=None, page=1, site_url=None,
             data['groups'] = (
                 (e for e in t if e is not None)
                 for t in zip_longest(
-                        *(iter(data['entries'].object_list),) * columns)
+                        *(iter(entries_paginated.object_list),) * columns)
             )
 
         # set up geo points
         if mode == 'geomap':
             points = {}
-            for entry in data['entries'].object_list:
+            for entry in entries_paginated.object_list:
                 if 'geo' in entry:
                     p = entry['geo']
                     if p not in points:
@@ -343,7 +350,7 @@ def get_data(album, photo=None, page=1, site_url=None,
         cover = urljoin(site_url, cover)
     data['meta']['cover'] = cover
 
-    ctx = {
+    ctx: Album = {
         'mode': mode,
         'album': album,
     }
@@ -352,7 +359,7 @@ def get_data(album, photo=None, page=1, site_url=None,
     return ctx
 
 
-def _parse_video_entry(entry):
+def _parse_video_entry(entry: Entry) -> None:
     video = entry.get('video')
     if video:
         if 'youtube.com/' in video:
@@ -370,7 +377,7 @@ def _parse_video_entry(entry):
             entry['vid'] = video
 
 
-def _open_albumfile(album_name):
+def _open_albumfile(album_name: str) -> Album | None:
     albumfile_yaml = os.path.join(settings.ALBUM_DIR, album_name + '.yaml')
     albumfile_json = os.path.join(settings.ALBUM_DIR, album_name + '.json')
 

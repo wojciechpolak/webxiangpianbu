@@ -76,7 +76,7 @@ def main():
     print('done')
 
 
-def read_albumfile(name):
+def read_albumfile(name: str) -> dict | None:
     if os.path.isfile(name) and name.endswith('.yaml'):
         try:
             album_content = open(name, 'r', encoding='utf-8').read()
@@ -92,7 +92,7 @@ def read_albumfile(name):
     return None
 
 
-def to_yaml(opts, name, data):
+def to_yaml(opts: dict, name: str, data) -> None:
     filename = os.path.join(opts['output_dir'] or os.path.dirname(name),
                             opts['output_name'] or os.path.basename(
                             name.replace('.json', '.yaml')))
@@ -108,7 +108,7 @@ def to_yaml(opts, name, data):
             print('saved %s' % album_file_yaml.name)
 
 
-def to_json(opts, name, data):
+def to_json(opts: dict, name: str, data) -> None:
     filename = os.path.join(opts['output_dir'] or os.path.dirname(name),
                             opts['output_name'] or os.path.basename(
                             name.replace('.yaml', '.json')))
@@ -123,7 +123,7 @@ def to_json(opts, name, data):
             print('saved %s' % album_file_json.name)
 
 
-def confirm(question, default=False):
+def confirm(question: str, default=False) -> bool:
     if default:
         defval = 'Y/n'
     else:

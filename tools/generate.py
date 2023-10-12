@@ -275,7 +275,7 @@ exif_tags = {
 }
 
 
-def process_image(opts, album, fname):
+def process_image(opts: dict, album: dict, fname: str):
     img = Image.open(os.path.join(opts['inputdir'], fname))
 
     # lower case for file suffix
@@ -295,7 +295,7 @@ def process_image(opts, album, fname):
 
     try:
         exif = img._getexif()
-    except:
+    except Exception:
         exif = None
 
     gps_data = {}
@@ -353,7 +353,7 @@ def process_image(opts, album, fname):
         print('saved %s' % output_fname)
 
 
-def gen_thumbnails(opts, img_blob, fname):
+def gen_thumbnails(opts: dict, img_blob: Image, fname: str) -> str:
     size = opts['thumbs_size']
     fn = fname.split('.')
     fname = '%s-%dx%d.%s' % (''.join(fn[0:-1]), size[0], size[1], fn[-1])
@@ -392,14 +392,14 @@ def gen_thumbnails(opts, img_blob, fname):
     return fname
 
 
-def _geo_convert_to_degress(value):
+def _geo_convert_to_degress(value: tuple) -> float:
     d = float(value[0])
     m = float(value[1])
     s = float(value[2])
     return d + (m / 60.0) + (s / 3600.0)
 
 
-def get_latlng(gps_data):
+def get_latlng(gps_data: dict) -> tuple:
     lat = None
     lng = None
 
@@ -423,7 +423,7 @@ def get_latlng(gps_data):
     return None, None
 
 
-def confirm(question, default=False):
+def confirm(question: str, default=False) -> bool:
     if default:
         defval = 'Y/n'
     else:

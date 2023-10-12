@@ -21,7 +21,8 @@ from django.http import Http404, HttpResponsePermanentRedirect
 from django.shortcuts import render
 from django.template import TemplateDoesNotExist
 
-from . import webxiang
+from .import webxiang
+from .typing import Album
 
 logger = logging.getLogger('main')
 
@@ -69,14 +70,14 @@ def onephoto(request, photo):
     year = photo[:4]
     if not year.isdigit():
         year = ''
-    ctx = {
+    ctx: Album = {
         'meta': {
             'style': 'photo.css',
             'copyright': '%s %s' % (year, getattr(settings, 'COPYRIGHT_OWNER',
                                                   '')),
         },
         'entry': {
-            'url': urljoin(baseurl, photo),
+            'url': str(urljoin(baseurl, photo)),
         },
     }
     return render(request, 'photo.html', ctx)

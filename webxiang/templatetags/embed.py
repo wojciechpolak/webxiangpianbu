@@ -1,4 +1,4 @@
-#  WebXiangpianbu Copyright (C) 2013 Wojciech Polak
+#  WebXiangpianbu Copyright (C) 2013, 2023 Wojciech Polak
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by the
@@ -16,11 +16,13 @@
 from django import template
 from django.utils.safestring import mark_safe
 
+from webxiang.typing import Entry
+
 register = template.Library()
 
 
 @register.filter
-def embed(entry):
+def embed(entry: Entry) -> str:
     s = ''
     if entry['video']:
         if entry['type'] == 'youtube':

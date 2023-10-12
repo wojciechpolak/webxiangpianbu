@@ -1,4 +1,4 @@
-#  WebXiangpianbu Copyright (C) 2014 Wojciech Polak
+#  WebXiangpianbu Copyright (C) 2014, 2023 Wojciech Polak
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by the
@@ -21,7 +21,7 @@ register = template.Library()
 
 
 @register.simple_tag(takes_context=True)
-def page(context, album_name, album_url, page_number):
+def page(context, album_name: str, album_url: str, page_number: int) -> str:
     if get_urlconf() == 'webxiang.urls_static':
         if page_number > 1:
             # Translators: this is an URL
