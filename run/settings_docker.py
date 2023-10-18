@@ -1,6 +1,6 @@
-#
+"""
 # Django settings for WebXiangpianbu project (DOCKER VERSION).
-#
+"""
 
 import os
 SITE_ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../webxiang/')
@@ -30,7 +30,7 @@ LOCALE_PATHS = (
     os.path.join(SITE_ROOT, '../locale'),
 )
 
-# Caching, see http://docs.djangoproject.com/en/dev/topics/cache/#topics-cache
+# Caching, see https://docs.djangoproject.com/en/dev/topics/cache/#topics-cache
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',

@@ -1,4 +1,6 @@
+"""
 # Django settings for WebXiangpianbu project.
+"""
 
 import os
 SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
@@ -14,7 +16,7 @@ ALLOWED_HOSTS = [
 ]
 
 # Local time zone for this installation. Choices can be found here:
-# http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
+# https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 # although not all choices may be available on all operating systems.
 # In a Windows environment this must be set to your system time zone.
 TIME_ZONE = 'UTC'
@@ -152,7 +154,7 @@ SITE_ID = 1
 # A sample logging configuration. The only tangible logging
 # performed by this configuration is to send an email to
 # the site admins on every HTTP 500 error when DEBUG=False.
-# See http://docs.djangoproject.com/en/dev/topics/logging for
+# See https://docs.djangoproject.com/en/dev/topics/logging/ for
 # more details on how to customize your logging configuration.
 LOGGING = {
     'version': 1,
