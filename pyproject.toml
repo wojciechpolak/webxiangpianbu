@@ -14,9 +14,19 @@ PyYAML = ">=3.10"
 uWSGI = "^2.0.21"
 pymemcache = "^4.0.0"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
+django-stubs = {extras = ["compatible-mypy"], version = "^4.2.4"}
+mypy = "1.5.1"
 pylint = "3.0.1"
 pytest = "7.1.2"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+plugins = ["mypy_django_plugin.main"]
+
+[tool.django-stubs]
+django_settings_module = "webxiang.settings"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
