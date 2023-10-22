@@ -46,6 +46,11 @@ class Image(TypedDict, total=False):
     size: tuple[int, int]
 
 
+class VideoSrc(TypedDict):
+    src: str
+    type: str
+
+
 class Entry(TypedDict, total=False):
     album: str
     copyright: str
@@ -62,8 +67,10 @@ class Entry(TypedDict, total=False):
     type: str
     url: str
     url_full: str
-    vid: str
-    video: str
+    vid: list[VideoSrc]
+    video: str | list[str | VideoSrc] | None
+    video_autoplay: bool
+    video_preload: bool
 
 
 class Album(TypedDict, total=False):

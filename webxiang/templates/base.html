@@ -12,11 +12,11 @@
     {% javascript "gallery" %}
     {% if meta.cover and mode != "photo" %}<link rel="image_src" href="{{ meta.cover }}">
     <meta property="og:image" content="{{ meta.cover }}">{% endif %}
-    {% if meta.custom_css %}<style type="text/css">
+    {% if meta.custom_css %}<style>
       {{ meta.custom_css }}
     </style>{% endif %}
   </head>
-  <body>
+  <body{% if meta.body_class %} class="{{ meta.body_class }}"{% endif %}>
     <div id="content">
       {% block main %}{% endblock main %}
     </div><!-- /content -->

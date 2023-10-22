@@ -31,7 +31,7 @@ from django.urls import reverse
 from django.core.cache import cache
 from django.core.paginator import Paginator, InvalidPage, EmptyPage
 from .templatetags.page import page as page_url
-from .typing import Album, Entry
+from .typing import Album, Entry, VideoSrc
 
 try:
     import yaml
@@ -101,10 +101,16 @@ def get_data(album: str, photo=None, page=1, site_url=None,
             if not photo.lower().endswith('.jpg'):
                 photo += '.jpg'
             for idx, ent in enumerate(data['entries']):
-                if isinstance(ent['image'], str):
-                    f = ent['image']
-                else:
-                    f = ent['image']['file']
+                if ent.get('image', None):
+                    if isinstance(ent['image'], str):
+                        f = ent['image']
+                    else:
+                        f = ent['image']['file']
+                elif ent.get('video', None):
+                    if isinstance(ent['video'], str):
+                        f = ent['video']
+                    else:
+                        f = ent['video'][0]['src']
                 if photo == f:
                     if reverse_order:
                         photo_idx = lentries - idx
@@ -376,7 +382,30 @@ def _parse_video_entry(entry: Entry) -> None:
                 entry['vid'] = v[1]
         else:
             entry['type'] = 'html5'
-            entry['vid'] = video
+            if isinstance(video, str):
+                entry['vid'] = [{'src': video, 'type': _get_mtype(video)}]
+            else:
+                vid: list[VideoSrc] = []
+                obj: VideoSrc | str
+                for obj in video:
+                    if isinstance(obj, str):
+                        vid.append({'src': obj, 'type': _get_mtype(obj)})
+                    else:
+                        vid.append(obj)
+                entry['vid'] = vid
+
+
+def _get_mtype(video: str) -> str:
+    mtype = 'video'
+    if video.endswith('.mp4'):
+        mtype = 'video/mp4'
+    elif video.endswith('.webm'):
+        mtype = 'video/webm'
+    elif video.endswith('.ogg'):
+        mtype = 'video/ogg'
+    elif video.endswith('.mov'):
+        mtype = 'video/quicktime'
+    return mtype
 
 
 def _open_albumfile(album_name: str) -> Album | None:

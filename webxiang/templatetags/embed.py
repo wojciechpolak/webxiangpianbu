@@ -35,7 +35,9 @@ def embed(entry: Entry) -> str:
                 'vid']
         elif entry['type'] == 'html5':
             poster = ' poster="' + entry['poster'] + '"' if entry.get('poster', False) else ''
+            autoplay = ' autoplay' if entry.get('video_autoplay', False) else ''
+            preload = ' preload="auto"' if entry.get('video_preload', False) else ''
+            sources = map(lambda x: f'<source src="{x["src"]}" type="{x["type"]}">', entry['vid'])
             s = '<div class="video html5"><video controls' + \
-                poster + '><source src="' + \
-                entry['vid'] + '"></video></div>'
+                poster + autoplay + preload + '>' + ''.join(sources) + '</video></div>'
     return mark_safe(s)

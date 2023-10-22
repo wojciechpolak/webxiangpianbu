@@ -52,7 +52,7 @@ def display(request, album='index', photo=None):
                              site_url=site_url, is_mobile=is_mobile)
     if not data:
         logger.error('Album not found: %s', album)
-        raise Http404
+        raise Http404('Album not found: %s' % album)
     if 'canonical_url' in data \
             and data['canonical_url'] != request.path:
         return HttpResponsePermanentRedirect(data['canonical_url'])

@@ -1,21 +1,47 @@
+/*
+ * photo.css
+ */
+
+:root {
+    --color-background: white;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-background: #111;
+    }
+}
+
 body {
-  font-family: arial, serif;
-  font-size: 100%;
-  background-color: white;
-  text-align: center;
+    font-family: arial, serif;
+    font-size: 100%;
+    text-align: center;
+    background-color: var(--color-background);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
 }
 
 .photo {
-  text-align: center;
-  margin: 20px 0 16px 0;
+    text-align: center;
+    max-width: 100%;
+    height: auto;
 }
+
 .photo img {
-  border: 1px solid black;
-  margin-left: auto;
-  margin-right: auto;
+    border: 1px solid black;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.dialog, #show-help {
+    display: none;
 }
 
 .copyright {
-  font-size: smaller;
-  text-align: center;
+    font-size: smaller;
+    text-align: center;
 }
