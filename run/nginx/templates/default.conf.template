@@ -5,12 +5,12 @@ log_format custom '$remote_addr - $remote_user [$time_local] '
                   '"$http_referer" "$http_user_agent" "$http_x_forwarded_for"';
 
 upstream backend {
-    server 127.0.0.1:8080;
+    server app:80;
 }
 
 server {
     listen 80;
-    server_name _;
+    server_name ${VIRTUAL_HOST};
     root /app;
     index index.html;
 
@@ -18,31 +18,32 @@ server {
     error_log /proc/1/fd/2;
 
     gzip_static on;
-    client_max_body_size 10M;
+    client_max_body_size 1M;
 
-    location ^~ /data/ {
+    location ^~ ${VIRTUAL_PATH}data/ {
         alias /app/run/data/;
         add_header Cache-Control public;
         expires 365d;
     }
 
-    location ~* \.(js|css|png|jpg|jpeg|gif|webp|ico|woff|woff2)$ {
+    location ^~ ${VIRTUAL_PATH}static/ {
+        alias /app/static/;
         access_log off;
         add_header Cache-Control public;
         expires 365d;
     }
 
     location = /favicon.ico {
-        rewrite (.*) /static/favicon.ico;
+        root /app/run/static;
         access_log off;
     }
     location = /robots.txt {
-        rewrite (.*) /static/robots.txt;
+        root /app/run/static;
         access_log off;
     }
 
-    location / {
-        include uwsgi_params;
-        uwsgi_pass uwsgi://backend;
+    location ${VIRTUAL_PATH} {
+        proxy_pass http://backend/; # keep the trailing slash
+        proxy_set_header Host $http_host;
     }
 }

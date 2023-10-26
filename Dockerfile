@@ -15,7 +15,7 @@ RUN poetry install --no-dev -n
 
 FROM ${python}
 RUN apt update -y
-RUN apt install -y curl gettext nginx procps
+RUN apt install -y curl gettext procps
 RUN pip install --no-cache-dir supervisor
 RUN apt-get clean
 RUN echo 'alias ll="ls -l"' >>~/.bashrc
@@ -35,7 +35,6 @@ RUN python manage.py compilemessages
 ENV PYTHONPATH "${PYTHONPATH}:/app"
 EXPOSE 80
 COPY conf/docker/etc/supervisord.conf /etc/supervisord.conf
-COPY conf/docker/etc/nginx/ /etc/nginx/
 
 HEALTHCHECK --interval=60m --timeout=3s CMD curl -f http://localhost/ || exit 1
 CMD /app/entrypoint.sh

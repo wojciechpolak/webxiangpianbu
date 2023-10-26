@@ -3,10 +3,12 @@
 """
 
 import os
+from urllib.parse import urljoin
+
 SITE_ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../webxiang/')
 BASE_DIR = SITE_ROOT
 
-DEBUG = False
+DEBUG = os.getenv('APP_DEBUG') or False
 
 ALLOWED_HOSTS = [
     os.getenv('VIRTUAL_HOST', ''),
@@ -114,8 +116,8 @@ LOGGING = {
         },
     },
     'root': {
-        "handlers": ["console"],
-        "level": "INFO",
+        'handlers': ['console'],
+        'level': 'INFO',
     },
     'loggers': {
         'django.server': {
@@ -174,7 +176,7 @@ PIPELINE = {
 SITE_URL = os.getenv('VIRTUAL_PATH', 'http://localhost:8080')
 FORCE_SCRIPT_NAME = os.getenv('VIRTUAL_PATH', '/')
 
-WEBXIANG_PHOTOS_URL = os.getenv('PHOTOS_BASE_URL', '/data/')
+WEBXIANG_PHOTOS_URL = os.getenv('PHOTOS_BASE_URL', urljoin(SITE_URL, 'data/'))
 
 # Absolute path to the directory containing photo files (JPEGs).
 WEBXIANG_PHOTOS_ROOT = '/app/run/data/'
