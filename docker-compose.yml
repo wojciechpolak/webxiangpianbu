@@ -2,7 +2,7 @@ version: "3"
 
 services:
   app:
-    image: wap/webxiang:latest
+    image: ${APP_IMAGE:-ghcr.io/wojciechpolak/webxiangpianbu:latest}
     restart: unless-stopped
     build: .
     volumes:
@@ -14,25 +14,25 @@ services:
     depends_on:
         - memcached
   nginx:
-      image: nginx:1.25
+      image: ${NGINX_IMAGE:-nginx:1.25}
       restart: unless-stopped
       volumes:
           - app_static:/app/static
           - ${RUN_DIR:-./run}:/app/run
           - ${NGINX_DIR_TEMPLATES:-./run/nginx/templates}:/etc/nginx/templates
       ports:
-          - "8080:80"
+          - "${APP_PORT:-8080}:80"
       environment:
           - VIRTUAL_HOST=${VIRTUAL_HOST:-_}
           - VIRTUAL_PATH=${VIRTUAL_PATH:-/}
       depends_on:
           - app
   memcached:
-      image: memcached:1.6
+      image: ${MEMCACHED_IMAGE:-memcached:1.6}
       restart: unless-stopped
       entrypoint:
           - memcached
-          - -m 2
+          - -m ${MEMCACHED_SIZE:-2}
 
 volumes:
   app_static:

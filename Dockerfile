@@ -1,8 +1,8 @@
-ARG python=python:3.11-slim-bullseye
+ARG python=python:3.11-slim-bookworm
 
 FROM ${python} AS webxiang-builder-python
 RUN apt update -y
-RUN apt install -y gcc
+RUN apt install -y gcc g++
 RUN apt-get clean
 WORKDIR /app
 RUN python -m venv /venv
@@ -11,6 +11,7 @@ RUN pip install --no-cache-dir poetry
 COPY pyproject.toml .
 COPY poetry.lock .
 RUN poetry config virtualenvs.create false
+RUN poetry config installer.max-workers 10
 RUN poetry install --no-dev -n
 
 FROM ${python}
