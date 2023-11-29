@@ -23,14 +23,17 @@ from django.core.paginator import Paginator
 class MetaData(TypedDict, total=False):
     columns: int
     copyright: str
+    copyright_link: str
     cover: str | None
     custom_menu: bool
     default_image_size: tuple[int, int]
     default_thumb_size: tuple[int, int]
     description: str
+    next_story: str
     path: str
     path_thumb: str
     ppp: int
+    prev_story: str
     reverse_order: bool
     robots: str
     style: str
@@ -54,6 +57,7 @@ class VideoSrc(TypedDict):
 class Entry(TypedDict, total=False):
     album: str
     copyright: str
+    copyright_link: str
     description: str
     exif: dict
     geo: tuple[float, float]
@@ -69,6 +73,7 @@ class Entry(TypedDict, total=False):
     url_full: str
     vid: list[VideoSrc]
     video: str | list[str | VideoSrc] | None
+    video_download: str
     video_autoplay: bool
     video_preload: bool
 
@@ -82,7 +87,9 @@ class Album(TypedDict, total=False):
     meta: MetaData
     mode: str
     next_entry: str | None
+    next_story: str | None
     prev_entry: str | None
+    prev_story: str | None
     settings: dict
     STATIC_URL: str
     URL_PHOTOS: str

@@ -252,6 +252,14 @@ body.rounded div.video {
     border-radius: 10px;
 }
 
+.download {
+    margin-top: 1em;
+    text-align: right;
+}
+.download a {
+    text-decoration: none;
+}
+
 .date {
     font-size: 90%;
     font-weight: normal;
@@ -268,6 +276,9 @@ body.rounded div.video {
 .copyright {
     font-size: smaller;
     text-align: center;
+}
+.copyright a {
+    color: var(--color-font);
 }
 
 /* dialogs */
@@ -298,6 +309,10 @@ body.rounded div.video {
 
 #show-help:hover {
     font-weight: 700;
+}
+
+body.no-help #show-help {
+    display: none;
 }
 
 .dialog {

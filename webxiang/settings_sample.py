@@ -6,7 +6,7 @@ import os
 SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
 BASE_DIR = SITE_ROOT
 
-DEBUG = False
+DEBUG = True
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts

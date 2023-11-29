@@ -29,6 +29,14 @@
   {% if entry.description %}<p class="description">{{ entry.description|safe }}</p>{% endif %}
 </div>
 {% else %}
+
+{% if prev_story or next_story %}
+<div id="navigation">
+  {% if prev_story %}<a id="prevStory" href="{{ prev_story }}">&laquo; {% trans "previous" %}</a>{% else %}&laquo; {% trans "previous" %}{% endif %} |
+  {% if next_story %}<a id="nextStory" href="{{ next_story }}">{% trans "next" %} &raquo;</a>{% else %}{% trans "next" %} &raquo;{% endif %}
+</div>
+{% endif %}
+
 <h2 id="title">{{ meta.title_gallery }}</h2>
 {% if meta.description %}<div id="description">{{ meta.description|safe }}</div>{% endif %}
 
@@ -105,5 +113,10 @@ var wxpb_settings = {{ wxpb_settings|safe }};
 </script>
 {% endif %}
 
-<p class="copyright">&copy; {{ meta.copyright }}</p>
+{% if meta.copyright_link %}
+  <p class="copyright">&copy; <a href="{{ meta.copyright_link }}">{{ meta.copyright }}</a></p>
+{% else %}
+  <p class="copyright">&copy; {{ meta.copyright }}</p>
+{% endif %}
+
 {% endblock main %}

@@ -80,5 +80,10 @@ var wxpb_settings = {{ wxpb_settings|safe }};
 </script>
 {% endif %}
 
-<p class="copyright">&copy; {{ meta.copyright }}</p>
+{% if meta.copyright_link %}
+  <p class="copyright">&copy; <a href="{{ meta.copyright_link }}">{{ meta.copyright }}</a></p>
+{% else %}
+  <p class="copyright">&copy; {{ meta.copyright }}</p>
+{% endif %}
+
 {% endblock main %}

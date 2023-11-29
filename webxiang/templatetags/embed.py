@@ -17,6 +17,7 @@
 
 from django import template
 from django.utils.safestring import mark_safe
+from django.utils.translation import gettext as _
 
 from webxiang.typing import Entry
 
@@ -40,4 +41,8 @@ def embed(entry: Entry) -> str:
             sources = map(lambda x: f'<source src="{x["src"]}" type="{x["type"]}">', entry['vid'])
             s = '<div class="video html5"><video controls' + \
                 poster + autoplay + preload + '>' + ''.join(sources) + '</video></div>'
+            if entry.get('video_download', False):
+                s += ('<div class="download"><a href="' +
+                      entry.get('video_download') + '" title="' +
+                      _('Download') + '" download>⬇️</a></div>')
     return mark_safe(s)

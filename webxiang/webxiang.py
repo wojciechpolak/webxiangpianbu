@@ -214,6 +214,8 @@ def get_data(album: str, photo=None, page=1, site_url=None,
                                                 data['meta']['title'])
         data['meta']['copyright'] = entry.get('copyright') or \
             data['meta'].get('copyright')
+        data['meta']['copyright_link'] = entry.get('copyright_link') or \
+            data['meta'].get('copyright_link')
 
         points = {}
         if 'geo' in entry:
@@ -238,6 +240,16 @@ def get_data(album: str, photo=None, page=1, site_url=None,
 
         if mode == 'geomap':
             data['meta']['ppp'] = 500
+
+        prev_story = data['meta'].get('prev_story')
+        if prev_story:
+            data['prev_story'] = reverse('album',
+                                         kwargs={'album': prev_story})
+
+        next_story = data['meta'].get('next_story')
+        if next_story:
+            data['next_story'] = reverse('album',
+                                         kwargs={'album': next_story})
 
         paginator = Paginator(data['entries'], data['meta']['ppp'])
         try:
