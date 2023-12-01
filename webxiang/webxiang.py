@@ -243,13 +243,19 @@ def get_data(album: str, photo=None, page=1, site_url=None,
 
         prev_story = data['meta'].get('prev_story')
         if prev_story:
-            data['prev_story'] = reverse('album',
-                                         kwargs={'album': prev_story})
+            if prev_story.startswith('/'):
+                data['prev_story'] = prev_story
+            else:
+                data['prev_story'] = reverse('album',
+                                             kwargs={'album': prev_story})
 
         next_story = data['meta'].get('next_story')
         if next_story:
-            data['next_story'] = reverse('album',
-                                         kwargs={'album': next_story})
+            if next_story.startswith('/'):
+                data['next_story'] = next_story
+            else:
+                data['next_story'] = reverse('album',
+                                             kwargs={'album': next_story})
 
         paginator = Paginator(data['entries'], data['meta']['ppp'])
         try:
