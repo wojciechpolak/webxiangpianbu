@@ -72,6 +72,9 @@ h2#title {
     line-height: 1.2;
     margin: 16px 0 20px;
 }
+body.no-title h2#title {
+    display: none;
+}
 
 #navigation {
     font-size: 90%;
@@ -188,6 +191,9 @@ h2#title {
     margin: 16px auto;
     max-width: var(--max-width-photo, 900px);
 }
+body.no-title .story {
+    margin-top: 40px;
+}
 
 .story .item {
     margin-bottom: 40px;
@@ -253,6 +259,7 @@ body.rounded div.video {
 }
 
 .download {
+    float: right;
     margin-top: 1em;
     text-align: right;
 }
