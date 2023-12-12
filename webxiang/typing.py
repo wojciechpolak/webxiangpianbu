@@ -49,7 +49,8 @@ class Image(TypedDict, total=False):
     size: tuple[int, int]
 
 
-class VideoSrc(TypedDict):
+class VideoSrc(TypedDict, total=False):
+    media: str
     src: str
     type: str
 

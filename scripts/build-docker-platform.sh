@@ -1,7 +1,7 @@
 #!/bin/bash
 
-PLATFORM=${PLATFORM:-linux/amd64}
-
 set -xe
+
+PLATFORM=${PLATFORM:-linux/amd64}
 
 docker build . -t wap/webxiang --platform $PLATFORM

@@ -19,7 +19,7 @@ from django import template
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 
-from webxiang.typing import Entry
+from webxiang.typing import Entry, VideoSrc
 
 register = template.Library()
 
@@ -38,7 +38,7 @@ def embed(entry: Entry) -> str:
             poster = ' poster="' + entry['poster'] + '"' if entry.get('poster', False) else ''
             autoplay = ' autoplay' if entry.get('video_autoplay', False) else ''
             preload = ' preload="auto"' if entry.get('video_preload', False) else ''
-            sources = map(lambda x: f'<source src="{x["src"]}" type="{x["type"]}">', entry['vid'])
+            sources = map(gen_video_source, entry['vid'])
             s = '<div class="video html5"><video controls' + \
                 poster + autoplay + preload + '>' + ''.join(sources) + '</video></div>'
             if entry.get('video_download', False):
@@ -46,3 +46,12 @@ def embed(entry: Entry) -> str:
                       entry.get('video_download') + '" title="' +
                       _('Download') + '" download>⬇️</a></div>')
     return mark_safe(s)
+
+
+def gen_video_source(x: VideoSrc) -> str:
+    s = f'<source src="{x["src"]}"'
+    if 'media' in x:
+        s += f' media="{x["media"]}"'
+    if 'type' in x:
+        s += f' type="{x["type"]}"'
+    return s + '>'
