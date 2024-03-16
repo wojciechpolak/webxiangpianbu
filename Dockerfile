@@ -7,7 +7,7 @@ RUN apt-get clean
 WORKDIR /app
 RUN python -m venv /venv
 ENV PATH=/venv/bin:$PATH
-RUN pip install --no-cache-dir poetry
+RUN pip install --no-cache-dir poetry==1.7.1
 COPY pyproject.toml .
 COPY poetry.lock .
 RUN poetry config virtualenvs.create false
