@@ -105,6 +105,7 @@ def to_yaml(opts: dict, name: str, data) -> None:
     if overwrite:
         with open(filename, 'w', encoding='utf-8') as album_file_yaml:
             yaml.dump(data, album_file_yaml, encoding='utf-8',
+                      allow_unicode=True,
                       default_flow_style=False, indent=4, width=70,
                       Dumper=YamlDumper)
             print('saved %s' % album_file_yaml.name)
