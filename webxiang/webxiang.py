@@ -96,6 +96,8 @@ def get_data(album: str, photo=None, page=1, site_url=None,
         photo_idx = photo.split('/')[0]
         if photo_idx.isdigit():
             photo_idx = int(photo_idx)
+            if photo_idx < 1 or photo_idx > lentries:
+                return None
         else:
             photo_idx = None
             if not photo.lower().endswith('.jpg'):
