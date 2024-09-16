@@ -23,7 +23,7 @@ Install all needed dependencies using [Poetry](https://python-poetry.org/) or PI
 
 ```shell
 $ poetry install
-or
+# or
 $ pip install -r requirements.txt
 ```
 
@@ -46,29 +46,35 @@ Docker Deployment
 
 ```shell
 ./scripts/build-docker.sh
-[adjust files in the `run` folder]
+# [adjust files in the `run` folder]
 docker-compose up
 ```
 
 Tools
 -----
 
-generate.py -- generate albums from photo files.
+`generate.py` -- generate albums from photo files.
 
-    $ tools/generate.py --album-dir=albums/ ~/photos/vacation/ ~/webxiang/static/data/vacation
-    $ tools/generate.py --help
-    next, adjust the generated vacation.yaml
+```shell
+tools/generate.py --album-dir=albums/ ~/photos/vacation/ ~/webxiang/static/data/vacation
+tools/generate.py --help
+# next, adjust the generated vacation.yaml
+```
 
-convert.py -- convert albums between different file formats (YAML, JSON).
+`convert.py` -- convert albums between different file formats (YAML, JSON).
 
-    $ tools/convert.py 'albums/*.yaml' tmp/
+```shell
+tools/convert.py 'albums/*.yaml' tmp/
+```
 
 Static Site Generator
 ---------------------
 
-    $ tools/generate.py ~/photos/vacation/ ~/tmp/vacation
-    $ tools/staticgen.py --quick=~/tmp/vacation --copy
-    $ tools/staticgen.py --help
+```shell
+tools/generate.py ~/photos/vacation/ ~/tmp/vacation
+tools/staticgen.py --quick=~/tmp/vacation --copy
+tools/staticgen.py --help
+```
 
 Sample Galleries
 ----------------
