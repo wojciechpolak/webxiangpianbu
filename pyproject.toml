@@ -5,8 +5,8 @@ description = "A photo album organizer"
 authors = ["WAP"]
 
 [tool.poetry.dependencies]
-Django = "^5.0.2"
-django-pipeline = "^3.0.0"
+Django = "^5.1.6"
+django-pipeline = "^4.0.0"
 libsasscompiler = "0.1.8"
 Pillow = "^10.0"
 python = "^3.11"
