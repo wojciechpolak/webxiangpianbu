@@ -1,5 +1,0 @@
-Django==5.1.*
-django-pipeline==4.0.*
-pymemcache==4.0.*
-Pillow==10.*
-PyYAML>=3.10

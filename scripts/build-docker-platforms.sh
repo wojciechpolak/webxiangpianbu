@@ -22,5 +22,5 @@ for PLATFORM in "${PLATFORM_ARRAY[@]}"; do
     IMAGE_NAME="wap/webxiang/${ARCH}"
 
     set -xe
-    docker build . -t $IMAGE_NAME --platform $PLATFORM
+    docker build . -t $IMAGE_NAME --platform $PLATFORM --build-arg TARGETARCH="$ARCH"
 done

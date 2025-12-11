@@ -1,25 +1,36 @@
-[tool.poetry]
+[project]
 name = "WebXiangpianbu"
 version = "0.1.0"
 description = "A photo album organizer"
-authors = ["WAP"]
+authors = [{ name = "WAP" }]
+requires-python = ">=3.11,<4"
+dependencies = [
+    "django==5.2.9",
+    "django-pipeline==4.1.0",
+    "libsasscompiler==0.1.8",
+    "pillow==12.0.0",
+    "pyyaml==6.0.3",
+    "uwsgi==2.0.31",
+    "pymemcache>=4.0.0,<5",
+]
 
-[tool.poetry.dependencies]
-Django = "^5.1.6"
-django-pipeline = "^4.0.0"
-libsasscompiler = "0.1.8"
-Pillow = "^10.0"
-python = "^3.11"
-PyYAML = ">=3.10"
-uWSGI = "^2.0.21"
-pymemcache = "^4.0.0"
+[dependency-groups]
+dev = [
+    "django-stubs-ext==5.2.8",
+    "django-stubs[compatible-mypy]==5.2.8",
+    "mypy==1.19.0",
+    "pytest==9.0.2",
+    "pytest-django==4.11.1",
+    "ruff>=0.14.8",
+    "types-pyyaml==6.0.12.20250915",
+]
 
-[tool.poetry.group.dev.dependencies]
-django-stubs = {extras = ["compatible-mypy"], version = "^4.2.4"}
-mypy = "1.5.1"
-pylint = "3.0.1"
-pytest = "7.1.2"
-pytest-django = "^4.8.0"
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["webxiangpianbu"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -28,7 +39,3 @@ plugins = ["mypy_django_plugin.main"]
 
 [tool.django-stubs]
 django_settings_module = "webxiang.settings"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"

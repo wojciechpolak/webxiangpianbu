@@ -19,21 +19,19 @@ Features
 Installation
 ------------
 
-Install all needed dependencies using [Poetry](https://python-poetry.org/) or PIP.
+Install all necessary dependencies using [uv](https://docs.astral.sh/uv/).
 
 ```shell
-$ poetry install
-# or
-$ pip install -r requirements.txt
+$ uv sync
 ```
 
 Next steps:
 
 1. Copy `webxiang/settings_sample.py` to `webxiang/settings.py`
    and modify it to your needs.
-2. Optionally, run `python manage.py compilemessages` (if you have
+2. Optionally, run `uv run manage.py compilemessages` (if you have
    `gettext` installed).
-3. python manage.py collectstatic
+3. uv run manage.py collectstatic
 
 Web Application Deployment
 --------------------------
