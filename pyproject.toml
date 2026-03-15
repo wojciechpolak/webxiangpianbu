@@ -5,10 +5,10 @@ description = "A photo album organizer"
 authors = [{ name = "WAP" }]
 requires-python = ">=3.11,<4"
 dependencies = [
-    "django==5.2.9",
+    "django==5.2.12",
     "django-pipeline==4.1.0",
     "libsasscompiler==0.1.8",
-    "pillow==12.0.0",
+    "pillow==12.1.1",
     "pyyaml==6.0.3",
     "uwsgi==2.0.31",
     "pymemcache>=4.0.0,<5",
