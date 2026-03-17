@@ -67,29 +67,33 @@ def main():
     }
 
     try:
-        gopts, args = getopt.getopt(sys.argv[1:], '',
-                                    ['help',
-                                     'album-name=',
-                                     'album-dir=',
-                                     'album-format=',
-                                     'path=',
-                                     'copyright=',
-                                     'template=',
-                                     'style=',
-                                     'ppp=',
-                                     'images-format=',
-                                     'images-quality=',
-                                     'images-sharpness=',
-                                     'images-maxsize=',
-                                     'images-default-size=',
-                                     'thumbs-skip',
-                                     'thumbs-quality=',
-                                     'thumbs-size=',
-                                     'show-geo=',
-                                     'correct-orientation=',
-                                     'skip-image-gen',
-                                     'skip-thumb-gen',
-                                     ])
+        gopts, args = getopt.getopt(
+            sys.argv[1:],
+            '',
+            [
+                'help',
+                'album-name=',
+                'album-dir=',
+                'album-format=',
+                'path=',
+                'copyright=',
+                'template=',
+                'style=',
+                'ppp=',
+                'images-format=',
+                'images-quality=',
+                'images-sharpness=',
+                'images-maxsize=',
+                'images-default-size=',
+                'thumbs-skip',
+                'thumbs-quality=',
+                'thumbs-size=',
+                'show-geo=',
+                'correct-orientation=',
+                'skip-image-gen',
+                'skip-thumb-gen',
+            ],
+        )
         for o, arg in gopts:
             if o == '--help':
                 raise getopt.GetoptError('')
@@ -146,9 +150,10 @@ def main():
         else:
             raise getopt.GetoptError('')
     except getopt.GetoptError:
-        print("Usage: %s [OPTION...] INPUT-DIR OUTPUT-DIR" % sys.argv[0])
-        print("%s -- album generator" % sys.argv[0])
-        print("""
+        print('Usage: %s [OPTION...] INPUT-DIR OUTPUT-DIR' % sys.argv[0])
+        print('%s -- album generator' % sys.argv[0])
+        print(
+            """
  Options                      Default values
  --album-name=STRING          [output dir's name]
  --album-dir=STRING           [output dir]
@@ -170,7 +175,9 @@ def main():
  --correct-orientation        [%(correct_orientation)s]
  --skip-image-gen             [%(skip_image_gen)s]
  --skip-thumb-gen             [%(skip_thumb_gen)s]
-""" % opts)
+"""
+            % opts
+        )
         sys.exit(1)
 
     if not os.path.exists(opts['outputdir']):
@@ -219,8 +226,9 @@ def main():
             process_image(opts, album, fname)
             opts['idx'] += 1
 
-    album_name = opts['album_name'] or \
-        os.path.basename(opts['outputdir'].rstrip('/')) or 'foo'
+    album_name = (
+        opts['album_name'] or os.path.basename(opts['outputdir'].rstrip('/')) or 'foo'
+    )
 
     album_dir = opts['album_dir'] or opts['outputdir']
 
@@ -244,19 +252,29 @@ def main():
             overwrite = confirm('Overwrite album file %s?' % filename)
         if overwrite:
             if OrderedDict:
+
                 def order_rep(dumper, data):
-                    return dumper.represent_mapping('tag:yaml.org,2002:map',
-                                                    list(data.items()),
-                                                    flow_style=False)
+                    return dumper.represent_mapping(
+                        'tag:yaml.org,2002:map', list(data.items()), flow_style=False
+                    )
+
                 yaml.add_representer(OrderedDict, order_rep)
-                album = OrderedDict({
+                album = OrderedDict(
+                    {
                         'meta': album['meta'],
                         'entries': album['entries'],
-                        })
+                    }
+                )
 
             with open(filename, 'w', encoding='utf-8') as album_file_yaml:
-                yaml.dump(album, album_file_yaml, encoding='utf-8',
-                          default_flow_style=None, indent=4, width=70)
+                yaml.dump(
+                    album,
+                    album_file_yaml,
+                    encoding='utf-8',
+                    default_flow_style=None,
+                    indent=4,
+                    width=70,
+                )
                 print('saved %s' % album_file_yaml.name)
 
     print('done')
@@ -349,8 +367,13 @@ def process_image(opts: dict, album: dict, fname: str):
             img = sharpener.enhance(opts['images_sharpness'])
 
         ImageFile.MAXBLOCK = img.size[0] * img.size[1]
-        img.save(output_fname, opts['images_format'], optimize=True,
-                 quality=opts['images_quality'], progressive=False)
+        img.save(
+            output_fname,
+            opts['images_format'],
+            optimize=True,
+            quality=opts['images_quality'],
+            progressive=False,
+        )
 
         print('saved %s' % output_fname)
 
@@ -387,8 +410,13 @@ def gen_thumbnails(opts: dict, img_blob: Image, fname: str) -> str:
     img = img.crop((left, upper, right, lower))
     img.thumbnail(size, Image.LANCZOS)
     ImageFile.MAXBLOCK = 131072
-    img.save(output_fname, opts['images_format'], optimize=True,
-             quality=opts['thumbs_quality'], progressive=True)
+    img.save(
+        output_fname,
+        opts['images_format'],
+        optimize=True,
+        quality=opts['thumbs_quality'],
+        progressive=True,
+    )
 
     print('saved %s' % output_fname)
     return fname
@@ -410,8 +438,7 @@ def get_latlng(gps_data: dict) -> tuple:
     gps_longitude = gps_data.get('GPSLongitude')
     gps_longitude_ref = gps_data.get('GPSLongitudeRef')
 
-    if gps_latitude and gps_latitude_ref and gps_longitude \
-            and gps_longitude_ref:
+    if gps_latitude and gps_latitude_ref and gps_longitude and gps_longitude_ref:
         lat = _geo_convert_to_degress(gps_latitude)
         if gps_latitude_ref != 'N':
             lat = 0 - lat
@@ -431,7 +458,7 @@ def confirm(question: str, default=False) -> bool:
     else:
         defval = 'y/N'
     while True:
-        res = input("%s [%s] " % (question, defval)).lower()
+        res = input('%s [%s] ' % (question, defval)).lower()
         if not res:
             return default
         if res in ('y', 'yes'):

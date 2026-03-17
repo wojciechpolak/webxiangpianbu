@@ -3,6 +3,7 @@
 """
 
 import os
+
 SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
 BASE_DIR = SITE_ROOT
 
@@ -30,13 +31,11 @@ LANGUAGE_COOKIE_NAME = 'lang'
 DEFAULT_LANGUAGE = 1
 
 # Directories where Django looks for translation files.
-LOCALE_PATHS = (
-    os.path.join(SITE_ROOT, '../locale'),
-)
+LOCALE_PATHS = (os.path.join(SITE_ROOT, '../locale'),)
 
 CACHES = {
     'default': {
-#       'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
+        #       'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
         'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
         'LOCATION': '127.0.0.1:11211',
         'KEY_PREFIX': 'webxiang',
@@ -70,9 +69,7 @@ STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
     'pipeline.finders.PipelineFinder',
 )
-STATICFILES_DIRS = (
-    os.path.join(SITE_ROOT, 'static'),
-)
+STATICFILES_DIRS = (os.path.join(SITE_ROOT, 'static'),)
 
 PIPELINE = {
     'DISABLE_WRAPPER': True,
@@ -89,21 +86,15 @@ PIPELINE = {
     },
     'STYLESHEETS': {
         'base.css': {
-            'source_filenames': (
-                'css/base.css',
-            ),
+            'source_filenames': ('css/base.css',),
             'output_filename': 'css/base.css',
         },
         'light.css': {
-            'source_filenames': (
-                'css/light.css',
-            ),
+            'source_filenames': ('css/light.css',),
             'output_filename': 'css/light.css',
         },
         'photo.css': {
-            'source_filenames': (
-                'css/photo.css',
-            ),
+            'source_filenames': ('css/photo.css',),
             'output_filename': 'css/photo.css',
         },
     },
@@ -169,16 +160,12 @@ LOGGING = {
             'datefmt': '%Y-%m-%d %H:%M:%S',
         },
     },
-    'filters': {
-        'require_debug_false': {
-            '()': 'django.utils.log.RequireDebugFalse'
-        }
-    },
+    'filters': {'require_debug_false': {'()': 'django.utils.log.RequireDebugFalse'}},
     'handlers': {
         'mail_admins': {
             'level': 'ERROR',
             'filters': ['require_debug_false'],
-            'class': 'django.utils.log.AdminEmailHandler'
+            'class': 'django.utils.log.AdminEmailHandler',
         },
         'console': {
             'class': 'logging.StreamHandler',
@@ -186,8 +173,8 @@ LOGGING = {
         },
     },
     'root': {
-        "handlers": ["console"],
-        "level": "INFO",
+        'handlers': ['console'],
+        'level': 'INFO',
     },
     'loggers': {
         'django.request': {
@@ -200,7 +187,7 @@ LOGGING = {
             'handlers': ['console'],
             'propagate': False,
         },
-    }
+    },
 }
 
 #

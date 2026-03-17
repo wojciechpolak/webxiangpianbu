@@ -19,10 +19,11 @@ from django.conf import settings
 from django.urls import re_path
 from django.conf.urls.static import static
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-from .import views
+from . import views
 
-urlpatterns = static(settings.WEBXIANG_PHOTOS_URL,
-                     document_root=settings.WEBXIANG_PHOTOS_ROOT)
+urlpatterns = static(
+    settings.WEBXIANG_PHOTOS_URL, document_root=settings.WEBXIANG_PHOTOS_ROOT
+)
 
 urlpatterns += staticfiles_urlpatterns()
 
@@ -30,6 +31,5 @@ urlpatterns += [
     re_path(r'^$', views.display, name='index'),
     re_path(r'^(?P<photo>[\w-]+\.jpg)$', views.onephoto, name='onephoto'),
     re_path(r'^(?P<album>[\w-]+)/$', views.display, name='album'),
-    re_path(r'^(?P<album>[\w-]+)/(?P<photo>[\w\-\./]+)$', views.display,
-        name='photo'),
+    re_path(r'^(?P<album>[\w-]+)/(?P<photo>[\w\-\./]+)$', views.display, name='photo'),
 ]

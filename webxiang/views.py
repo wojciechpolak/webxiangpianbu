@@ -23,7 +23,7 @@ from django.http import Http404, HttpResponsePermanentRedirect
 from django.shortcuts import render
 from django.template import TemplateDoesNotExist
 
-from .import webxiang
+from . import webxiang
 from .typing import Album
 
 logger = logging.getLogger('main')
@@ -32,9 +32,10 @@ logger = logging.getLogger('main')
 def display(request, album='index', photo=None):
     if hasattr(settings, 'SITE_URL'):
         if not settings.SITE_URL.startswith('http'):
-            site_url = '%s://%s' % \
-                (request.META.get('HTTP_X_SCHEME', 'http'),
-                 settings.SITE_URL)
+            site_url = '%s://%s' % (
+                request.META.get('HTTP_X_SCHEME', 'http'),
+                settings.SITE_URL,
+            )
         else:
             site_url = settings.SITE_URL
     else:
@@ -45,16 +46,17 @@ def display(request, album='index', photo=None):
     except ValueError:
         page = 1
 
-    is_mobile = ('Mobi' in request.META.get('HTTP_USER_AGENT', '') or
-                 request.GET.get('mobile'))
+    is_mobile = 'Mobi' in request.META.get('HTTP_USER_AGENT', '') or request.GET.get(
+        'mobile'
+    )
 
-    data = webxiang.get_data(album=album, photo=photo, page=page,
-                             site_url=site_url, is_mobile=is_mobile)
+    data = webxiang.get_data(
+        album=album, photo=photo, page=page, site_url=site_url, is_mobile=is_mobile
+    )
     if not data:
         logger.error('Album not found: %s', album)
         raise Http404('Album not found: %s' % album)
-    if 'canonical_url' in data \
-            and data['canonical_url'] != request.path:
+    if 'canonical_url' in data and data['canonical_url'] != request.path:
         return HttpResponsePermanentRedirect(data['canonical_url'])
 
     tpl = data['meta'].get('template') or 'default.html'
@@ -75,8 +77,7 @@ def onephoto(request, photo):
     ctx: Album = {
         'meta': {
             'style': 'photo.css',
-            'copyright': '%s %s' % (year, getattr(settings, 'COPYRIGHT_OWNER',
-                                                  '')),
+            'copyright': '%s %s' % (year, getattr(settings, 'COPYRIGHT_OWNER', '')),
         },
         'entry': {
             'url': str(urljoin(baseurl, photo)),

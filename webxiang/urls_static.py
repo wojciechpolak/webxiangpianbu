@@ -22,8 +22,8 @@ urlpatterns = [
     re_path(r'^$', views.display, name='index'),
     re_path(r'^(?P<photo>[\w-]+\.jpg)$', views.onephoto, name='onephoto'),
     re_path(r'^(?P<album>[\w-]+)/$', views.display, name='album'),
-    re_path(r'^(?P<album>[\w-]+)/(?P<photo>[\w\-\./]+)\.html$', views.display,
-        name='photo'),
-    re_path(r'^(?P<photo>[\w\-\./]+)\.html$', views.display,
-            name='photo_relative'),
+    re_path(
+        r'^(?P<album>[\w-]+)/(?P<photo>[\w\-\./]+)\.html$', views.display, name='photo'
+    ),
+    re_path(r'^(?P<photo>[\w\-\./]+)\.html$', views.display, name='photo_relative'),
 ]

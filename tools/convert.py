@@ -26,6 +26,7 @@ import json
 
 try:
     import yaml
+
     try:
         from yaml import CLoader as YamlLoader, CDumper as YamlDumper
     except ImportError:
@@ -42,9 +43,13 @@ def main():
     }
 
     try:
-        gopts, args = getopt.getopt(sys.argv[1:], 'y',
-                                    ['overwrite=',
-                                     ])
+        gopts, args = getopt.getopt(
+            sys.argv[1:],
+            'y',
+            [
+                'overwrite=',
+            ],
+        )
         for o, _arg in gopts:
             if o in ('-y', '--overwrite'):
                 opts['overwrite'] = True
@@ -57,8 +62,8 @@ def main():
             opts['output_dir'] = os.path.dirname(args[1])
             opts['output_name'] = os.path.basename(args[1])
     except getopt.GetoptError:
-        print("Usage: %s [OPTION...] INPUT OUTPUT" % sys.argv[0])
-        print("%s -- album converter" % sys.argv[0])
+        print('Usage: %s [OPTION...] INPUT OUTPUT' % sys.argv[0])
+        print('%s -- album converter' % sys.argv[0])
         print("""
  Options               Default values
  -y, --overwrite       [False]
@@ -95,30 +100,36 @@ def read_albumfile(name: str) -> dict | None:
 
 
 def to_yaml(opts: dict, name: str, data) -> None:
-    filename = os.path.join(opts['output_dir'] or os.path.dirname(name),
-                            opts['output_name'] or os.path.basename(
-                            name.replace('.json', '.yaml')))
+    filename = os.path.join(
+        opts['output_dir'] or os.path.dirname(name),
+        opts['output_name'] or os.path.basename(name.replace('.json', '.yaml')),
+    )
     overwrite = True
     if os.path.exists(filename):
-        overwrite = opts['overwrite'] or \
-            confirm('Overwrite album file %s?' % filename)
+        overwrite = opts['overwrite'] or confirm('Overwrite album file %s?' % filename)
     if overwrite:
         with open(filename, 'w', encoding='utf-8') as album_file_yaml:
-            yaml.dump(data, album_file_yaml, encoding='utf-8',
-                      allow_unicode=True,
-                      default_flow_style=False, indent=4, width=70,
-                      Dumper=YamlDumper)
+            yaml.dump(
+                data,
+                album_file_yaml,
+                encoding='utf-8',
+                allow_unicode=True,
+                default_flow_style=False,
+                indent=4,
+                width=70,
+                Dumper=YamlDumper,
+            )
             print('saved %s' % album_file_yaml.name)
 
 
 def to_json(opts: dict, name: str, data) -> None:
-    filename = os.path.join(opts['output_dir'] or os.path.dirname(name),
-                            opts['output_name'] or os.path.basename(
-                            name.replace('.yaml', '.json')))
+    filename = os.path.join(
+        opts['output_dir'] or os.path.dirname(name),
+        opts['output_name'] or os.path.basename(name.replace('.yaml', '.json')),
+    )
     overwrite = True
     if os.path.exists(filename):
-        overwrite = opts['overwrite'] or \
-            confirm('Overwrite album file %s?' % filename)
+        overwrite = opts['overwrite'] or confirm('Overwrite album file %s?' % filename)
     if overwrite:
         with open(filename, 'w', encoding='utf-8') as album_file_json:
             json.dump(data, album_file_json, indent=4)
@@ -132,7 +143,7 @@ def confirm(question: str, default=False) -> bool:
     else:
         defval = 'y/N'
     while True:
-        res = input("%s [%s] " % (question, defval)).lower()
+        res = input('%s [%s] ' % (question, defval)).lower()
         if not res:
             return default
         if res in ('y', 'yes'):

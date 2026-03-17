@@ -29,22 +29,41 @@ def embed(entry: Entry) -> str:
     s = ''
     if entry['video']:
         if entry['type'] == 'youtube':
-            s = '<div class="video"><iframe width="853" height="480" src="//www.youtube.com/embed/%s?rel=0" frameborder="0" allowfullscreen></iframe></div>' % entry[
-                'vid']
+            s = (
+                '<div class="video"><iframe width="853" height="480" src="//www.youtube.com/embed/%s?rel=0" frameborder="0" allowfullscreen></iframe></div>'
+                % entry['vid']
+            )
         elif entry['type'] == 'vimeo':
-            s = '<div class="video vimeo"><iframe width="854" height="480" src="//player.vimeo.com/video/%s" frameborder="0" allowfullscreen></iframe></div>' % entry[
-                'vid']
+            s = (
+                '<div class="video vimeo"><iframe width="854" height="480" src="//player.vimeo.com/video/%s" frameborder="0" allowfullscreen></iframe></div>'
+                % entry['vid']
+            )
         elif entry['type'] == 'html5':
-            poster = ' poster="' + entry['poster'] + '"' if entry.get('poster', False) else ''
+            poster = (
+                ' poster="' + entry['poster'] + '"'
+                if entry.get('poster', False)
+                else ''
+            )
             autoplay = ' autoplay' if entry.get('video_autoplay', False) else ''
             preload = ' preload="auto"' if entry.get('video_preload', False) else ''
             sources = map(gen_video_source, entry['vid'])
-            s = '<div class="video html5"><video controls' + \
-                poster + autoplay + preload + '>' + ''.join(sources) + '</video></div>'
+            s = (
+                '<div class="video html5"><video controls'
+                + poster
+                + autoplay
+                + preload
+                + '>'
+                + ''.join(sources)
+                + '</video></div>'
+            )
             if entry.get('video_download', False):
-                s += ('<div class="download"><a href="' +
-                      entry.get('video_download') + '" title="' +
-                      _('Download') + '" download>⬇️</a></div>')
+                s += (
+                    '<div class="download"><a href="'
+                    + entry.get('video_download')
+                    + '" title="'
+                    + _('Download')
+                    + '" download>⬇️</a></div>'
+                )
     return mark_safe(s)
 
 

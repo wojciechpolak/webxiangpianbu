@@ -35,6 +35,7 @@ from .typing import Album, Entry, VideoSrc
 
 try:
     import yaml
+
     try:
         from yaml import CLoader as YamlLoader
     except ImportError:
@@ -45,8 +46,15 @@ except ImportError:
 logger = logging.getLogger('main')
 
 
-def get_data(album: str, photo=None, page=1, site_url=None,
-             is_mobile=False, staticgen=False, relative_links=False) -> Album | None:
+def get_data(
+    album: str,
+    photo=None,
+    page=1,
+    site_url=None,
+    is_mobile=False,
+    staticgen=False,
+    relative_links=False,
+) -> Album | None:
     data: Album = {
         'STATIC_URL': getattr(settings, 'STATIC_URL', ''),
         'URL_PHOTOS': getattr(settings, 'WEBXIANG_PHOTOS_URL', 'data/'),
@@ -124,25 +132,30 @@ def get_data(album: str, photo=None, page=1, site_url=None,
 
         if reverse_order:
             idx = lentries - photo_idx
-            data['meta']['title'] = '#%s - %s' % \
-                (photo_idx, data['meta']['title'] or album)
+            data['meta']['title'] = '#%s - %s' % (
+                photo_idx,
+                data['meta']['title'] or album,
+            )
             prev_idx = photo_idx + 1 if photo_idx < lentries else None
             next_idx = photo_idx - 1 if photo_idx > 1 else None
         else:
             idx = photo_idx - 1
-            data['meta']['title'] = '#%s - %s' % \
-                (photo_idx, data['meta']['title'] or album)
+            data['meta']['title'] = '#%s - %s' % (
+                photo_idx,
+                data['meta']['title'] or album,
+            )
             prev_idx = photo_idx - 1 if photo_idx > 1 else None
             next_idx = photo_idx + 1 if photo_idx < lentries else None
 
         entry = data['entry'] = data['entries'][idx]
 
         # determine canonical photo url
-        canon_link = '%s/%s' % (photo_idx, entry['slug']) \
-            if 'slug' in entry else photo_idx
-        data['canonical_url'] = reverse('photo', kwargs={
-            'album': album,
-            'photo': canon_link})
+        canon_link = (
+            '%s/%s' % (photo_idx, entry['slug']) if 'slug' in entry else photo_idx
+        )
+        data['canonical_url'] = reverse(
+            'photo', kwargs={'album': album, 'photo': canon_link}
+        )
 
         if prev_idx is not None:
             if reverse_order:
@@ -151,12 +164,13 @@ def get_data(album: str, photo=None, page=1, site_url=None,
                 slug = data['entries'][prev_idx - 1].get('slug')
             prev_photo = '%s/%s' % (prev_idx, slug) if slug else prev_idx
             if relative_links:
-                data['prev_entry'] = reverse('photo_relative', kwargs={
-                    'photo': prev_photo}).replace('/', '')
+                data['prev_entry'] = reverse(
+                    'photo_relative', kwargs={'photo': prev_photo}
+                ).replace('/', '')
             else:
-                data['prev_entry'] = reverse('photo', kwargs={
-                    'album': album,
-                    'photo': prev_photo})
+                data['prev_entry'] = reverse(
+                    'photo', kwargs={'album': album, 'photo': prev_photo}
+                )
         else:
             data['prev_entry'] = None
 
@@ -167,12 +181,13 @@ def get_data(album: str, photo=None, page=1, site_url=None,
                 slug = data['entries'][next_idx - 1].get('slug')
             next_photo = '%s/%s' % (next_idx, slug) if slug else next_idx
             if relative_links:
-                data['next_entry'] = reverse('photo_relative', kwargs={
-                    'photo': next_photo}).replace('/', '')
+                data['next_entry'] = reverse(
+                    'photo_relative', kwargs={'photo': next_photo}
+                ).replace('/', '')
             else:
-                data['next_entry'] = reverse('photo', kwargs={
-                    'album': album,
-                    'photo': next_photo})
+                data['next_entry'] = reverse(
+                    'photo', kwargs={'album': album, 'photo': next_photo}
+                )
         else:
             data['next_entry'] = None
 
@@ -180,13 +195,11 @@ def get_data(album: str, photo=None, page=1, site_url=None,
         if isinstance(img, str):
             f = entry['image']
             path = meta_path
-            size = entry.get('size') or data[
-                'meta'].get('default_image_size')
+            size = entry.get('size') or data['meta'].get('default_image_size')
         elif img:
             f = entry['image']['file']
             path = entry['image'].get('path', meta_path)
-            size = entry['image'].get('size') or data[
-                'meta'].get('default_image_size')
+            size = entry['image'].get('size') or data['meta'].get('default_image_size')
         else:  # video
             _parse_video_entry(entry)
             path = meta_path
@@ -200,8 +213,9 @@ def get_data(album: str, photo=None, page=1, site_url=None,
         entry['size'] = size
 
         if reverse_order:
-            page = int(math.floor((lentries - photo_idx) /
-                                  float(data['meta']['ppp'])) + 1)
+            page = int(
+                math.floor((lentries - photo_idx) / float(data['meta']['ppp'])) + 1
+            )
         else:
             page = int(math.ceil(photo_idx / float(data['meta']['ppp'])))
 
@@ -212,12 +226,13 @@ def get_data(album: str, photo=None, page=1, site_url=None,
         if page > 1:
             entry['link'] += page_url({}, album, '', page)
 
-        data['meta']['description'] = entry.get('description',
-                                                data['meta']['title'])
-        data['meta']['copyright'] = entry.get('copyright') or \
-            data['meta'].get('copyright')
-        data['meta']['copyright_link'] = entry.get('copyright_link') or \
-            data['meta'].get('copyright_link')
+        data['meta']['description'] = entry.get('description', data['meta']['title'])
+        data['meta']['copyright'] = entry.get('copyright') or data['meta'].get(
+            'copyright'
+        )
+        data['meta']['copyright_link'] = entry.get('copyright_link') or data[
+            'meta'
+        ].get('copyright_link')
 
         points = {}
         if 'geo' in entry:
@@ -227,8 +242,9 @@ def get_data(album: str, photo=None, page=1, site_url=None,
             if 'exif' in entry:
                 del entry['exif']
             points[p].append(entry)
-        points = sorted([(k, v) for k, v in list(points.items())],
-                        key=lambda x: x[1][0]['index'])
+        points = sorted(
+            [(k, v) for k, v in list(points.items())], key=lambda x: x[1][0]['index']
+        )
         wxpb_settings = getattr(settings, 'WXPB_SETTINGS', None) or {}
         wxpb_settings.update(data.get('settings') or {})
         wxpb_settings['geo_points'] = points
@@ -248,16 +264,14 @@ def get_data(album: str, photo=None, page=1, site_url=None,
             if prev_story.startswith('/'):
                 data['prev_story'] = prev_story
             else:
-                data['prev_story'] = reverse('album',
-                                             kwargs={'album': prev_story})
+                data['prev_story'] = reverse('album', kwargs={'album': prev_story})
 
         next_story = data['meta'].get('next_story')
         if next_story:
             if next_story.startswith('/'):
                 data['next_story'] = next_story
             else:
-                data['next_story'] = reverse('album',
-                                             kwargs={'album': next_story})
+                data['next_story'] = reverse('album', kwargs={'album': next_story})
 
         paginator = Paginator(data['entries'], data['meta']['ppp'])
         try:
@@ -281,7 +295,6 @@ def get_data(album: str, photo=None, page=1, site_url=None,
         entries_paginated: Paginator = cast(Paginator, data['entries'])
 
         for i, entry in enumerate(entries_paginated.object_list):
-
             img = entry.get('image')
             path = data['meta'].get('path', meta_path)
             path = urljoin(baseurl, path)
@@ -306,11 +319,8 @@ def get_data(album: str, photo=None, page=1, site_url=None,
                     entry['size'] = data['meta'].get(size_key)
                 else:
                     f = img['file']
-                    path = img.get('path',
-                                   data['meta'].get('path_thumb', meta_path))
-                    entry['size'] = img.get(
-                        'size',
-                        data['meta'].get(size_key))
+                    path = img.get('path', data['meta'].get('path_thumb', meta_path))
+                    entry['size'] = img.get('size', data['meta'].get(size_key))
 
                 if staticgen:
                     path = baseurl
@@ -321,19 +331,18 @@ def get_data(album: str, photo=None, page=1, site_url=None,
                 if 'link' in entry:
                     pass
                 elif 'album' in entry:
-                    entry['link'] = reverse('album', kwargs={
-                        'album': entry['album']})
+                    entry['link'] = reverse('album', kwargs={'album': entry['album']})
                 else:
                     slug = entry.get('slug')
-                    link = '%s/%s' % (entry['index'], slug) \
-                        if slug else entry['index']
+                    link = '%s/%s' % (entry['index'], slug) if slug else entry['index']
                     if relative_links:
-                        entry['link'] = reverse('photo_relative',
-                                                kwargs={'photo': link}).replace('/', '')
+                        entry['link'] = reverse(
+                            'photo_relative', kwargs={'photo': link}
+                        ).replace('/', '')
                     else:
-                        entry['link'] = reverse('photo', kwargs={
-                            'album': album,
-                            'photo': link})
+                        entry['link'] = reverse(
+                            'photo', kwargs={'album': album, 'photo': link}
+                        )
 
             else:  # non-image entries
                 path = urljoin(baseurl, meta_path)
@@ -344,8 +353,7 @@ def get_data(album: str, photo=None, page=1, site_url=None,
         if columns:
             data['groups'] = (
                 (e for e in t if e is not None)
-                for t in zip_longest(
-                        *(iter(entries_paginated.object_list),) * columns)
+                for t in zip_longest(*(iter(entries_paginated.object_list),) * columns)
             )
 
         # set up geo points
@@ -359,8 +367,10 @@ def get_data(album: str, photo=None, page=1, site_url=None,
                     if 'exif' in entry:
                         del entry['exif']
                     points[p].append(entry)
-            points = sorted([(k, v) for k, v in list(points.items())],
-                            key=lambda x: x[1][0]['index'])
+            points = sorted(
+                [(k, v) for k, v in list(points.items())],
+                key=lambda x: x[1][0]['index'],
+            )
             wxpb_settings = getattr(settings, 'WXPB_SETTINGS', None) or {}
             wxpb_settings.update(data.get('settings') or {})
             wxpb_settings['geo_points'] = points
@@ -391,13 +401,15 @@ def _parse_video_entry(entry: Entry) -> None:
     video = entry.get('video')
     if video:
         if 'youtube.com/' in video:
-            for v in re.findall(r'https?://(www\.)?youtube\.com/'
-                                r'watch\?v=([\-\w]+)(\S*)', video):
+            for v in re.findall(
+                r'https?://(www\.)?youtube\.com/'
+                r'watch\?v=([\-\w]+)(\S*)',
+                video,
+            ):
                 entry['type'] = 'youtube'
                 entry['vid'] = v[1]
         elif 'vimeo.com/' in video:
-            for v in re.findall(
-                    r'https?://(www\.)?vimeo\.com/(\d+)', video):
+            for v in re.findall(r'https?://(www\.)?vimeo\.com/(\d+)', video):
                 entry['type'] = 'vimeo'
                 entry['vid'] = v[1]
         else:
