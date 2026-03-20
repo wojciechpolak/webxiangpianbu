@@ -15,15 +15,15 @@
 #  with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from typing import TypedDict, Any
+from typing import Any, TypedDict
 
-from django.core.paginator import Paginator
+from django.core.paginator import Page
 
 
 class MetaData(TypedDict, total=False):
     columns: int
-    copyright: str
-    copyright_link: str
+    copyright: str | None
+    copyright_link: str | None
     cover: str | None
     custom_menu: bool
     default_image_size: tuple[int, int]
@@ -66,14 +66,14 @@ class Entry(TypedDict, total=False):
     index: int
     link: str
     poster: str | bool
-    size: tuple[int, int]
+    size: tuple[int, int] | str | None
     slug: str
     thumb: str
     type: str
     url: str
     url_full: str
-    vid: list[VideoSrc]
-    video: str | list[str | VideoSrc] | None
+    vid: str | list[VideoSrc] | None
+    video: bool | str | list[str | VideoSrc] | None
     video_download: str
     video_autoplay: bool
     video_preload: bool
@@ -82,7 +82,7 @@ class Entry(TypedDict, total=False):
 class Album(TypedDict, total=False):
     album: str
     canonical_url: str
-    entries: list[Entry] | Paginator
+    entries: list[Entry] | Page[Entry]
     entry: Entry
     groups: Any
     meta: MetaData

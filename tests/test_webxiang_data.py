@@ -19,12 +19,15 @@ from __future__ import annotations
 
 import copy
 import json
+from typing import Any, cast
 
 import pytest
 from django.core.cache.backends.locmem import LocMemCache
+from django.core.paginator import Page
 from django.test import override_settings
 
 from webxiang import webxiang
+from webxiang.typing import Entry
 
 
 def test_open_albumfile_reads_sample_json(sample_repo_settings):
@@ -111,32 +114,33 @@ def test_open_albumfile_missing_returns_none(tmp_path):
     ],
 )
 def test_parse_video_entry_handles_common_video_types(
-    video, expected_type, expected_vid
+    video: str, expected_type: str, expected_vid: object
 ):
-    entry = {'video': video}
+    entry: dict[str, object] = {'video': video}
 
-    webxiang._parse_video_entry(entry)
+    webxiang._parse_video_entry(cast(Entry, entry))
 
     assert entry['type'] == expected_type
     assert entry['vid'] == expected_vid
 
 
 def test_parse_video_entry_preserves_multiple_html5_sources():
-    entry = {
+    entry: dict[str, object] = {
         'video': [
             'https://example.com/movie.mp4',
             {'src': 'https://example.com/movie.webm', 'media': '(max-width: 600px)'},
         ]
     }
 
-    webxiang._parse_video_entry(entry)
+    webxiang._parse_video_entry(cast(Entry, entry))
 
     assert entry['type'] == 'html5'
-    assert entry['vid'][0] == {
+    vid = cast(list[dict[str, Any]], entry['vid'])
+    assert vid[0] == {
         'src': 'https://example.com/movie.mp4',
         'type': 'video/mp4',
     }
-    assert entry['vid'][1] == {
+    assert vid[1] == {
         'src': 'https://example.com/movie.webm',
         'media': '(max-width: 600px)',
     }
@@ -356,8 +360,9 @@ def test_get_data_limits_page_range_for_large_albums(monkeypatch):
     data = webxiang.get_data('paged-album', page=10)
 
     assert data is not None
-    assert data['entries'].number == 10
-    assert list(data['entries'].paginator.page_range_limited) == list(range(4, 16))
+    entries = cast(Page[Entry], data['entries'])
+    assert entries.number == 10
+    assert list(cast(Any, entries.paginator).page_range_limited) == list(range(4, 16))
 
 
 def test_get_data_geomap_collects_geo_points(sample_repo_settings, monkeypatch):

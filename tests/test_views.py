@@ -17,11 +17,14 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from django.http import Http404, HttpResponse, HttpResponsePermanentRedirect
 from django.template import TemplateDoesNotExist
 from django.test import RequestFactory, override_settings
 
 from webxiang import views
+from webxiang.typing import Album
 
 
 def test_display_redirects_to_canonical_url(sample_repo_settings, monkeypatch):
@@ -136,8 +139,9 @@ def test_onephoto_uses_year_from_photo_name(sample_repo_settings, monkeypatch):
 
     assert response.content == b'ok'
     assert seen['template'] == 'photo.html'
-    assert seen['context']['meta']['copyright'] == '2024 Your Name'
-    assert seen['context']['entry']['url'].endswith('/2024-summer.jpg')
+    context = cast(Album, seen['context'])
+    assert context['meta']['copyright'] == '2024 Your Name'
+    assert context['entry']['url'].endswith('/2024-summer.jpg')
 
 
 def test_onephoto_joins_photos_base_url_without_trimming(
@@ -155,10 +159,8 @@ def test_onephoto_joins_photos_base_url_without_trimming(
     with override_settings(WEBXIANG_PHOTOS_URL='https://cdn.example.org/data/'):
         views.onephoto(request, '2024/summer.jpg')
 
-    assert (
-        seen['context']['entry']['url']
-        == 'https://cdn.example.org/data/2024/summer.jpg'
-    )
+    context = cast(Album, seen['context'])
+    assert context['entry']['url'] == 'https://cdn.example.org/data/2024/summer.jpg'
 
 
 def test_onephoto_omits_year_when_photo_name_does_not_start_with_digits(
@@ -175,4 +177,5 @@ def test_onephoto_omits_year_when_photo_name_does_not_start_with_digits(
 
     views.onephoto(request, 'cover.jpg')
 
-    assert seen['context']['meta']['copyright'] == ' Your Name'
+    context = cast(Album, seen['context'])
+    assert context['meta']['copyright'] == ' Your Name'

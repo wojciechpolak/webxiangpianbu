@@ -163,8 +163,13 @@ def test_convert_read_albumfile_handles_json_and_yaml(tmp_path):
     )
     yaml_path.write_text('meta:\n  title: yaml\nentries: []\n', encoding='utf-8')
 
-    assert convert.read_albumfile(str(json_path))['meta']['title'] == 'json'
-    assert convert.read_albumfile(str(yaml_path))['meta']['title'] == 'yaml'
+    json_data = convert.read_albumfile(str(json_path))
+    yaml_data = convert.read_albumfile(str(yaml_path))
+
+    assert json_data is not None
+    assert yaml_data is not None
+    assert json_data['meta']['title'] == 'json'
+    assert yaml_data['meta']['title'] == 'yaml'
     assert convert.read_albumfile(str(tmp_path / 'missing.json')) is None
 
 

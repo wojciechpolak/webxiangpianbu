@@ -23,6 +23,7 @@ dev = [
     "pytest==9.0.2",
     "pytest-django==4.11.1",
     "ruff>=0.14.8",
+    "ty>=0.0.24",
     "types-pyyaml==6.0.12.20250915",
 ]
 

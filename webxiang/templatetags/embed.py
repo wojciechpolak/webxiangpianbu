@@ -15,6 +15,8 @@
 #  with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from typing import cast
+
 from django import template
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
@@ -31,22 +33,21 @@ def embed(entry: Entry) -> str:
         if entry['type'] == 'youtube':
             s = (
                 '<div class="video"><iframe width="853" height="480" src="//www.youtube.com/embed/%s?rel=0" frameborder="0" allowfullscreen></iframe></div>'
-                % entry['vid']
+                % cast(str, entry['vid'])
             )
         elif entry['type'] == 'vimeo':
             s = (
                 '<div class="video vimeo"><iframe width="854" height="480" src="//player.vimeo.com/video/%s" frameborder="0" allowfullscreen></iframe></div>'
-                % entry['vid']
+                % cast(str, entry['vid'])
             )
         elif entry['type'] == 'html5':
+            poster_value = entry.get('poster')
             poster = (
-                ' poster="' + entry['poster'] + '"'
-                if entry.get('poster', False)
-                else ''
+                f' poster="{poster_value}"' if isinstance(poster_value, str) else ''
             )
             autoplay = ' autoplay' if entry.get('video_autoplay', False) else ''
             preload = ' preload="auto"' if entry.get('video_preload', False) else ''
-            sources = map(gen_video_source, entry['vid'])
+            sources = map(gen_video_source, cast(list[VideoSrc], entry['vid']))
             s = (
                 '<div class="video html5"><video controls'
                 + poster
@@ -56,10 +57,11 @@ def embed(entry: Entry) -> str:
                 + ''.join(sources)
                 + '</video></div>'
             )
-            if entry.get('video_download', False):
+            download = entry.get('video_download')
+            if isinstance(download, str):
                 s += (
                     '<div class="download"><a href="'
-                    + entry.get('video_download')
+                    + download
                     + '" title="'
                     + _('Download')
                     + '" download>⬇️</a></div>'

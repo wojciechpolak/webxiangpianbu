@@ -32,6 +32,8 @@ pytestmark = pytest.mark.e2e
 
 
 class BrowserFlowsTest(LiveServerTestCase):
+    _tempdir: tempfile.TemporaryDirectory[str] | None = None
+
     @classmethod
     def _build_sample_site(cls) -> tuple[Path, Path]:
         tempdir = tempfile.TemporaryDirectory()
@@ -174,6 +176,7 @@ class BrowserFlowsTest(LiveServerTestCase):
         cls._playwright.stop()
         super().tearDownClass()
         cls._override.disable()
+        assert cls._tempdir is not None
         cls._tempdir.cleanup()
 
     def setUp(self):

@@ -18,7 +18,7 @@
 import re
 import os
 import json
-from typing import cast
+from typing import Any, MutableMapping, cast
 
 import math
 import logging
@@ -29,17 +29,19 @@ from itertools import zip_longest
 from django.conf import settings
 from django.urls import reverse
 from django.core.cache import cache
-from django.core.paginator import Paginator, InvalidPage, EmptyPage
+from django.core.paginator import Page, Paginator, InvalidPage, EmptyPage
 from .templatetags.page import page as page_url
 from .typing import Album, Entry, VideoSrc
 
-try:
-    import yaml
+yaml: Any = None
+YamlLoader: Any = None
 
-    try:
-        from yaml import CLoader as YamlLoader
-    except ImportError:
-        from yaml import Loader as YamlLoader
+try:
+    import yaml as _yaml
+
+    yaml = _yaml
+
+    YamlLoader = cast(Any, getattr(_yaml, 'CLoader', _yaml.Loader))
 except ImportError:
     yaml = None
 
@@ -90,16 +92,20 @@ def get_data(
     meta_path = data['meta'].get('path', '')
 
     # set a constant entry indexes
-    for i, entry in enumerate(data['entries'], start=1):
+    entries = cast(list[Entry], data['entries'])
+
+    for i, entry in enumerate(entries, start=1):
         entry['index'] = i
 
     reverse_order = bool(data['meta']['reverse_order'])
     if reverse_order:
-        data['entries'] = list(reversed(data['entries']))
+        entries = list(reversed(entries))
+        data['entries'] = entries
 
     if photo and photo != 'geomap':
         mode = 'photo'
-        lentries = len(data['entries'])
+        entries = cast(list[Entry], data['entries'])
+        lentries = len(entries)
 
         photo_idx = photo.split('/')[0]
         if photo_idx.isdigit():
@@ -110,17 +116,25 @@ def get_data(
             photo_idx = None
             if not photo.lower().endswith('.jpg'):
                 photo += '.jpg'
-            for idx, ent in enumerate(data['entries']):
+            for idx, ent in enumerate(entries):
                 if ent.get('image', None):
-                    if isinstance(ent['image'], str):
-                        f = ent['image']
+                    image = ent['image']
+                    if isinstance(image, str):
+                        f = image
                     else:
-                        f = ent['image']['file']
+                        f = image['file']
                 elif ent.get('video', None):
-                    if isinstance(ent['video'], str):
-                        f = ent['video']
+                    video = ent['video']
+                    if isinstance(video, str):
+                        f = video
+                    elif isinstance(video, list):
+                        first_video = video[0]
+                        if isinstance(first_video, str):
+                            f = first_video
+                        else:
+                            f = first_video['src']
                     else:
-                        f = ent['video'][0]['src']
+                        continue
                 if photo == f:
                     if reverse_order:
                         photo_idx = lentries - idx
@@ -147,7 +161,7 @@ def get_data(
             prev_idx = photo_idx - 1 if photo_idx > 1 else None
             next_idx = photo_idx + 1 if photo_idx < lentries else None
 
-        entry = data['entry'] = data['entries'][idx]
+        entry = data['entry'] = entries[idx]
 
         # determine canonical photo url
         canon_link = (
@@ -159,9 +173,9 @@ def get_data(
 
         if prev_idx is not None:
             if reverse_order:
-                slug = data['entries'][idx - 1].get('slug')
+                slug = entries[idx - 1].get('slug')
             else:
-                slug = data['entries'][prev_idx - 1].get('slug')
+                slug = entries[prev_idx - 1].get('slug')
             prev_photo = '%s/%s' % (prev_idx, slug) if slug else prev_idx
             if relative_links:
                 data['prev_entry'] = reverse(
@@ -176,9 +190,9 @@ def get_data(
 
         if next_idx is not None:
             if reverse_order:
-                slug = data['entries'][idx + 1].get('slug')
+                slug = entries[idx + 1].get('slug')
             else:
-                slug = data['entries'][next_idx - 1].get('slug')
+                slug = entries[next_idx - 1].get('slug')
             next_photo = '%s/%s' % (next_idx, slug) if slug else next_idx
             if relative_links:
                 data['next_entry'] = reverse(
@@ -193,13 +207,13 @@ def get_data(
 
         img = entry.get('image')
         if isinstance(img, str):
-            f = entry['image']
+            f = img
             path = meta_path
             size = entry.get('size') or data['meta'].get('default_image_size')
         elif img:
-            f = entry['image']['file']
-            path = entry['image'].get('path', meta_path)
-            size = entry['image'].get('size') or data['meta'].get('default_image_size')
+            f = img['file']
+            path = img.get('path', meta_path)
+            size = img.get('size') or data['meta'].get('default_image_size')
         else:  # video
             _parse_video_entry(entry)
             path = meta_path
@@ -234,20 +248,21 @@ def get_data(
             'meta'
         ].get('copyright_link')
 
-        points = {}
+        geo_points_map: dict[tuple[float, float], list[Entry]] = {}
         if 'geo' in entry:
             p = entry['geo']
-            if p not in points:
-                points[p] = []
+            if p not in geo_points_map:
+                geo_points_map[p] = []
             if 'exif' in entry:
                 del entry['exif']
-            points[p].append(entry)
-        points = sorted(
-            [(k, v) for k, v in list(points.items())], key=lambda x: x[1][0]['index']
+            geo_points_map[p].append(entry)
+        geo_points = sorted(
+            [(k, v) for k, v in list(geo_points_map.items())],
+            key=lambda x: x[1][0]['index'],
         )
         wxpb_settings = getattr(settings, 'WXPB_SETTINGS', None) or {}
         wxpb_settings.update(data.get('settings') or {})
-        wxpb_settings['geo_points'] = points
+        wxpb_settings['geo_points'] = geo_points
         data['wxpb_settings'] = json.dumps(wxpb_settings)
 
     else:
@@ -273,12 +288,14 @@ def get_data(
             else:
                 data['next_story'] = reverse('album', kwargs={'album': next_story})
 
-        paginator = Paginator(data['entries'], data['meta']['ppp'])
+        entries = cast(list[Entry], data['entries'])
+        paginator = Paginator(entries, data['meta']['ppp'])
         try:
-            data['entries'] = paginator.page(page)
+            entries_paginated: Page[Entry] = paginator.page(page)
         except (EmptyPage, InvalidPage):
-            data['entries'] = paginator.page(paginator.num_pages)
+            entries_paginated = paginator.page(paginator.num_pages)
             page = paginator.num_pages
+        data['entries'] = entries_paginated
 
         # use a limited page range
         pg_range = 6
@@ -288,11 +305,7 @@ def get_data(
         cmin, cmax = cindex - pg_range, cindex + pg_range
         if cmin < 0:
             cmin = 0
-        paginator.page_range_limited = page_range[cmin:cmax]
-
-        i: int
-        entry: Entry
-        entries_paginated: Paginator = cast(Paginator, data['entries'])
+        cast(Any, paginator).page_range_limited = page_range[cmin:cmax]
 
         for i, entry in enumerate(entries_paginated.object_list):
             img = entry.get('image')
@@ -358,22 +371,22 @@ def get_data(
 
         # set up geo points
         if mode == 'geomap':
-            points = {}
+            geomap_points_map: dict[tuple[float, float], list[Entry]] = {}
             for entry in entries_paginated.object_list:
                 if 'geo' in entry:
                     p = entry['geo']
-                    if p not in points:
-                        points[p] = []
+                    if p not in geomap_points_map:
+                        geomap_points_map[p] = []
                     if 'exif' in entry:
                         del entry['exif']
-                    points[p].append(entry)
-            points = sorted(
-                [(k, v) for k, v in list(points.items())],
+                    geomap_points_map[p].append(entry)
+            geo_points = sorted(
+                [(k, v) for k, v in list(geomap_points_map.items())],
                 key=lambda x: x[1][0]['index'],
             )
             wxpb_settings = getattr(settings, 'WXPB_SETTINGS', None) or {}
             wxpb_settings.update(data.get('settings') or {})
-            wxpb_settings['geo_points'] = points
+            wxpb_settings['geo_points'] = geo_points
             data['wxpb_settings'] = json.dumps(wxpb_settings)
             del data['entries']
 
@@ -400,7 +413,7 @@ def get_data(
 def _parse_video_entry(entry: Entry) -> None:
     video = entry.get('video')
     if video:
-        if 'youtube.com/' in video:
+        if isinstance(video, str) and 'youtube.com/' in video:
             for v in re.findall(
                 r'https?://(www\.)?youtube\.com/'
                 r'watch\?v=([\-\w]+)(\S*)',
@@ -408,23 +421,23 @@ def _parse_video_entry(entry: Entry) -> None:
             ):
                 entry['type'] = 'youtube'
                 entry['vid'] = v[1]
-        elif 'vimeo.com/' in video:
+        elif isinstance(video, str) and 'vimeo.com/' in video:
             for v in re.findall(r'https?://(www\.)?vimeo\.com/(\d+)', video):
                 entry['type'] = 'vimeo'
                 entry['vid'] = v[1]
-        else:
+        elif isinstance(video, str):
             entry['type'] = 'html5'
-            if isinstance(video, str):
-                entry['vid'] = [{'src': video, 'type': _get_mtype(video)}]
-            else:
-                vid: list[VideoSrc] = []
-                obj: VideoSrc | str
-                for obj in video:
-                    if isinstance(obj, str):
-                        vid.append({'src': obj, 'type': _get_mtype(obj)})
-                    else:
-                        vid.append(obj)
-                entry['vid'] = vid
+            entry['vid'] = [{'src': video, 'type': _get_mtype(video)}]
+        elif isinstance(video, list):
+            entry['type'] = 'html5'
+            vid: list[VideoSrc] = []
+            obj: VideoSrc | str
+            for obj in video:
+                if isinstance(obj, str):
+                    vid.append({'src': obj, 'type': _get_mtype(obj)})
+                else:
+                    vid.append(obj)
+            entry['vid'] = vid
 
 
 def _get_mtype(video: str) -> str:
@@ -462,19 +475,18 @@ def _open_albumfile(album_name: str) -> Album | None:
 
     if cache_data and 'data' in cache_data and mt2 >= mt1:
         logger.debug('cache: get %s (%s)', cache_key, mt1)
-        data = cache_data['data']
-        return data
+        return cast(Album, cache_data['data'])
 
     if os.path.isfile(albumfile_yaml) and yaml:
         try:
             with open(albumfile_yaml, 'r', encoding='utf-8') as fp:
-                data = yaml.load(fp.read(), Loader=YamlLoader)
+                data = cast(Album, yaml.load(fp.read(), Loader=YamlLoader))
         except Exception as e:
             raise e
     elif os.path.isfile(albumfile_json):
         try:
             with open(albumfile_json, 'r', encoding='utf-8') as fp:
-                data = json.loads(fp.read())
+                data = cast(Album, json.loads(fp.read()))
         except Exception as e:
             raise e
     else:

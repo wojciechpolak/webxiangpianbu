@@ -23,28 +23,21 @@ import sys
 import json
 import getopt
 from datetime import date
+from typing import Any
 
 import yaml
 
-try:
-    from collections import OrderedDict
-except ImportError:
-    OrderedDict = None
+from collections import OrderedDict as _OrderedDict
+from PIL import ExifTags
+from PIL import Image
+from PIL import ImageEnhance
+from PIL import ImageFile
 
-try:
-    from PIL import Image
-    from PIL import ImageFile
-    from PIL import ImageEnhance
-    from PIL import ExifTags
-except ImportError:
-    import Image
-    import ImageFile
-    import ImageEnhance
-    import ExifTags
+OrderedDict: Any = _OrderedDict
 
 
 def main():
-    opts = {
+    opts: dict[str, Any] = {
         'album_name': None,
         'album_dir': None,
         'album_format': 'yaml',
@@ -183,7 +176,7 @@ def main():
     if not os.path.exists(opts['outputdir']):
         os.makedirs(opts['outputdir'])
 
-    album = {
+    album: dict[str, Any] = {
         'meta': {
             'path': opts['path'],
             'title': '',
@@ -295,8 +288,8 @@ exif_tags = {
 }
 
 
-def process_image(opts: dict, album: dict, fname: str):
-    img = Image.open(os.path.join(opts['inputdir'], fname))
+def process_image(opts: dict[str, Any], album: dict[str, Any], fname: str):
+    img: Any = Image.open(os.path.join(opts['inputdir'], fname))
 
     # lower case for file suffix
     fn = fname.split('.')
@@ -314,7 +307,8 @@ def process_image(opts: dict, album: dict, fname: str):
         data['thumb'] = gen_thumbnails(opts, img, fname)
 
     try:
-        exif = img._getexif()
+        exif_getter = getattr(img, '_getexif', None)
+        exif = exif_getter() if exif_getter else None
     except Exception:
         exif = None
 
@@ -352,7 +346,8 @@ def process_image(opts: dict, album: dict, fname: str):
 
     album['entries'].append(data)
 
-    img.thumbnail(opts['images_maxsize'], Image.LANCZOS)
+    resample = getattr(Image, 'LANCZOS')
+    img.thumbnail(opts['images_maxsize'], resample)
     if list(img.size) != album['meta']['default_image_size']:
         data['image'] = {'file': fname, 'size': list(img.size)}
 
@@ -366,7 +361,7 @@ def process_image(opts: dict, album: dict, fname: str):
             sharpener = ImageEnhance.Sharpness(img)
             img = sharpener.enhance(opts['images_sharpness'])
 
-        ImageFile.MAXBLOCK = img.size[0] * img.size[1]
+        setattr(ImageFile, 'MAXBLOCK', img.size[0] * img.size[1])
         img.save(
             output_fname,
             opts['images_format'],
@@ -378,7 +373,7 @@ def process_image(opts: dict, album: dict, fname: str):
         print('saved %s' % output_fname)
 
 
-def gen_thumbnails(opts: dict, img_blob: Image, fname: str) -> str:
+def gen_thumbnails(opts: dict[str, Any], img_blob: Any, fname: str) -> str:
     size = opts['thumbs_size']
     fn = fname.split('.')
     fname = '%s-%dx%d.%s' % (''.join(fn[0:-1]), size[0], size[1], fn[-1])
@@ -408,8 +403,9 @@ def gen_thumbnails(opts: dict, img_blob: Image, fname: str) -> str:
         lower = width + upper
 
     img = img.crop((left, upper, right, lower))
-    img.thumbnail(size, Image.LANCZOS)
-    ImageFile.MAXBLOCK = 131072
+    resample = getattr(Image, 'LANCZOS')
+    img.thumbnail(size, resample)
+    setattr(ImageFile, 'MAXBLOCK', 131072)
     img.save(
         output_fname,
         opts['images_format'],
@@ -422,14 +418,14 @@ def gen_thumbnails(opts: dict, img_blob: Image, fname: str) -> str:
     return fname
 
 
-def _geo_convert_to_degress(value: tuple) -> float:
+def _geo_convert_to_degress(value: tuple[Any, Any, Any]) -> float:
     d = float(value[0])
     m = float(value[1])
     s = float(value[2])
     return d + (m / 60.0) + (s / 3600.0)
 
 
-def get_latlng(gps_data: dict) -> tuple:
+def get_latlng(gps_data: dict[str, Any]) -> tuple[float | None, float | None]:
     lat = None
     lng = None
 
@@ -452,7 +448,7 @@ def get_latlng(gps_data: dict) -> tuple:
     return None, None
 
 
-def confirm(question: str, default=False) -> bool:
+def confirm(question: str, default: bool = False) -> bool:
     if default:
         defval = 'Y/n'
     else:

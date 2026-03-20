@@ -27,6 +27,7 @@ import signal
 import codecs
 from datetime import datetime
 from urllib.parse import urljoin
+from typing import Any, cast
 
 import http.server
 import socketserver
@@ -53,18 +54,20 @@ except ImportError as exc:
     sys.exit(1)
 
 from django.urls import set_urlconf, set_script_prefix
+from django.core.paginator import Page
 from django.template import TemplateDoesNotExist
 from django.template.loader import render_to_string
 from django.utils import translation
 from django.utils.translation import gettext as _
 from webxiang import webxiang
+from webxiang.typing import Entry
 
 __generated = set()
 __items_no = 0
 
 
 def main():
-    opts = {
+    opts: dict[str, Any] = {
         'verbose': 1,
         'output_dir': None,
         'album_dir_in': getattr(settings, 'ALBUM_DIR', 'albums'),
@@ -328,9 +331,9 @@ def __gen_html_album(opts, album_name: str, output_dir='.', page=1):
     settings.STATIC_URL = opts['assets_url']
 
     try:
-        html = render_to_string(tpl, data)
+        html = cast(str, render_to_string(tpl, data))
     except TemplateDoesNotExist:
-        html = render_to_string('default.html', data)
+        html = cast(str, render_to_string('default.html', data))
 
     if opts['relative_links']:
         html = html.replace('/' + opts['assets_url'], '../' + opts['assets_url'])
@@ -351,26 +354,26 @@ def __gen_html_album(opts, album_name: str, output_dir='.', page=1):
     if not os.path.exists(os.path.dirname(output_file)):
         os.makedirs(os.path.dirname(output_file))
 
-    f = codecs.open(output_file, 'w', 'utf-8')
-    f.write(html)
-    f.close()
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(html)
     __items_no += 1
 
     # symlink '/index.html' to '/index/index.html'
     if album_name == 'index':
         os.symlink('index/index.html', os.path.join(output_dir, 'index.html'))
 
-    for i in data['entries'].paginator.page_range_limited:
+    entries = cast(Page[Entry], data['entries'])
+    for i in cast(Any, entries.paginator).page_range_limited:
         __gen_html_album(opts, album_name, output_dir=output_dir, page=i)
 
-    for entry in data['entries']:
+    for entry in entries:
         if 'album' in entry:
             __gen_html_album(opts, entry['album'], output_dir)
         else:
             __gen_html_photo(opts, album_name, '%s/' % entry['index'], output_dir)
 
 
-def __gen_html_photo(opts, album_name: str, entry_idx: int, output_dir='.'):
+def __gen_html_photo(opts, album_name: str, entry_idx: str, output_dir='.'):
     global __generated, __items_no
 
     entry_id = '%s/%s' % (album_name, entry_idx)
@@ -396,16 +399,17 @@ def __gen_html_photo(opts, album_name: str, entry_idx: int, output_dir='.'):
     settings.STATIC_URL = opts['assets_url']
 
     try:
-        html = render_to_string(tpl, data)
+        html = cast(str, render_to_string(tpl, data))
     except TemplateDoesNotExist:
-        html = render_to_string('default.html', data)
+        html = cast(str, render_to_string('default.html', data))
 
     if opts['relative_links']:
         html = html.replace('/' + opts['assets_url'], '../' + opts['assets_url'])
 
     os.makedirs(os.path.join(output_dir, album_name), exist_ok=True)
 
-    entry = data['entries'][int(photo_idx) - 1]
+    entries = cast(list[Entry], data['entries'])
+    entry = entries[int(photo_idx) - 1]
     if 'slug' in entry:
         photo_name = '%s/%s.html' % (photo_idx, entry['slug'])
     else:
@@ -422,9 +426,8 @@ def __gen_html_photo(opts, album_name: str, entry_idx: int, output_dir='.'):
         sys.stdout.write('.')
         sys.stdout.flush()
 
-    f = codecs.open(output_file, 'w', 'utf-8')
-    f.write(html)
-    f.close()
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(html)
     __items_no += 1
 
 

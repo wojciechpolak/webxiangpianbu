@@ -23,20 +23,26 @@ import sys
 import glob
 import getopt
 import json
+from typing import Any
+from typing import cast
+
+yaml: Any = None
+YamlLoader: Any = None
+YamlDumper: Any = None
 
 try:
-    import yaml
+    import yaml as _yaml
 
-    try:
-        from yaml import CLoader as YamlLoader, CDumper as YamlDumper
-    except ImportError:
-        from yaml import Loader as YamlLoader, Dumper as YamlDumper
+    yaml = _yaml
+
+    YamlLoader = cast(Any, getattr(_yaml, 'CLoader', _yaml.Loader))
+    YamlDumper = cast(Any, getattr(_yaml, 'CDumper', _yaml.Dumper))
 except ImportError:
     yaml = None
 
 
 def main():
-    opts = {
+    opts: dict[str, Any] = {
         'overwrite': False,
         'output_dir': '',
         'output_name': '',
@@ -83,23 +89,23 @@ def main():
     print('done')
 
 
-def read_albumfile(name: str) -> dict | None:
+def read_albumfile(name: str) -> dict[str, Any] | None:
     if os.path.isfile(name) and name.endswith('.yaml'):
         try:
             album_content = open(name, 'r', encoding='utf-8').read()
-            return yaml.load(album_content, Loader=YamlLoader)
+            return cast(dict[str, Any], yaml.load(album_content, Loader=YamlLoader))
         except Exception as e:
             print(e)
     elif os.path.isfile(name) and name.endswith('.json'):
         try:
             album_content = open(name, 'r', encoding='utf-8').read()
-            return json.loads(album_content)
+            return cast(dict[str, Any], json.loads(album_content))
         except Exception as e:
             print(e)
     return None
 
 
-def to_yaml(opts: dict, name: str, data) -> None:
+def to_yaml(opts: dict[str, Any], name: str, data: dict[str, Any]) -> None:
     filename = os.path.join(
         opts['output_dir'] or os.path.dirname(name),
         opts['output_name'] or os.path.basename(name.replace('.json', '.yaml')),
@@ -122,7 +128,7 @@ def to_yaml(opts: dict, name: str, data) -> None:
             print('saved %s' % album_file_yaml.name)
 
 
-def to_json(opts: dict, name: str, data) -> None:
+def to_json(opts: dict[str, Any], name: str, data: dict[str, Any]) -> None:
     filename = os.path.join(
         opts['output_dir'] or os.path.dirname(name),
         opts['output_name'] or os.path.basename(name.replace('.yaml', '.json')),
@@ -137,7 +143,7 @@ def to_json(opts: dict, name: str, data) -> None:
             print('saved %s' % album_file_json.name)
 
 
-def confirm(question: str, default=False) -> bool:
+def confirm(question: str, default: bool = False) -> bool:
     if default:
         defval = 'Y/n'
     else:
