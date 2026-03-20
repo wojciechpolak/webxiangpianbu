@@ -101,7 +101,7 @@ PIPELINE = {
 }
 
 # Make this unique, long, and don't share it with anybody.
-SECRET_KEY = ''
+SECRET_KEY = os.getenv('WEBXIANG_SECRET_KEY', '')
 
 assert SECRET_KEY != '', 'SECRET_KEY must be long and unique.'
 
