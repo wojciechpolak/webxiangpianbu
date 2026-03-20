@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 """
@@ -24,43 +24,29 @@ import json
 import getopt
 import shutil
 import signal
-import codecs
 from datetime import datetime
 from urllib.parse import urljoin
 from typing import Any, cast
 
 import http.server
 import socketserver
-
-SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
-os.environ['DJANGO_SETTINGS_MODULE'] = 'webxiang.settings'
-sys.path.insert(0, os.path.join(SITE_ROOT, '../'))
-
 import django
 
-if hasattr(django, 'setup'):
-    django.setup()
-
 from django.conf import settings
-
-try:
-    from django.shortcuts import render
-except ImportError as exc:
-    print(exc)
-    print(
-        'Copy `webxiang/settings_sample.py` to '
-        '`webxiang/settings.py` and modify it to your needs.'
-    )
-    sys.exit(1)
-
-from django.urls import set_urlconf, set_script_prefix
 from django.core.paginator import Page
 from django.template import TemplateDoesNotExist
 from django.template.loader import render_to_string
 from django.utils import translation
 from django.utils.translation import gettext as _
-from webxiang import webxiang
-from webxiang.typing import Entry
+from django.urls import set_urlconf, set_script_prefix
+
+SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
+os.environ['DJANGO_SETTINGS_MODULE'] = 'webxiang.settings'
+sys.path.insert(0, os.path.join(SITE_ROOT, '../'))
+if hasattr(django, 'setup'):
+    django.setup()
+from webxiang import webxiang  # noqa: E402
+from webxiang.typing import Entry  # noqa: E402
 
 __generated = set()
 __items_no = 0

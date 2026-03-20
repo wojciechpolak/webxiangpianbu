@@ -17,8 +17,6 @@
 
 from __future__ import annotations
 
-from django.urls import set_urlconf
-
 from webxiang.templatetags.embed import embed, gen_video_source
 from webxiang.templatetags.page import page
 

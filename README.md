@@ -75,24 +75,24 @@ Tools
 `generate.py` -- generate albums from photo files.
 
 ```shell
-tools/generate.py --album-dir=albums/ ~/photos/vacation/ ~/webxiang/static/data/vacation
-tools/generate.py --help
+uv run tools/generate.py --album-dir=albums/ ~/photos/vacation/ ~/webxiang/static/data/vacation
+uv run tools/generate.py --help
 # next, adjust the generated vacation.yaml
 ```
 
 `convert.py` -- convert albums between different file formats (YAML, JSON).
 
 ```shell
-tools/convert.py 'albums/*.yaml' tmp/
+uv run tools/convert.py 'albums/*.yaml' tmp/
 ```
 
 Static Site Generator
 ---------------------
 
 ```shell
-tools/generate.py ~/photos/vacation/ ~/tmp/vacation
-tools/staticgen.py --quick=~/tmp/vacation --copy
-tools/staticgen.py --help
+uv run tools/generate.py ~/photos/vacation/ ~/tmp/vacation
+uv run tools/staticgen.py --quick=~/tmp/vacation --copy
+uv run tools/staticgen.py --help
 ```
 
 Sample Galleries
