@@ -33,6 +33,27 @@ Next steps:
    `gettext` installed).
 3. uv run manage.py collectstatic
 
+End-to-end browser tests
+------------------------
+
+Install the Chromium browser once:
+
+```shell
+npx playwright install chromium
+```
+
+Then run the full test suite:
+
+```shell
+uv run pytest
+```
+
+If you want only the fast unit tests, exclude the browser marker:
+
+```shell
+uv run pytest -m "not e2e"
+```
+
 Web Application Deployment
 --------------------------
 
