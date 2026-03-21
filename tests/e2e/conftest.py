@@ -20,13 +20,14 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 from collections.abc import Generator
 from pathlib import Path
 from typing import Any
 
 import pytest
 from django.conf import settings as django_settings
-from django.test.utils import override_settings
+from django.core.management import call_command
 from playwright.sync_api import (
     Browser,
     BrowserContext,
@@ -34,11 +35,14 @@ from playwright.sync_api import (
     Playwright,
     sync_playwright,
 )
+from tests.e2e.vrt import VisualRegressionSession
 
 os.environ.setdefault('DJANGO_ALLOW_ASYNC_UNSAFE', 'true')
 
 ROOT = Path(__file__).resolve().parents[2]
 ARTIFACTS_DIR = ROOT / 'test-results' / 'playwright'
+VRT_ARTIFACTS_DIR = ROOT / 'test-results' / 'vrt'
+SAMPLE_MEDIA_ROOT = ROOT / 'run' / 'data'
 
 
 def _slugify_nodeid(nodeid: str) -> str:
@@ -147,7 +151,7 @@ def _build_sample_site(root: Path) -> tuple[Path, Path]:
                         ],
                         'video_preload': True,
                         'video_download': '/data/story/story.mp4',
-                        'poster': '/data/story/story.jpg',
+                        'poster': '/data/2007-01-fireworks/dsc08340-300x200.jpg',
                         'slug': 'story',
                     }
                 ],
@@ -166,7 +170,16 @@ def _build_sample_site(root: Path) -> tuple[Path, Path]:
     ]:
         asset = photo_root / rel_path
         asset.parent.mkdir(parents=True, exist_ok=True)
-        asset.write_bytes(b'placeholder')
+        sample_source = SAMPLE_MEDIA_ROOT / rel_path
+        if sample_source.exists():
+            shutil.copyfile(sample_source, asset)
+        elif rel_path == 'story/story.jpg':
+            shutil.copyfile(
+                SAMPLE_MEDIA_ROOT / '2007-01-fireworks/dsc08340-300x200.jpg',
+                asset,
+            )
+        else:
+            asset.write_bytes(b'placeholder')
 
     return album_dir, photo_root
 
@@ -184,23 +197,44 @@ def sample_site_root(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, Pa
     return _build_sample_site(root)
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope='session', autouse=True)
 def e2e_runtime_settings(
-    settings, sample_site_root: tuple[Path, Path]
+    sample_site_root: tuple[Path, Path], tmp_path_factory: pytest.TempPathFactory
 ) -> Generator[None, None, None]:
     album_dir, photo_root = sample_site_root
-    with override_settings(
-        ALBUM_DIR=str(album_dir),
-        WEBXIANG_PHOTOS_ROOT=str(photo_root),
-        WEBXIANG_PHOTOS_URL='/data/',
-        SITE_URL='https://www.example.org/',
-        ALLOWED_HOSTS=list(
-            dict.fromkeys(
-                [*django_settings.ALLOWED_HOSTS, 'testserver', 'localhost', '127.0.0.1']
-            )
-        ),
-    ):
-        yield
+    root = tmp_path_factory.mktemp('e2e-runtime')
+    static_root = root / 'static'
+    session_root = root / 'sessions'
+    static_root.mkdir(parents=True, exist_ok=True)
+    session_root.mkdir(parents=True, exist_ok=True)
+
+    django_settings.ALLOWED_HOSTS = list(
+        dict.fromkeys(
+            [*django_settings.ALLOWED_HOSTS, 'testserver', 'localhost', '127.0.0.1']
+        )
+    )
+    django_settings.CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        }
+    }
+    django_settings.ALBUM_DIR = str(album_dir)
+    django_settings.WEBXIANG_PHOTOS_ROOT = str(photo_root)
+    django_settings.WEBXIANG_PHOTOS_URL = '/data/'
+    django_settings.MEDIA_URL = '/media/'
+    django_settings.SESSION_ENGINE = 'django.contrib.sessions.backends.file'
+    django_settings.SESSION_FILE_PATH = str(session_root)
+    django_settings.SITE_URL = 'https://www.example.org/'
+    django_settings.STATIC_ROOT = str(static_root)
+    call_command('collectstatic', interactive=False, verbosity=0, clear=True)
+    yield
+
+
+@pytest.fixture(scope='session', autouse=True)
+def clean_e2e_artifacts() -> Generator[None, None, None]:
+    for path in (ARTIFACTS_DIR, VRT_ARTIFACTS_DIR):
+        shutil.rmtree(path, ignore_errors=True)
+    yield
 
 
 @pytest.fixture(scope='session')
@@ -230,6 +264,32 @@ def page(
     context: BrowserContext = browser.new_context(
         viewport={'width': 1440, 'height': 960}
     )
+    if _env_flag('VRT'):
+        context.add_init_script(
+            """
+            (() => {
+                const disableEffects = () => {
+                    if (window.jQuery && window.jQuery.fx) {
+                        window.jQuery.fx.off = true;
+                        return true;
+                    }
+                    return false;
+                };
+
+                if (disableEffects()) {
+                    return;
+                }
+
+                let attempts = 0;
+                const timer = window.setInterval(() => {
+                    attempts += 1;
+                    if (disableEffects() || attempts > 200) {
+                        window.clearInterval(timer);
+                    }
+                }, 5);
+            })();
+            """
+        )
     context.tracing.start(screenshots=True, snapshots=True)
     page = context.new_page()
 
@@ -244,3 +304,8 @@ def page(
     else:
         context.tracing.stop()
     context.close()
+
+
+@pytest.fixture
+def vrt(request: pytest.FixtureRequest) -> VisualRegressionSession:
+    return VisualRegressionSession.from_request(request)

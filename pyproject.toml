@@ -38,9 +38,10 @@ packages = ["webxiangpianbu"]
 python_version = "3.11"
 warn_return_any = true
 plugins = ["mypy_django_plugin.main"]
+exclude = '(?x)^(run/vrt-uv-cache/|run/vrt-venv/|run/vrt-home/)'
 
 [tool.django-stubs]
-django_settings_module = "webxiang.settings"
+django_settings_module = "webxiang.settings_ci"
 
 [tool.ruff.format]
 quote-style = "single"

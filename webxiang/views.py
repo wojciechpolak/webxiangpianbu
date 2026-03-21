@@ -22,6 +22,7 @@ from django.conf import settings
 from django.http import Http404, HttpResponsePermanentRedirect
 from django.shortcuts import render
 from django.template import TemplateDoesNotExist
+from django.views.static import serve as static_serve
 
 from . import webxiang
 from .typing import Album
@@ -84,3 +85,7 @@ def onephoto(request, photo):
         },
     }
     return render(request, 'photo.html', ctx)
+
+
+def media(request, path):
+    return static_serve(request, path, document_root=settings.WEBXIANG_PHOTOS_ROOT)

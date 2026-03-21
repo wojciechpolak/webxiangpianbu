@@ -33,25 +33,44 @@ Next steps:
    `gettext` installed).
 3. uv run manage.py collectstatic
 
-End-to-end browser tests
-------------------------
+Testing
+-------
 
-Install the Chromium browser once:
+Install development dependencies and the Playwright browser runtime:
 
 ```shell
-npx playwright install chromium
+uv sync --group dev
+uv run python -m playwright install chromium
 ```
 
-Then run the full test suite:
+Run the test and code quality checks:
 
 ```shell
 uv run pytest
+uv run ruff check
+uv run ty check
+uv run mypy .
 ```
 
 If you want only the fast unit tests, exclude the browser marker:
 
 ```shell
 uv run pytest -m "not e2e"
+```
+
+Visual regression tests
+-----------------------
+
+Visual regression testing is layered on top of those same browser tests.
+Run the baseline refresh command once when you intentionally accept a new
+UI state, then rerun the comparison command to check for visual drift:
+
+```shell
+./scripts/vrt-docker.sh baseline
+```
+
+```shell
+./scripts/vrt-docker.sh compare
 ```
 
 Web Application Deployment

@@ -17,13 +17,16 @@
 
 from django.conf import settings
 from django.urls import re_path
-from django.conf.urls.static import static
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from . import views
 
-urlpatterns = static(
-    settings.WEBXIANG_PHOTOS_URL, document_root=settings.WEBXIANG_PHOTOS_ROOT
-)
+media_prefix = settings.WEBXIANG_PHOTOS_URL.lstrip('/')
+if not media_prefix.endswith('/'):
+    media_prefix += '/'
+
+urlpatterns = [
+    re_path(rf'^{media_prefix}(?P<path>.*)$', views.media, name='media'),
+]
 
 urlpatterns += staticfiles_urlpatterns()
 

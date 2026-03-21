@@ -1,0 +1,36 @@
+name: VRT Checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vrt-checks-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vrt:
+    name: Visual regression tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Run visual regression tests
+        run: ./scripts/vrt-docker.sh compare
+
+      - name: Upload Playwright artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: vrt-artifacts
+          path: |
+            test-results/playwright
+            test-results/vrt
+            .visual-regression
+          if-no-files-found: ignore
