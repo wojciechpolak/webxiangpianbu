@@ -10,7 +10,7 @@ dependencies = [
     "libsasscompiler==0.1.8",
     "pillow==12.1.1",
     "pyyaml==6.0.3",
-    "uwsgi==2.0.31",
+    "gunicorn>=25.1.0",
     "pymemcache>=4.0.0,<5",
 ]
 

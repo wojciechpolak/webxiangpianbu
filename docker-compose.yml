@@ -14,7 +14,7 @@ services:
     depends_on:
         - memcached
   nginx:
-      image: ${NGINX_IMAGE:-nginx:1.25}
+      image: ${NGINX_IMAGE:-nginx:1.29}
       restart: unless-stopped
       volumes:
           - app_static:/app/static
