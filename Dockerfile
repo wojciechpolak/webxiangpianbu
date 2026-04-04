@@ -37,9 +37,13 @@ ENV PATH=/app/.venv/bin:$PATH
 ENV DJANGO_SETTINGS_MODULE=run.settings_docker
 WORKDIR /app
 COPY conf/docker/entrypoint.sh .
-ADD run run
-ADD locale locale
-ADD webxiang webxiang
+COPY run/__init__.py run/settings_docker.py /app/run/
+COPY run/albums /app/run/albums
+COPY run/data /app/run/data
+COPY run/static /app/run/static
+COPY run/templates /app/run/templates
+COPY locale /app/locale
+COPY webxiang /app/webxiang
 COPY manage.py .
 RUN usermod -a -G users www-data
 RUN chgrp -R users /app/webxiang/static && chmod -R g+w /app/webxiang/static

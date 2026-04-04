@@ -1,3 +1,13 @@
 *.pyc
 **/__pycache__/
 .pytest_cache/
+.git
+.venv
+.mypy_cache
+.ruff_cache
+.visual-regression
+dist
+test-results
+run/vrt-home
+run/vrt-uv-cache
+run/vrt-venv
