@@ -5,26 +5,26 @@ description = "A photo album organizer"
 authors = [{ name = "WAP" }]
 requires-python = ">=3.11,<4"
 dependencies = [
-    "django==5.2.12",
+    "django>=5,<6",
     "django-pipeline==4.1.0",
     "libsasscompiler==0.1.8",
-    "pillow==12.1.1",
+    "pillow>=12,<13",
     "pyyaml==6.0.3",
-    "gunicorn>=25.1.0",
+    "gunicorn>=25,<26",
     "pymemcache>=4.0.0,<5",
 ]
 
 [dependency-groups]
 dev = [
-    "django-stubs-ext==5.2.8",
-    "django-stubs[compatible-mypy]==5.2.8",
-    "mypy==1.19.0",
+    "django-stubs-ext==6.0.2",
+    "django-stubs[compatible-mypy]==6.0.2",
+    "mypy>=1,<2",
     "playwright",
-    "pytest==9.0.2",
-    "pytest-django==4.11.1",
-    "ruff>=0.14.8",
+    "pytest>=9,<10",
+    "pytest-django>=4,<5",
+    "ruff>=0.14.9",
     "ty>=0.0.24",
-    "types-pyyaml==6.0.12.20250915",
+    "types-pyyaml==6.0.12.20260408",
 ]
 
 [build-system]
