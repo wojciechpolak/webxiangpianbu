@@ -19,7 +19,7 @@ dev = [
     "django-stubs-ext==6.0.2",
     "django-stubs[compatible-mypy]==6.0.2",
     "mypy>=1,<2",
-    "playwright",
+    "playwright>=1.55,<1.59",
     "pytest>=9,<10",
     "pytest-django>=4,<5",
     "ruff>=0.14.9",
