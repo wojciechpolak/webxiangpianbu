@@ -15,21 +15,20 @@
 #  with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import re
-import os
 import json
-from typing import Any, cast
-
 import logging
+import os
+import re
 from dataclasses import dataclass
-
-from urllib.parse import urljoin
 from itertools import zip_longest
+from typing import Any, cast
+from urllib.parse import urljoin
 
 from django.conf import settings
-from django.urls import reverse
 from django.core.cache import cache
-from django.core.paginator import Page, Paginator, InvalidPage, EmptyPage
+from django.core.paginator import EmptyPage, InvalidPage, Page, Paginator
+from django.urls import reverse
+
 from .templatetags.page import page as page_url
 from .typing import Album, Entry, Image, MetaData, VideoSrc
 
@@ -159,11 +158,11 @@ def _photo_context(data: Album, links: _Links, photo: str) -> str | None:
     else:
         pos, step = photo_idx - 1, 1
 
-    meta['title'] = '#%s - %s' % (photo_idx, meta['title'] or links.album)
+    meta['title'] = f'#{photo_idx} - {meta["title"] or links.album}'
     entry = data['entry'] = entries[pos]
 
     # determine canonical photo url
-    canon_link = '%s/%s' % (photo_idx, entry['slug']) if 'slug' in entry else photo_idx
+    canon_link = f'{photo_idx}/{entry["slug"]}' if 'slug' in entry else photo_idx
     data['canonical_url'] = reverse(
         'photo', kwargs={'album': links.album, 'photo': canon_link}
     )
@@ -226,7 +225,7 @@ def _nav_link(entries: list[Entry], pos: int, number: int, links: _Links) -> str
     if not 0 <= pos < len(entries):
         return None
     slug = entries[pos].get('slug')
-    return links.photo('%s/%s' % (number, slug) if slug else number)
+    return links.photo(f'{number}/{slug}' if slug else number)
 
 
 def _photo_media(entry: Entry, meta: MetaData, links: _Links) -> str:
@@ -332,7 +331,7 @@ def _album_entry(entry: Entry, meta: MetaData, links: _Links) -> str:
         _parse_video_entry(entry)
         return urljoin(links.baseurl, meta_path)
 
-    size_key = 'default_%s_size' % item_type
+    size_key = f'default_{item_type}_size'
     if isinstance(img, str):
         f = img
         entry['size'] = cast(Any, meta).get(size_key)
@@ -352,7 +351,7 @@ def _album_entry_link(entry: Entry, links: _Links) -> str:
     if 'album' in entry:
         return reverse('album', kwargs={'album': entry['album']})
     slug = entry.get('slug')
-    return links.photo('%s/%s' % (entry['index'], slug) if slug else entry['index'])
+    return links.photo(f'{entry["index"]}/{slug}' if slug else entry['index'])
 
 
 def _wxpb_settings(data: Album, entries: list[Entry]) -> str:
@@ -432,15 +431,15 @@ def _open_albumfile(album_name: str) -> Album | None:
 
     try:
         mt1 = os.path.getmtime(albumfile_yaml)
-    except Exception:
+    except OSError:
         try:
             mt1 = os.path.getmtime(albumfile_json)
-        except Exception as exc:
+        except OSError as exc:
             print('_open_albumfile exception', exc)
             return None
     try:
         mt2 = cache_data['mtime']
-    except Exception:
+    except (KeyError, TypeError):
         mt2 = 0
 
     if cache_data and 'data' in cache_data and mt2 >= mt1:
@@ -448,17 +447,11 @@ def _open_albumfile(album_name: str) -> Album | None:
         return cast(Album, cache_data['data'])
 
     if os.path.isfile(albumfile_yaml) and yaml:
-        try:
-            with open(albumfile_yaml, 'r', encoding='utf-8') as fp:
-                data = cast(Album, yaml.load(fp.read(), Loader=YamlLoader))
-        except Exception as e:
-            raise e
+        with open(albumfile_yaml, 'r', encoding='utf-8') as fp:
+            data = cast(Album, yaml.load(fp.read(), Loader=YamlLoader))
     elif os.path.isfile(albumfile_json):
-        try:
-            with open(albumfile_json, 'r', encoding='utf-8') as fp:
-                data = cast(Album, json.loads(fp.read()))
-        except Exception as e:
-            raise e
+        with open(albumfile_json, 'r', encoding='utf-8') as fp:
+            data = cast(Album, json.loads(fp.read()))
     else:
         return None
 

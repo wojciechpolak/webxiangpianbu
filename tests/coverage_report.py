@@ -41,10 +41,10 @@ def describe_narrowed_run(config: pytest.Config) -> str:
     """
     markexpr = getattr(config.option, 'markexpr', '')
     if markexpr:
-        return '-m %s' % markexpr
+        return f'-m {markexpr}'
     keyword = getattr(config.option, 'keyword', '')
     if keyword:
-        return '-k %s' % keyword
+        return f'-k {keyword}'
     if getattr(config, 'args_source', None) == pytest.Config.ArgsSource.ARGS:
         return 'an explicit test selection'
     return ''

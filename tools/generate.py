@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 """
 #  WebXiangpianbu Copyright (C) 2013, 2014, 2015, 2023 Wojciech Polak
@@ -18,20 +17,17 @@
 #  with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import getopt
+import json
 import os
 import sys
-import json
-import getopt
-from datetime import date
-from typing import Any, Callable
+from collections import OrderedDict as _OrderedDict
+from collections.abc import Callable
+from datetime import datetime
+from typing import Any
 
 import yaml
-
-from collections import OrderedDict as _OrderedDict
-from PIL import ExifTags
-from PIL import Image
-from PIL import ImageEnhance
-from PIL import ImageFile
+from PIL import ExifTags, Image, ImageEnhance, ImageFile
 
 OrderedDict: Any = _OrderedDict
 
@@ -160,8 +156,8 @@ def main(argv: list[str] | None = None) -> None:
     try:
         parse_args(opts, sys.argv[1:] if argv is None else argv)
     except getopt.GetoptError:
-        print('Usage: %s [OPTION...] INPUT-DIR OUTPUT-DIR' % sys.argv[0])
-        print('%s -- album generator' % sys.argv[0])
+        print(f'Usage: {sys.argv[0]} [OPTION...] INPUT-DIR OUTPUT-DIR')
+        print(f'{sys.argv[0]} -- album generator')
         print(USAGE % opts)
         sys.exit(1)
 
@@ -180,9 +176,9 @@ def main(argv: list[str] | None = None) -> None:
     album_dir = opts['album_dir'] or opts['outputdir']
 
     if opts['album_format'] in ('json', 'all'):
-        write_json(os.path.normpath('%s/%s.json' % (album_dir, album_name)), album)
+        write_json(os.path.normpath(f'{album_dir}/{album_name}.json'), album)
     if opts['album_format'] in ('yaml', 'all'):
-        write_yaml(os.path.normpath('%s/%s.yaml' % (album_dir, album_name)), album)
+        write_yaml(os.path.normpath(f'{album_dir}/{album_name}.yaml'), album)
 
     print('done')
 
@@ -197,7 +193,7 @@ def new_album(opts: dict[str, Any]) -> dict[str, Any]:
         'template': opts['template'],
         'thumbs_skip': opts['thumbs_skip'] or opts['template'] == 'story',
         'style': opts['style'],
-        'copyright': opts['copyright'] or '%s' % date.today().year,
+        'copyright': opts['copyright'] or f'{datetime.now().astimezone().year}',
         'geo': opts['show_geo'],
         'default_image_size': opts.get('default_image_size', []),
         'default_thumb_size': opts['thumbs_size'],
@@ -220,9 +216,7 @@ def list_input_files(opts: dict[str, Any]) -> list[str]:
 
 
 def _may_write(filename: str) -> bool:
-    return not os.path.exists(filename) or confirm(
-        'Overwrite album file %s?' % filename
-    )
+    return not os.path.exists(filename) or confirm(f'Overwrite album file {filename}?')
 
 
 def write_json(filename: str, album: dict[str, Any]) -> None:
@@ -231,7 +225,7 @@ def write_json(filename: str, album: dict[str, Any]) -> None:
     with open(filename, 'w', encoding='utf-8') as album_file_json:
         json.dump(album, album_file_json, indent=4)
         album_file_json.write('\n')
-        print('saved %s' % album_file_json.name)
+        print(f'saved {album_file_json.name}')
 
 
 def _represent_ordered(dumper: yaml.Dumper, data: dict[str, Any]) -> yaml.Node:
@@ -254,16 +248,16 @@ def write_yaml(filename: str, album: dict[str, Any]) -> None:
             indent=4,
             width=70,
         )
-        print('saved %s' % album_file_yaml.name)
+        print(f'saved {album_file_yaml.name}')
 
 
 exif_tags = {
-    'ApertureValue': lambda v: 'f/%s' % float(v),
+    'ApertureValue': lambda v: f'f/{float(v)}',
     'DateTimeOriginal': lambda v: v,
-    'ExposureBiasValue': lambda v: '%s EV' % v,
-    'ExposureTime': lambda v: '1/%s sec' % int(1 / float(v)),
-    'FNumber': lambda v: 'f/%s' % float(v),
-    'FocalLength': lambda v: '%smm' % float(v),
+    'ExposureBiasValue': lambda v: f'{v} EV',
+    'ExposureTime': lambda v: f'1/{int(1 / float(v))} sec',
+    'FNumber': lambda v: f'f/{float(v)}',
+    'FocalLength': lambda v: f'{float(v)}mm',
     'ISOSpeedRatings': lambda v: v,
     'LensMake': lambda v: v,
     'LensModel': lambda v: v,
@@ -281,7 +275,7 @@ def process_image(opts: dict[str, Any], album: dict[str, Any], fname: str) -> No
     # lower case for file suffix
     fn = fname.split('.')
     suffix = 'webp' if opts['images_format'] == 'WEBP' else 'jpg'
-    fname = '%s.%s' % (''.join(fn[0:-1]), suffix)
+    fname = f'{"".join(fn[0:-1])}.{suffix}'
 
     data = OrderedDict()
     data['idx'] = opts['idx']
@@ -299,21 +293,21 @@ def process_image(opts: dict[str, Any], album: dict[str, Any], fname: str) -> No
 
     lat, lng = get_latlng(gps_data)
     if lat and lng:
-        data['geo'] = '%s,%s' % (lat, lng)
+        data['geo'] = f'{lat},{lng}'
 
     if exif_data:
         data['exif'] = exif_data
 
     album['entries'].append(data)
 
-    resample = getattr(Image, 'LANCZOS')
+    resample = Image.Resampling.LANCZOS
     img.thumbnail(opts['images_maxsize'], resample)
     if list(img.size) != album['meta']['default_image_size']:
         data['image'] = {'file': fname, 'size': list(img.size)}
 
     output_fname = os.path.join(opts['outputdir'], fname)
     if os.path.exists(output_fname):
-        print('file exists, skipping... %s' % output_fname)
+        print(f'file exists, skipping... {output_fname}')
         return
 
     if not opts['skip_image_gen']:
@@ -324,7 +318,7 @@ def read_exif(img: Any) -> dict[int, Any] | None:
     try:
         exif_getter = getattr(img, '_getexif', None)
         return exif_getter() if exif_getter else None
-    except Exception:
+    except Exception:  # noqa: BLE001 - Pillow raises many types on corrupt EXIF
         return None
 
 
@@ -353,7 +347,7 @@ def save_image(opts: dict[str, Any], img: Any, output_fname: str) -> None:
         sharpener = ImageEnhance.Sharpness(img)
         img = sharpener.enhance(opts['images_sharpness'])
 
-    setattr(ImageFile, 'MAXBLOCK', img.size[0] * img.size[1])
+    setattr(ImageFile, 'MAXBLOCK', img.size[0] * img.size[1])  # noqa: B010 - stubs type it Literal
     img.save(
         output_fname,
         opts['images_format'],
@@ -362,20 +356,20 @@ def save_image(opts: dict[str, Any], img: Any, output_fname: str) -> None:
         progressive=False,
     )
 
-    print('saved %s' % output_fname)
+    print(f'saved {output_fname}')
 
 
 def gen_thumbnails(opts: dict[str, Any], img_blob: Any, fname: str) -> str:
     size = opts['thumbs_size']
     fn = fname.split('.')
-    fname = '%s-%dx%d.%s' % (''.join(fn[0:-1]), size[0], size[1], fn[-1])
+    fname = f'{"".join(fn[0:-1])}-{size[0]:d}x{size[1]:d}.{fn[-1]}'
 
     if opts['skip_thumb_gen']:
         return fname
 
     output_fname = os.path.join(opts['outputdir'], fname)
     if os.path.exists(output_fname):
-        print('file exists, skipping... %s' % output_fname)
+        print(f'file exists, skipping... {output_fname}')
         return fname
 
     img = img_blob.copy()
@@ -395,9 +389,9 @@ def gen_thumbnails(opts: dict[str, Any], img_blob: Any, fname: str) -> str:
         lower = width + upper
 
     img = img.crop((left, upper, right, lower))
-    resample = getattr(Image, 'LANCZOS')
+    resample = Image.Resampling.LANCZOS
     img.thumbnail(size, resample)
-    setattr(ImageFile, 'MAXBLOCK', 131072)
+    setattr(ImageFile, 'MAXBLOCK', 131072)  # noqa: B010 - stubs type it Literal
     img.save(
         output_fname,
         opts['images_format'],
@@ -406,7 +400,7 @@ def gen_thumbnails(opts: dict[str, Any], img_blob: Any, fname: str) -> str:
         progressive=True,
     )
 
-    print('saved %s' % output_fname)
+    print(f'saved {output_fname}')
     return fname
 
 
@@ -446,7 +440,7 @@ def confirm(question: str, default: bool = False) -> bool:
     else:
         defval = 'y/N'
     while True:
-        res = input('%s [%s] ' % (question, defval)).lower()
+        res = input(f'{question} [{defval}] ').lower()
         if not res:
             return default
         if res in ('y', 'yes'):

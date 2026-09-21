@@ -30,19 +30,17 @@ def test_load_dotenv_parses_lines_and_keeps_existing_env(tmp_path, monkeypatch):
     monkeypatch.setenv('WXT_SET', 'from-env')
     env_file = tmp_path / '.env'
     env_file.write_text(
-        '\n'.join(
-            [
-                '# a comment',
-                '',
-                'WXT_PLAIN = plain ',
-                'export WXT_EXPORTED=exported',
-                'WXT_DOUBLE="double quoted"',
-                "WXT_SINGLE=' single '",
-                'WXT_EQ=a=b',
-                'WXT_SET=from-file',
-                'no equals sign',
-                '=no-name',
-            ]
+        (
+            '# a comment\n'
+            '\n'
+            'WXT_PLAIN = plain \n'
+            'export WXT_EXPORTED=exported\n'
+            'WXT_DOUBLE="double quoted"\n'
+            "WXT_SINGLE=' single '\n"
+            'WXT_EQ=a=b\n'
+            'WXT_SET=from-file\n'
+            'no equals sign\n'
+            '=no-name'
         ),
         encoding='utf-8',
     )

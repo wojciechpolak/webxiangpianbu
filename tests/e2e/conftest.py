@@ -35,6 +35,7 @@ from playwright.sync_api import (
     Playwright,
     sync_playwright,
 )
+
 from tests.e2e.vrt import VisualRegressionSession
 
 os.environ.setdefault('DJANGO_ALLOW_ASYNC_UNSAFE', 'true')

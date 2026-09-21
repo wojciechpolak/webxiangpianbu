@@ -16,8 +16,9 @@
 """
 
 from django.conf import settings
-from django.urls import re_path
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from django.urls import re_path
+
 from . import views
 
 media_prefix = settings.WEBXIANG_PHOTOS_URL.lstrip('/')

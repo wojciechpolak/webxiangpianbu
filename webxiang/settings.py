@@ -252,7 +252,7 @@ if (
     get_bool(ENV, 'WEBXIANG_SETTINGS_LOCAL', default=True)
     and SETTINGS_LOCAL_PATH.is_file()
 ):
-    exec(
+    exec(  # noqa: S102 - settings_local.py is a trusted local override
         compile(SETTINGS_LOCAL_PATH.read_text(), str(SETTINGS_LOCAL_PATH), 'exec'),
         globals(),
     )

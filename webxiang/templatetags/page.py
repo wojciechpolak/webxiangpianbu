@@ -34,5 +34,5 @@ def page(
             return _('page-%(number)s.html') % {'number': page_number}
         return 'index.html'
     if page_number > 1:
-        return '?page=%s' % page_number
+        return f'?page={page_number}'
     return album_url

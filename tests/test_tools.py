@@ -18,12 +18,11 @@
 from __future__ import annotations
 
 import json
-from datetime import date
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import pytest
-
 from PIL import Image
 
 from tools import convert, generate
@@ -258,7 +257,7 @@ def test_generate_new_album_takes_meta_from_options():
 
     album = generate.new_album(generate.default_opts())
     assert album['meta']['thumbs_skip'] is False
-    assert album['meta']['copyright'] == str(date.today().year)
+    assert album['meta']['copyright'] == str(datetime.now().astimezone().year)
     assert album['meta']['default_image_size'] == []
 
 

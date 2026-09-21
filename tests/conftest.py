@@ -80,5 +80,5 @@ def pytest_terminal_summary(
     if narrowed:
         terminalreporter.write_line(
             'coverage.lcov and htmlcov/ kept from the last full run '
-            '(%s ran a subset)' % narrowed
+            f'({narrowed} ran a subset)'
         )

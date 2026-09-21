@@ -19,16 +19,15 @@ from __future__ import annotations
 
 import os
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
-from typing import Sequence
 from urllib.parse import urlparse
 
 import pytest
 from PIL import Image, ImageChops
 from playwright.sync_api import Locator, Page
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 BASELINE_ROOT = PROJECT_ROOT / '.visual-regression'
@@ -56,8 +55,7 @@ def _stylesheet_path_from_href(href: str) -> Path | None:
     path = parsed.path or href
     if not path:
         return None
-    if path.startswith('/'):
-        path = path[1:]
+    path = path.removeprefix('/')
     return (PROJECT_ROOT / path).resolve()
 
 

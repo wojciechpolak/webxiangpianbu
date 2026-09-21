@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 """
 #  WebXiangpianbu Copyright (C) 2014, 2015, 2023 Wojciech Polak
@@ -18,35 +17,36 @@
 #  with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import os
-import sys
-import json
+import contextlib
 import getopt
+import http.server
+import json
+import os
 import shutil
 import signal
-from datetime import datetime
-from urllib.parse import urljoin
-from typing import Any, Callable, NoReturn, cast
-
-import http.server
 import socketserver
-import django
+import sys
+from collections.abc import Callable
+from datetime import datetime
+from typing import Any, NoReturn, cast
+from urllib.parse import urljoin
 
+import django
 from django.conf import settings
 from django.core.paginator import Page
 from django.template import TemplateDoesNotExist
 from django.template.loader import render_to_string
+from django.urls import set_script_prefix, set_urlconf
 from django.utils import translation
 from django.utils.translation import gettext as _
-from django.urls import set_urlconf, set_script_prefix
 
 SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
 os.environ['DJANGO_SETTINGS_MODULE'] = 'webxiang.settings'
 sys.path.insert(0, os.path.join(SITE_ROOT, '../'))
 if hasattr(django, 'setup'):
     django.setup()
-from webxiang import webxiang  # noqa: E402
-from webxiang.typing import Album, Entry  # noqa: E402
+from webxiang import webxiang
+from webxiang.typing import Album, Entry
 
 LONG_OPTIONS = [
     'help',
@@ -156,8 +156,8 @@ def parse_args(opts: dict[str, Any], argv: list[str]) -> None:
 
 
 def usage(opts: dict[str, Any]) -> None:
-    print('Usage: %s [OPTION...] [ALBUM-NAME1,NAME2]' % sys.argv[0])
-    print('%s -- album static HTML generator' % sys.argv[0])
+    print(f'Usage: {sys.argv[0]} [OPTION...] [ALBUM-NAME1,NAME2]')
+    print(f'{sys.argv[0]} -- album static HTML generator')
     opts['output_dir_help'] = opts['output_dir'] or 'output-DATETIME/'
     print(USAGE % opts)
 
@@ -179,7 +179,7 @@ def main(argv: list[str] | None = None) -> None:
 
     if opts['lang']:
         if opts['verbose'] > 1:
-            print('Switching language to %s' % opts['lang'])
+            print(f'Switching language to {opts["lang"]}')
         translation.activate(opts['lang'])
 
     set_urlconf('webxiang.urls_static')
@@ -188,7 +188,7 @@ def main(argv: list[str] | None = None) -> None:
     root_dir = (
         opts['output_dir']
         and os.path.expanduser(opts['output_dir'])
-        or 'output-%s' % datetime.now().strftime('%Y%m%d-%H%M%S')
+        or f'output-{datetime.now().astimezone():%Y%m%d-%H%M%S}'
     )
     output_dir = os.path.join(root_dir, opts['root'].lstrip('/'))
 
@@ -198,12 +198,10 @@ def main(argv: list[str] | None = None) -> None:
         print('WEBXIANG_PHOTOS_URL', settings.WEBXIANG_PHOTOS_URL)
         print('OPTIONS', json.dumps(opts, indent=2, sort_keys=True))
 
-    try:
-        if not os.path.exists(output_dir):
-            print('Creating directory "%s"' % output_dir)
+    if not os.path.exists(output_dir):
+        print(f'Creating directory "{output_dir}"')
+        with contextlib.suppress(OSError):
             os.makedirs(output_dir)
-    except Exception:
-        pass
 
     if not opts['photos_url'].startswith('http'):
         publish_photos(opts, os.path.join(output_dir, opts['photo_dir_out']))
@@ -216,8 +214,8 @@ def main(argv: list[str] | None = None) -> None:
 
     if opts['verbose'] > 0:
         print()
-    print('Finished %s' % output_dir)
-    print('Done. Created %d files.' % generator.items_no)
+    print(f'Finished {output_dir}')
+    print(f'Done. Created {generator.items_no:d} files.')
 
     serve(opts, root_dir)
 
@@ -248,27 +246,27 @@ def publish_photos(opts: dict[str, Any], photo_dir_out: str) -> None:
     """Copy (--copy) or symlink the photo directory into the output."""
     photo_dir_in = opts['photo_dir_in'].rstrip('/')
     if opts['copy']:
-        print('Copying photos "%s" into "%s"' % (photo_dir_in, photo_dir_out))
+        print(f'Copying photos "{photo_dir_in}" into "{photo_dir_out}"')
         try:
             os.makedirs(photo_dir_out, exist_ok=True)
             _copytree(photo_dir_in, photo_dir_out)
-        except Exception as exc:
+        except OSError as exc:
             print('Copying photos', exc)
     else:
         link = photo_dir_out.rstrip('/')
-        print('Linking photos: ln -s %s %s' % (photo_dir_in, link))
+        print(f'Linking photos: ln -s {photo_dir_in} {link}')
         try:
             os.makedirs(os.path.dirname(link), exist_ok=True)
             os.symlink(photo_dir_in, link)
-        except Exception as exc:
+        except OSError as exc:
             print('Linking photos', exc)
 
 
 def copy_assets(assets_dir: str) -> None:
-    print('Copying assets (JS, CSS, etc.) into "%s"' % assets_dir)
+    print(f'Copying assets (JS, CSS, etc.) into "{assets_dir}"')
     try:
         _copytree(settings.STATIC_ROOT, assets_dir)
-    except Exception as exc:
+    except OSError as exc:
         print('Copying assets', exc)
 
 
@@ -287,7 +285,7 @@ def serve(opts: dict[str, Any], root_dir: str | None = None) -> None:
     httpd = SimpleServer(
         ('localhost', opts['port']), http.server.SimpleHTTPRequestHandler
     )
-    print('Serving at %s%s' % ('localhost:%d' % opts['port'], opts['root']))
+    print(f'Serving at localhost:{opts["port"]:d}{opts["root"]}')
     print('Quit the server with CONTROL-C.')
     httpd.serve_forever()
 
@@ -302,7 +300,7 @@ class SiteGenerator:
         self.items_no = 0
 
     def album(self, album_name: str, page: int = 1) -> None:
-        entry_id = '%s:%s' % (album_name, page)
+        entry_id = f'{album_name}:{page}'
         if entry_id in self.generated:
             return
         self.generated.add(entry_id)
@@ -339,10 +337,10 @@ class SiteGenerator:
             if 'album' in entry:
                 self.album(entry['album'])
             else:
-                self.photo(album_name, '%s/' % entry['index'])
+                self.photo(album_name, f'{entry["index"]}/')
 
     def photo(self, album_name: str, entry_idx: str) -> None:
-        entry_id = '%s/%s' % (album_name, entry_idx)
+        entry_id = f'{album_name}/{entry_idx}'
         if entry_id in self.generated:
             return
         self.generated.add(entry_id)
@@ -359,9 +357,9 @@ class SiteGenerator:
         photo_idx = entry_idx.split('/')[0]
         entry = data['entry']
         if 'slug' in entry:
-            photo_name = '%s/%s.html' % (photo_idx, entry['slug'])
+            photo_name = f'{photo_idx}/{entry["slug"]}.html'
         else:
-            photo_name = '%s.html' % photo_idx
+            photo_name = f'{photo_idx}.html'
 
         output_file = os.path.join(self.output_dir, album_name, photo_name)
         self._progress(output_file, print_level=3)
@@ -386,7 +384,7 @@ class SiteGenerator:
 
     def _progress(self, output_file: str, print_level: int) -> None:
         if self.opts['verbose'] >= print_level:
-            print('writing %s' % output_file)
+            print(f'writing {output_file}')
         elif self.opts['verbose'] >= 1:
             sys.stdout.write('.')
             sys.stdout.flush()

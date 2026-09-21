@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 """
 #  WebXiangpianbu Copyright (C) 2013, 2014, 2015, 2023 Wojciech Polak
@@ -18,13 +17,12 @@
 #  with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import getopt
+import glob
+import json
 import os
 import sys
-import glob
-import getopt
-import json
-from typing import Any
-from typing import cast
+from typing import Any, cast
 
 yaml: Any = None
 YamlLoader: Any = None
@@ -56,18 +54,22 @@ def parse_args(opts: dict[str, Any], argv: list[str]) -> None:
         opts['output_name'] = os.path.basename(args[1])
 
 
-def main(argv: list[str] | None = None) -> None:
-    opts: dict[str, Any] = {
+def default_opts() -> dict[str, Any]:
+    return {
         'overwrite': False,
         'output_dir': '',
         'output_name': '',
     }
 
+
+def main(argv: list[str] | None = None) -> None:
+    opts = default_opts()
+
     try:
         parse_args(opts, sys.argv[1:] if argv is None else argv)
     except getopt.GetoptError:
-        print('Usage: %s [OPTION...] INPUT OUTPUT' % sys.argv[0])
-        print('%s -- album converter' % sys.argv[0])
+        print(f'Usage: {sys.argv[0]} [OPTION...] INPUT OUTPUT')
+        print(f'{sys.argv[0]} -- album converter')
         print("""
  Options               Default values
  -y, --overwrite       [False]
@@ -96,15 +98,15 @@ def convert_file(opts: dict[str, Any], name: str) -> None:
 def read_albumfile(name: str) -> dict[str, Any] | None:
     if os.path.isfile(name) and name.endswith('.yaml'):
         try:
-            album_content = open(name, 'r', encoding='utf-8').read()
-            return cast(dict[str, Any], yaml.load(album_content, Loader=YamlLoader))
-        except Exception as e:
+            with open(name, 'r', encoding='utf-8') as fp:
+                return cast(dict[str, Any], yaml.load(fp, Loader=YamlLoader))
+        except (OSError, yaml.YAMLError) as e:
             print(e)
     elif os.path.isfile(name) and name.endswith('.json'):
         try:
-            album_content = open(name, 'r', encoding='utf-8').read()
-            return cast(dict[str, Any], json.loads(album_content))
-        except Exception as e:
+            with open(name, 'r', encoding='utf-8') as fp:
+                return cast(dict[str, Any], json.load(fp))
+        except (OSError, ValueError) as e:
             print(e)
     return None
 
@@ -116,7 +118,7 @@ def to_yaml(opts: dict[str, Any], name: str, data: dict[str, Any]) -> None:
     )
     overwrite = True
     if os.path.exists(filename):
-        overwrite = opts['overwrite'] or confirm('Overwrite album file %s?' % filename)
+        overwrite = opts['overwrite'] or confirm(f'Overwrite album file {filename}?')
     if overwrite:
         with open(filename, 'w', encoding='utf-8') as album_file_yaml:
             yaml.dump(
@@ -129,7 +131,7 @@ def to_yaml(opts: dict[str, Any], name: str, data: dict[str, Any]) -> None:
                 width=70,
                 Dumper=YamlDumper,
             )
-            print('saved %s' % album_file_yaml.name)
+            print(f'saved {album_file_yaml.name}')
 
 
 def to_json(opts: dict[str, Any], name: str, data: dict[str, Any]) -> None:
@@ -139,12 +141,12 @@ def to_json(opts: dict[str, Any], name: str, data: dict[str, Any]) -> None:
     )
     overwrite = True
     if os.path.exists(filename):
-        overwrite = opts['overwrite'] or confirm('Overwrite album file %s?' % filename)
+        overwrite = opts['overwrite'] or confirm(f'Overwrite album file {filename}?')
     if overwrite:
         with open(filename, 'w', encoding='utf-8') as album_file_json:
             json.dump(data, album_file_json, indent=4)
             album_file_json.write('\n')
-            print('saved %s' % album_file_json.name)
+            print(f'saved {album_file_json.name}')
 
 
 def confirm(question: str, default: bool = False) -> bool:
@@ -153,7 +155,7 @@ def confirm(question: str, default: bool = False) -> bool:
     else:
         defval = 'y/N'
     while True:
-        res = input('%s [%s] ' % (question, defval)).lower()
+        res = input(f'{question} [{defval}] ').lower()
         if not res:
             return default
         if res in ('y', 'yes'):

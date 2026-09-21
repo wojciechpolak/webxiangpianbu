@@ -16,6 +16,7 @@
 """
 
 from django.urls import re_path
+
 from webxiang import views
 
 urlpatterns = [

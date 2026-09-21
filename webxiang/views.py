@@ -41,10 +41,8 @@ def display(
 ) -> HttpResponse:
     if hasattr(settings, 'SITE_URL'):
         if not settings.SITE_URL.startswith('http'):
-            site_url = '%s://%s' % (
-                request.META.get('HTTP_X_SCHEME', 'http'),
-                settings.SITE_URL,
-            )
+            scheme = request.META.get('HTTP_X_SCHEME', 'http')
+            site_url = f'{scheme}://{settings.SITE_URL}'
         else:
             site_url = settings.SITE_URL
     else:
@@ -64,7 +62,7 @@ def display(
     )
     if not data:
         logger.error('Album not found: %s', album)
-        raise Http404('Album not found: %s' % album)
+        raise Http404(f'Album not found: {album}')
     if 'canonical_url' in data and data['canonical_url'] != request.path:
         return HttpResponsePermanentRedirect(data['canonical_url'])
 
@@ -86,7 +84,7 @@ def onephoto(request: HttpRequest, photo: str) -> HttpResponse:
     ctx: Album = {
         'meta': {
             'style': 'photo.css',
-            'copyright': '%s %s' % (year, getattr(settings, 'COPYRIGHT_OWNER', '')),
+            'copyright': f'{year} {getattr(settings, "COPYRIGHT_OWNER", "")}',
         },
         'entry': {
             'url': str(urljoin(baseurl, photo)),

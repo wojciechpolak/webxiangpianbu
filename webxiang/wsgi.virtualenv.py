@@ -1,3 +1,4 @@
+# ruff: noqa: N999 - deployment entry point, not an importable module
 """
 #  WebXiangpianbu Copyright (C) 2013, 2014 Wojciech Polak
 #
@@ -17,6 +18,7 @@
 
 import os
 import sys
+
 from django.core.wsgi import get_wsgi_application
 
 SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
@@ -25,7 +27,10 @@ if 'DJANGO_SETTINGS_MODULE' not in os.environ:
 
 activate_this = os.path.join(SITE_ROOT, '../bin/activate_this.py')
 with open(activate_this, 'rb') as fp:
-    exec(compile(fp.read(), activate_this, 'exec'), {'__file__': activate_this})
+    exec(  # noqa: S102 - virtualenv activation
+        compile(fp.read(), activate_this, 'exec'),
+        {'__file__': activate_this},
+    )
 
 sys.path.insert(0, os.path.join(SITE_ROOT, '../'))
 

@@ -31,14 +31,18 @@ def embed(entry: Entry) -> str:
     s = ''
     if entry['video']:
         if entry['type'] == 'youtube':
+            vid = cast(str, entry['vid'])
             s = (
-                '<div class="video"><iframe width="853" height="480" src="//www.youtube.com/embed/%s?rel=0" frameborder="0" allowfullscreen></iframe></div>'
-                % cast(str, entry['vid'])
+                '<div class="video"><iframe width="853" height="480" '
+                f'src="//www.youtube.com/embed/{vid}?rel=0" '
+                'frameborder="0" allowfullscreen></iframe></div>'
             )
         elif entry['type'] == 'vimeo':
+            vid = cast(str, entry['vid'])
             s = (
-                '<div class="video vimeo"><iframe width="854" height="480" src="//player.vimeo.com/video/%s" frameborder="0" allowfullscreen></iframe></div>'
-                % cast(str, entry['vid'])
+                '<div class="video vimeo"><iframe width="854" height="480" '
+                f'src="//player.vimeo.com/video/{vid}" '
+                'frameborder="0" allowfullscreen></iframe></div>'
             )
         elif entry['type'] == 'html5':
             poster_value = entry.get('poster')
