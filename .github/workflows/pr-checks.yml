@@ -37,12 +37,8 @@ jobs:
       - name: Install development dependencies
         run: uv sync --locked --group dev
 
-      - name: Prepare Django settings for CI
+      - name: Collect static files
         run: |
-          if [ ! -f webxiang/settings.py ]; then
-            cp webxiang/settings_sample.py webxiang/settings.py
-            sed -i "s/SECRET_KEY = os.getenv('WEBXIANG_SECRET_KEY', '')/SECRET_KEY = 'secret'/g" webxiang/settings.py
-          fi
           mkdir -p static
           uv run manage.py collectstatic --no-input
 

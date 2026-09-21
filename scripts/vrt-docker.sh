@@ -56,8 +56,6 @@ docker run --rm --init --ipc=host \
   -w /work \
   "$image" \
   bash -lc 'set -eu
-    python3 scripts/vrt-make-settings.py --site-root /work/webxiang --secret-key ci-secret-key --output /tmp/vrt_settings.py
-    export PYTHONPATH="/tmp:${PYTHONPATH:-}"
-    export DJANGO_SETTINGS_MODULE=vrt_settings
+    export DJANGO_SETTINGS_MODULE=webxiang.settings_ci
     uv run manage.py collectstatic --no-input >/dev/null
     exec "$@"' bash "$vrt_command" "$@"

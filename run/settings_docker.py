@@ -1,199 +1,39 @@
 """
 # Django settings for WebXiangpianbu project (DOCKER VERSION).
+
+Everything not overridden here comes from `webxiang.settings`, including
+the environment variables it reads (set WEBXIANG_SECRET_KEY).
 """
 
-import os
 from urllib.parse import urljoin
 
-SITE_ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../webxiang/')
-BASE_DIR = SITE_ROOT
+from webxiang.env import get_bool, get_env
+from webxiang.settings import *  # noqa: F401,F403
+from webxiang.settings import ALLOWED_HOSTS, ENV, PIPELINE
 
-DEBUG = os.getenv('APP_DEBUG') or False
+DEBUG = get_bool(ENV, 'DEBUG', 'APP_DEBUG', default=False)
 
-ALLOWED_HOSTS = [
-    os.getenv('VIRTUAL_HOST', ''),
-    'localhost',
-    'backend',
-]
+ALLOWED_HOSTS = [*ALLOWED_HOSTS, 'backend']
+if virtual_host := get_env(ENV, 'VIRTUAL_HOST'):
+    ALLOWED_HOSTS.append(virtual_host)
 
-ADMINS = (
-    ('Admin', 'example@example.org'),
-)
-MANAGERS = ADMINS
-
-TIME_ZONE = 'UTC'
-USE_TZ = True
-
-LANGUAGE_CODE = 'en-us'
-USE_I18N = True
-
-# Directories where Django looks for translation files.
-LOCALE_PATHS = (
-    os.path.join(SITE_ROOT, '../locale'),
-)
-
-# Caching, see https://docs.djangoproject.com/en/dev/topics/cache/#topics-cache
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
-        'LOCATION': 'memcached:11211',
+        'LOCATION': get_env(ENV, 'CACHE_LOCATION', default='memcached:11211'),
         'KEY_PREFIX': 'webxiang',
     },
 }
 
-# Make this unique, and don't share it with anybody.
-SECRET_KEY = 'YOUR-SECRET-KEY'
+VIRTUAL_PATH = get_env(ENV, 'VIRTUAL_PATH', default='/')
 
-if SECRET_KEY == 'YOUR-SECRET-KEY':
-    print('settings.SECRET_KEY must be long and unique!')
+STATIC_URL = VIRTUAL_PATH + 'static/'
+FORCE_SCRIPT_NAME = VIRTUAL_PATH
 
-MIDDLEWARE = [
-    'django.middleware.cache.UpdateCacheMiddleware',
-    'django.middleware.locale.LocaleMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.cache.FetchFromCacheMiddleware',
-]
-
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            os.path.join(SITE_ROOT, '../run/templates'),
-            os.path.join(SITE_ROOT, 'templates'),
-        ],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        },
-    },
-]
-
-ROOT_URLCONF = 'webxiang.urls'
-
-INSTALLED_APPS = (
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.staticfiles',
-    'django.contrib.sites',
-    'pipeline',
-    'webxiang',
+SITE_URL = get_env(ENV, 'SITE_URL', 'VIRTUAL_PATH', default='http://localhost:8080')
+WEBXIANG_PHOTOS_URL = get_env(
+    ENV, 'PHOTOS_BASE_URL', default=urljoin(SITE_URL, 'data/')
 )
 
-SITE_ID = 1
-
-STATIC_ROOT = os.path.abspath(os.path.join(SITE_ROOT, '../static'))
-STATIC_URL = os.getenv('VIRTUAL_PATH', '/') + 'static/'
-
-STORAGES = {
-    'staticfiles': {
-        'BACKEND': 'pipeline.storage.PipelineManifestStorage',
-    }
-}
-STATICFILES_FINDERS = (
-    'django.contrib.staticfiles.finders.FileSystemFinder',
-    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-    'pipeline.finders.PipelineFinder',
-)
-STATICFILES_DIRS = (
-    os.path.join(SITE_ROOT, '../run/static'),
-    os.path.join(SITE_ROOT, 'static'),
-)
-
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'simple': {
-            'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            'datefmt': '%Y-%m-%d %H:%M:%S',
-        },
-    },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
-    },
-    'loggers': {
-        'django.server': {
-            'handlers': ['console'],
-            'level': 'ERROR'
-        },
-        'main': {
-            'level': 'INFO',
-            'handlers': ['console'],
-            'propagate': False,
-        },
-    }
-}
-
-PIPELINE = {
-    'DISABLE_WRAPPER': True,
-    'JS_COMPRESSOR': None,
-    'CSS_COMPRESSOR': None,
-    'COMPILERS': ('pipeline.compilers.sass.SASSCompiler',),
-    'SASS_BINARY': 'pysassc',
-    'JAVASCRIPT': {
-        'gallery': {
-            'source_filenames': (
-                'js/jquery.min.js',
-                'js/gallery.js',
-            ),
-            'output_filename': 'js/gallery.js',
-        },
-    },
-    'STYLESHEETS': {
-        'base.css': {
-            'source_filenames': (
-                'css/base.css',
-            ),
-            'output_filename': 'css/base.css',
-        },
-        'light.css': {
-            'source_filenames': (
-                'css/light.css',
-            ),
-            'output_filename': 'css/light.css',
-        },
-        'photo.css': {
-            'source_filenames': (
-                'css/photo.css',
-            ),
-            'output_filename': 'css/photo.css',
-        },
-    },
-}
-
-#
-# WebXiangpianbu specific settings.
-#
-
-SITE_URL = os.getenv('VIRTUAL_PATH', 'http://localhost:8080')
-FORCE_SCRIPT_NAME = os.getenv('VIRTUAL_PATH', '/')
-
-WEBXIANG_PHOTOS_URL = os.getenv('PHOTOS_BASE_URL', urljoin(SITE_URL, 'data/'))
-
-# Absolute path to the directory containing photo files (JPEGs).
-WEBXIANG_PHOTOS_ROOT = '/app/run/data/'
-
-ALBUM_DIR = '/app/run/albums'
-
-COPYRIGHT_OWNER = 'Your Name'
-
-WXPB_SETTINGS = {
-    'geo_map_plugin': 'leaflet',  # leaflet, mapbox, google
-    'geo_leaflet_layers': {
-        'OpenStreetMap': {'id': 'osm.mapnik', 'is_default': True},
-        # 'Custom': {'id': 'MAPID', 'type': 'mapbox'}
-    },
-    # 'mapbox_accessToken': '',
-}
+PIPELINE['COMPILERS'] = ('pipeline.compilers.sass.SASSCompiler',)
+PIPELINE['SASS_BINARY'] = 'pysassc'

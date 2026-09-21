@@ -4,6 +4,7 @@
 *.mo
 *.iml
 .env*
+!.env.example
 .DS_Store
 .idea/
 .pytest_cache/
@@ -12,6 +13,8 @@ pip-selfcheck.json
 pyvenv.cfg
 venv*/
 settings.py
+!webxiang/settings.py
+webxiang/settings_local.py
 run/
 static/
 output-*

@@ -11,6 +11,8 @@ services:
     environment:
         - VIRTUAL_HOST=${VIRTUAL_HOST:-}
         - VIRTUAL_PATH=${VIRTUAL_PATH:-/}
+        - WEBXIANG_SECRET_KEY=${WEBXIANG_SECRET_KEY:-}
+        - APP_DEBUG=${APP_DEBUG:-0}
     depends_on:
         - memcached
   nginx:

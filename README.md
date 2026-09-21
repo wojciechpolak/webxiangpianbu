@@ -27,11 +27,26 @@ $ uv sync
 
 Next steps:
 
-1. Copy `webxiang/settings_sample.py` to `webxiang/settings.py`
-   and modify it to your needs.
+1. Optionally, copy `.env.example` to `.env` and adjust it. The
+   committed `webxiang/settings.py` reads its configuration from
+   environment variables and from `.env`; the defaults work for local
+   development. Outside `DEBUG` mode, set `WEBXIANG_SECRET_KEY`.
+   For anything the variables don't cover (custom map layers, extra
+   apps, and so on), create `webxiang/settings_local.py`. It runs at the
+   end of `webxiang/settings.py`, so it can override or modify any
+   setting. Both files are ignored by Git.
 2. Optionally, run `uv run manage.py compilemessages` (if you have
    `gettext` installed).
 3. uv run manage.py collectstatic
+
+Albums go in `run/albums` and photos in `run/data` (see `RUN_DIR`).
+Templates in `run/templates` (e.g. `user-menu.html`, `user-footer.html`)
+override the built-in ones.
+
+Upgrading from an older version: `webxiang/settings.py` used to be a
+local, untracked copy of `settings_sample.py`. Move your changes into
+`.env` or `webxiang/settings_local.py`, then delete that file before
+running `git pull`.
 
 Testing
 -------
@@ -84,9 +99,11 @@ Docker Deployment
 
 ```shell
 ./scripts/build-docker.sh
-# [adjust files in the `run` folder]
+# [set WEBXIANG_SECRET_KEY in `.env`, adjust files in the `run` folder]
 docker-compose up
 ```
+
+Docker uses `run/settings_docker.py`, a thin overlay on `webxiang.settings`.
 
 Tools
 -----
