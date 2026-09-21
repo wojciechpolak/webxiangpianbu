@@ -41,7 +41,22 @@ except ImportError:
     yaml = None
 
 
-def main():
+def parse_args(opts: dict[str, Any], argv: list[str]) -> None:
+    """Apply command line options to `opts`. Raises getopt.GetoptError."""
+    gopts, args = getopt.getopt(argv, 'y', ['overwrite='])
+    for o, _arg in gopts:
+        if o in ('-y', '--overwrite'):
+            opts['overwrite'] = True
+
+    if not args:
+        raise getopt.GetoptError('')
+    opts['input'] = glob.glob(args[0])
+    if len(args) > 1:
+        opts['output_dir'] = os.path.dirname(args[1])
+        opts['output_name'] = os.path.basename(args[1])
+
+
+def main(argv: list[str] | None = None) -> None:
     opts: dict[str, Any] = {
         'overwrite': False,
         'output_dir': '',
@@ -49,24 +64,7 @@ def main():
     }
 
     try:
-        gopts, args = getopt.getopt(
-            sys.argv[1:],
-            'y',
-            [
-                'overwrite=',
-            ],
-        )
-        for o, _arg in gopts:
-            if o in ('-y', '--overwrite'):
-                opts['overwrite'] = True
-
-        if len(args):
-            opts['input'] = glob.glob(args[0])
-        else:
-            raise getopt.GetoptError('')
-        if len(args) > 1:
-            opts['output_dir'] = os.path.dirname(args[1])
-            opts['output_name'] = os.path.basename(args[1])
+        parse_args(opts, sys.argv[1:] if argv is None else argv)
     except getopt.GetoptError:
         print('Usage: %s [OPTION...] INPUT OUTPUT' % sys.argv[0])
         print('%s -- album converter' % sys.argv[0])
@@ -76,17 +74,23 @@ def main():
 """)
         sys.exit(1)
 
-    if opts['output_dir'] and not os.path.exists(opts['output_dir']):
-        os.makedirs(opts['output_dir'])
+    if opts['output_dir']:
+        os.makedirs(opts['output_dir'], exist_ok=True)
 
     for name in opts['input']:
-        data = read_albumfile(name)
-        if data:
-            if name.endswith('.json'):
-                to_yaml(opts, name, data)
-            elif name.endswith('.yaml'):
-                to_json(opts, name, data)
+        convert_file(opts, name)
     print('done')
+
+
+def convert_file(opts: dict[str, Any], name: str) -> None:
+    """Write a JSON album file out as YAML, or a YAML one as JSON."""
+    data = read_albumfile(name)
+    if not data:
+        return
+    if name.endswith('.json'):
+        to_yaml(opts, name, data)
+    elif name.endswith('.yaml'):
+        to_json(opts, name, data)
 
 
 def read_albumfile(name: str) -> dict[str, Any] | None:

@@ -38,8 +38,15 @@ packages = ["webxiangpianbu"]
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true
+check_untyped_defs = true
 plugins = ["mypy_django_plugin.main"]
 exclude = '(?x)^(run/vrt-uv-cache/|run/vrt-venv/|run/vrt-home/)'
+
+# Application code must be fully annotated; tests may leave fixtures untyped.
+[[tool.mypy.overrides]]
+module = ["webxiang.*", "tools.*"]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
 
 [tool.django-stubs]
 django_settings_module = "webxiang.settings_ci"

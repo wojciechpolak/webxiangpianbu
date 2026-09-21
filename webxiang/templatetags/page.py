@@ -15,6 +15,8 @@
 #  with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from typing import Any
+
 from django import template
 from django.urls import get_urlconf
 from django.utils.translation import gettext as _
@@ -23,7 +25,9 @@ register = template.Library()
 
 
 @register.simple_tag(takes_context=True)
-def page(context, album_name: str, album_url: str, page_number: int) -> str:
+def page(
+    context: dict[str, Any], album_name: str, album_url: str, page_number: int
+) -> str:
     if get_urlconf() == 'webxiang.urls_static':
         if page_number > 1:
             # Translators: this is an URL

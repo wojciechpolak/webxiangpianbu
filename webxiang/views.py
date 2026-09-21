@@ -19,7 +19,13 @@ import logging
 from urllib.parse import urljoin
 
 from django.conf import settings
-from django.http import Http404, HttpResponsePermanentRedirect
+from django.http import (
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    HttpResponsePermanentRedirect,
+)
+from django.http.response import HttpResponseBase
 from django.shortcuts import render
 from django.template import TemplateDoesNotExist
 from django.views.static import serve as static_serve
@@ -30,7 +36,9 @@ from .typing import Album
 logger = logging.getLogger('main')
 
 
-def display(request, album='index', photo=None):
+def display(
+    request: HttpRequest, album: str = 'index', photo: str | None = None
+) -> HttpResponse:
     if hasattr(settings, 'SITE_URL'):
         if not settings.SITE_URL.startswith('http'):
             site_url = '%s://%s' % (
@@ -47,8 +55,8 @@ def display(request, album='index', photo=None):
     except ValueError:
         page = 1
 
-    is_mobile = 'Mobi' in request.META.get('HTTP_USER_AGENT', '') or request.GET.get(
-        'mobile'
+    is_mobile = 'Mobi' in request.META.get('HTTP_USER_AGENT', '') or bool(
+        request.GET.get('mobile')
     )
 
     data = webxiang.get_data(
@@ -70,7 +78,7 @@ def display(request, album='index', photo=None):
         return render(request, 'default.html', data)
 
 
-def onephoto(request, photo):
+def onephoto(request: HttpRequest, photo: str) -> HttpResponse:
     baseurl = settings.WEBXIANG_PHOTOS_URL
     year = photo[:4]
     if not year.isdigit():
@@ -87,5 +95,5 @@ def onephoto(request, photo):
     return render(request, 'photo.html', ctx)
 
 
-def media(request, path):
+def media(request: HttpRequest, path: str) -> HttpResponseBase:
     return static_serve(request, path, document_root=settings.WEBXIANG_PHOTOS_ROOT)

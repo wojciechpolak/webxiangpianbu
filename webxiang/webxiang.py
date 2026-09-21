@@ -20,8 +20,8 @@ import os
 import json
 from typing import Any, cast
 
-import math
 import logging
+from dataclasses import dataclass
 
 from urllib.parse import urljoin
 from itertools import zip_longest
@@ -31,7 +31,7 @@ from django.urls import reverse
 from django.core.cache import cache
 from django.core.paginator import Page, Paginator, InvalidPage, EmptyPage
 from .templatetags.page import page as page_url
-from .typing import Album, Entry, VideoSrc
+from .typing import Album, Entry, Image, MetaData, VideoSrc
 
 yaml: Any = None
 YamlLoader: Any = None
@@ -48,15 +48,65 @@ except ImportError:
 logger = logging.getLogger('main')
 
 
+@dataclass(frozen=True)
+class _Links:
+    """How URLs are built for one `get_data` call."""
+
+    album: str
+    baseurl: str
+    staticgen: bool
+    relative_links: bool
+
+    def photo(self, link: str | int) -> str:
+        if self.relative_links:
+            return reverse('photo_relative', kwargs={'photo': link}).replace('/', '')
+        return reverse('photo', kwargs={'album': self.album, 'photo': link})
+
+    def media_dir(self, path: str) -> str:
+        return self.baseurl if self.staticgen else urljoin(self.baseurl, path)
+
+
 def get_data(
     album: str,
-    photo=None,
-    page=1,
-    site_url=None,
-    is_mobile=False,
-    staticgen=False,
-    relative_links=False,
+    photo: str | None = None,
+    page: int = 1,
+    site_url: str | None = None,
+    is_mobile: bool = False,
+    staticgen: bool = False,
+    relative_links: bool = False,
 ) -> Album | None:
+    album_data = _open_albumfile(album)
+    if not album_data:
+        return None
+
+    data = _init_data(album, album_data, is_mobile)
+    meta = data['meta']
+    links = _Links(album, data['URL_PHOTOS'], staticgen, relative_links)
+
+    if photo and photo != 'geomap':
+        mode = 'photo'
+        path = _photo_context(data, links, photo)
+        if path is None:
+            return None
+    else:
+        mode = 'geomap' if photo == 'geomap' else 'album'
+        path = _album_context(data, links, page, geomap=mode == 'geomap')
+
+    if meta['style'] and not meta['style'].endswith('.css'):
+        meta['style'] += '.css'
+    meta['cover'] = _cover_url(meta['cover'], path, site_url)
+
+    ctx: Album = {
+        'mode': mode,
+        'album': album,
+    }
+    ctx.update(data)
+
+    return ctx
+
+
+def _init_data(album: str, album_data: Album, is_mobile: bool) -> Album:
+    """Album defaults merged with the album file, entries numbered from 1."""
     data: Album = {
         'STATIC_URL': getattr(settings, 'STATIC_URL', ''),
         'URL_PHOTOS': getattr(settings, 'WEBXIANG_PHOTOS_URL', 'data/'),
@@ -74,340 +124,258 @@ def get_data(
         },
         'entries': [],
     }
-
-    album_data = _open_albumfile(album)
-    if not album_data:
-        return None
-
-    data['meta'].update(album_data.get('meta', {}))
-    data['meta']['title_gallery'] = data['meta']['title'] or album
-    data['entries'] = album_data.get('entries', [])
+    meta = data['meta']
+    meta.update(album_data.get('meta', {}))
+    meta['title_gallery'] = meta['title'] or album
 
     # force mobile template
-    if data['meta']['template'] == 'story' and is_mobile:
-        data['meta']['template'] = 'floating'
-        data['meta']['thumbs_skip'] = False
+    if meta['template'] == 'story' and is_mobile:
+        meta['template'] = 'floating'
+        meta['thumbs_skip'] = False
 
-    baseurl = data['URL_PHOTOS']
-    meta_path = data['meta'].get('path', '')
-
-    # set a constant entry indexes
-    entries = cast(list[Entry], data['entries'])
-
+    entries = cast(list[Entry], album_data.get('entries', []))
     for i, entry in enumerate(entries, start=1):
         entry['index'] = i
-
-    reverse_order = bool(data['meta']['reverse_order'])
-    if reverse_order:
+    if meta['reverse_order']:
         entries = list(reversed(entries))
-        data['entries'] = entries
+    data['entries'] = entries
+    return data
 
-    if photo and photo != 'geomap':
-        mode = 'photo'
-        entries = cast(list[Entry], data['entries'])
-        lentries = len(entries)
 
-        photo_idx = photo.split('/')[0]
-        if photo_idx.isdigit():
-            photo_idx = int(photo_idx)
-            if photo_idx < 1 or photo_idx > lentries:
-                return None
-        else:
-            photo_idx = None
-            if not photo.lower().endswith('.jpg'):
-                photo += '.jpg'
-            for idx, ent in enumerate(entries):
-                if ent.get('image', None):
-                    image = ent['image']
-                    if isinstance(image, str):
-                        f = image
-                    else:
-                        f = image['file']
-                elif ent.get('video', None):
-                    video = ent['video']
-                    if isinstance(video, str):
-                        f = video
-                    elif isinstance(video, list):
-                        first_video = video[0]
-                        if isinstance(first_video, str):
-                            f = first_video
-                        else:
-                            f = first_video['src']
-                    else:
-                        continue
-                if photo == f:
-                    if reverse_order:
-                        photo_idx = lentries - idx
-                    else:
-                        photo_idx = idx + 1
-                    break
-            if photo_idx is None:
-                return None
+def _photo_context(data: Album, links: _Links, photo: str) -> str | None:
+    """Fill in a single photo page. Return the photo's directory URL, or
+    None when the album has no such photo."""
+    meta = data['meta']
+    entries = cast(list[Entry], data['entries'])
+    reverse_order = bool(meta['reverse_order'])
 
-        if reverse_order:
-            idx = lentries - photo_idx
-            data['meta']['title'] = '#%s - %s' % (
-                photo_idx,
-                data['meta']['title'] or album,
-            )
-            prev_idx = photo_idx + 1 if photo_idx < lentries else None
-            next_idx = photo_idx - 1 if photo_idx > 1 else None
-        else:
-            idx = photo_idx - 1
-            data['meta']['title'] = '#%s - %s' % (
-                photo_idx,
-                data['meta']['title'] or album,
-            )
-            prev_idx = photo_idx - 1 if photo_idx > 1 else None
-            next_idx = photo_idx + 1 if photo_idx < lentries else None
+    photo_idx = _find_photo_index(entries, photo, reverse_order)
+    if photo_idx is None:
+        return None
 
-        entry = data['entry'] = entries[idx]
-
-        # determine canonical photo url
-        canon_link = (
-            '%s/%s' % (photo_idx, entry['slug']) if 'slug' in entry else photo_idx
-        )
-        data['canonical_url'] = reverse(
-            'photo', kwargs={'album': album, 'photo': canon_link}
-        )
-
-        if prev_idx is not None:
-            if reverse_order:
-                slug = entries[idx - 1].get('slug')
-            else:
-                slug = entries[prev_idx - 1].get('slug')
-            prev_photo = '%s/%s' % (prev_idx, slug) if slug else prev_idx
-            if relative_links:
-                data['prev_entry'] = reverse(
-                    'photo_relative', kwargs={'photo': prev_photo}
-                ).replace('/', '')
-            else:
-                data['prev_entry'] = reverse(
-                    'photo', kwargs={'album': album, 'photo': prev_photo}
-                )
-        else:
-            data['prev_entry'] = None
-
-        if next_idx is not None:
-            if reverse_order:
-                slug = entries[idx + 1].get('slug')
-            else:
-                slug = entries[next_idx - 1].get('slug')
-            next_photo = '%s/%s' % (next_idx, slug) if slug else next_idx
-            if relative_links:
-                data['next_entry'] = reverse(
-                    'photo_relative', kwargs={'photo': next_photo}
-                ).replace('/', '')
-            else:
-                data['next_entry'] = reverse(
-                    'photo', kwargs={'album': album, 'photo': next_photo}
-                )
-        else:
-            data['next_entry'] = None
-
-        img = entry.get('image')
-        if isinstance(img, str):
-            f = img
-            path = meta_path
-            size = entry.get('size') or data['meta'].get('default_image_size')
-        elif img:
-            f = img['file']
-            path = img.get('path', meta_path)
-            size = img.get('size') or data['meta'].get('default_image_size')
-        else:  # video
-            _parse_video_entry(entry)
-            path = meta_path
-            f = size = ''
-
-        if staticgen:
-            path = baseurl
-        else:
-            path = urljoin(baseurl, path)
-        entry['url'] = urljoin(path, f)
-        entry['size'] = size
-
-        if reverse_order:
-            page = int(
-                math.floor((lentries - photo_idx) / float(data['meta']['ppp'])) + 1
-            )
-        else:
-            page = int(math.ceil(photo_idx / float(data['meta']['ppp'])))
-
-        entry['link'] = reverse('album', kwargs={'album': album})
-        if relative_links:
-            entry['link'] = 'index.html'
-
-        if page > 1:
-            entry['link'] += page_url({}, album, '', page)
-
-        data['meta']['description'] = entry.get('description', data['meta']['title'])
-        data['meta']['copyright'] = entry.get('copyright') or data['meta'].get(
-            'copyright'
-        )
-        data['meta']['copyright_link'] = entry.get('copyright_link') or data[
-            'meta'
-        ].get('copyright_link')
-
-        geo_points_map: dict[tuple[float, float], list[Entry]] = {}
-        if 'geo' in entry:
-            p = entry['geo']
-            if p not in geo_points_map:
-                geo_points_map[p] = []
-            if 'exif' in entry:
-                del entry['exif']
-            geo_points_map[p].append(entry)
-        geo_points = sorted(
-            [(k, v) for k, v in list(geo_points_map.items())],
-            key=lambda x: x[1][0]['index'],
-        )
-        wxpb_settings = getattr(settings, 'WXPB_SETTINGS', None) or {}
-        wxpb_settings.update(data.get('settings') or {})
-        wxpb_settings['geo_points'] = geo_points
-        data['wxpb_settings'] = json.dumps(wxpb_settings)
-
+    # position in the (possibly reversed) list and the step to the next photo
+    if reverse_order:
+        pos, step = len(entries) - photo_idx, -1
     else:
-        if photo == 'geomap':
-            mode = 'geomap'
-        else:
-            mode = 'album'
+        pos, step = photo_idx - 1, 1
 
-        if mode == 'geomap':
-            data['meta']['ppp'] = 500
+    meta['title'] = '#%s - %s' % (photo_idx, meta['title'] or links.album)
+    entry = data['entry'] = entries[pos]
 
-        prev_story = data['meta'].get('prev_story')
-        if prev_story:
-            if prev_story.startswith('/'):
-                data['prev_story'] = prev_story
-            else:
-                data['prev_story'] = reverse('album', kwargs={'album': prev_story})
+    # determine canonical photo url
+    canon_link = '%s/%s' % (photo_idx, entry['slug']) if 'slug' in entry else photo_idx
+    data['canonical_url'] = reverse(
+        'photo', kwargs={'album': links.album, 'photo': canon_link}
+    )
+    data['prev_entry'] = _nav_link(entries, pos - 1, photo_idx - step, links)
+    data['next_entry'] = _nav_link(entries, pos + 1, photo_idx + step, links)
 
-        next_story = data['meta'].get('next_story')
-        if next_story:
-            if next_story.startswith('/'):
-                data['next_story'] = next_story
-            else:
-                data['next_story'] = reverse('album', kwargs={'album': next_story})
+    path = _photo_media(entry, meta, links)
 
-        entries = cast(list[Entry], data['entries'])
-        paginator = Paginator(entries, data['meta']['ppp'])
-        try:
-            entries_paginated: Page[Entry] = paginator.page(page)
-        except (EmptyPage, InvalidPage):
-            entries_paginated = paginator.page(paginator.num_pages)
-            page = paginator.num_pages
-        data['entries'] = entries_paginated
+    entry['link'] = (
+        'index.html'
+        if links.relative_links
+        else reverse('album', kwargs={'album': links.album})
+    )
+    page = pos // int(meta['ppp']) + 1
+    if page > 1:
+        entry['link'] += page_url({}, links.album, '', page)
 
-        # use a limited page range
-        pg_range = 6
-        x_page_range = paginator.page_range
-        page_range = range(x_page_range[0], x_page_range[-1] + 1)
-        cindex = page_range.index(page)
-        cmin, cmax = cindex - pg_range, cindex + pg_range
-        if cmin < 0:
-            cmin = 0
-        cast(Any, paginator).page_range_limited = page_range[cmin:cmax]
+    meta['description'] = entry.get('description', meta['title'])
+    meta['copyright'] = entry.get('copyright') or meta.get('copyright')
+    meta['copyright_link'] = entry.get('copyright_link') or meta.get('copyright_link')
 
-        for i, entry in enumerate(entries_paginated.object_list):
-            img = entry.get('image')
-            path = data['meta'].get('path', meta_path)
-            path = urljoin(baseurl, path)
-            if isinstance(img, str):
-                entry['url_full'] = urljoin(path, img)
-            elif img:
-                entry['url_full'] = urljoin(path, img['file'])
+    data['wxpb_settings'] = _wxpb_settings(data, [entry])
+    return path
 
-            if data['meta'].get('thumbs_skip'):
-                img = entry.get('image')
-                path = data['meta'].get('path', meta_path)
-                item_type = 'image'
-            else:
-                img = entry.get('thumb', entry.get('image'))
-                path = data['meta'].get('path_thumb', meta_path)
-                item_type = 'thumb'
 
-            if img:
-                size_key: str = 'default_%s_size' % item_type
-                if isinstance(img, str):
-                    f = img
-                    entry['size'] = data['meta'].get(size_key)
-                else:
-                    f = img['file']
-                    path = img.get('path', data['meta'].get('path_thumb', meta_path))
-                    entry['size'] = img.get('size', data['meta'].get(size_key))
+def _find_photo_index(
+    entries: list[Entry], photo: str, reverse_order: bool
+) -> int | None:
+    """The 1-based index of the photo addressed by number or by filename."""
+    lentries = len(entries)
+    number = photo.split('/')[0]
+    if number.isdigit():
+        photo_idx = int(number)
+        return photo_idx if 1 <= photo_idx <= lentries else None
 
-                if staticgen:
-                    path = baseurl
-                else:
-                    path = urljoin(baseurl, path)
-                entry['url'] = urljoin(path, f)
+    if not photo.lower().endswith('.jpg'):
+        photo += '.jpg'
+    for pos, entry in enumerate(entries):
+        if _entry_filename(entry) == photo:
+            return lentries - pos if reverse_order else pos + 1
+    return None
 
-                if 'link' in entry:
-                    pass
-                elif 'album' in entry:
-                    entry['link'] = reverse('album', kwargs={'album': entry['album']})
-                else:
-                    slug = entry.get('slug')
-                    link = '%s/%s' % (entry['index'], slug) if slug else entry['index']
-                    if relative_links:
-                        entry['link'] = reverse(
-                            'photo_relative', kwargs={'photo': link}
-                        ).replace('/', '')
-                    else:
-                        entry['link'] = reverse(
-                            'photo', kwargs={'album': album, 'photo': link}
-                        )
 
-            else:  # non-image entries
-                path = urljoin(baseurl, meta_path)
-                _parse_video_entry(entry)
+def _entry_filename(entry: Entry) -> str | None:
+    """The image file, or the first video source, of an entry."""
+    image = entry.get('image')
+    if image:
+        return image if isinstance(image, str) else image['file']
+    video = entry.get('video')
+    if isinstance(video, str):
+        return video
+    if isinstance(video, list) and video:
+        first = video[0]
+        return first if isinstance(first, str) else first['src']
+    return None
 
-        # grouping entries into columns
-        columns = int(data['meta'].get('columns', 3))
-        if columns:
-            data['groups'] = (
-                (e for e in t if e is not None)
-                for t in zip_longest(*(iter(entries_paginated.object_list),) * columns)
-            )
 
-        # set up geo points
-        if mode == 'geomap':
-            geomap_points_map: dict[tuple[float, float], list[Entry]] = {}
-            for entry in entries_paginated.object_list:
-                if 'geo' in entry:
-                    p = entry['geo']
-                    if p not in geomap_points_map:
-                        geomap_points_map[p] = []
-                    if 'exif' in entry:
-                        del entry['exif']
-                    geomap_points_map[p].append(entry)
-            geo_points = sorted(
-                [(k, v) for k, v in list(geomap_points_map.items())],
-                key=lambda x: x[1][0]['index'],
-            )
-            wxpb_settings = getattr(settings, 'WXPB_SETTINGS', None) or {}
-            wxpb_settings.update(data.get('settings') or {})
-            wxpb_settings['geo_points'] = geo_points
-            data['wxpb_settings'] = json.dumps(wxpb_settings)
-            del data['entries']
+def _nav_link(entries: list[Entry], pos: int, number: int, links: _Links) -> str | None:
+    """Link to the photo at `pos`, shown as `number`; None past either end."""
+    if not 0 <= pos < len(entries):
+        return None
+    slug = entries[pos].get('slug')
+    return links.photo('%s/%s' % (number, slug) if slug else number)
 
-    if data['meta']['style'] and not data['meta']['style'].endswith('.css'):
-        data['meta']['style'] += '.css'
 
-    # handle cover's URL
-    cover = data['meta']['cover']
+def _photo_media(entry: Entry, meta: MetaData, links: _Links) -> str:
+    """Set the photo's URL and size. Return its directory URL."""
+    meta_path = meta.get('path', '')
+    img = entry.get('image')
+    size: tuple[int, int] | str | None
+    if isinstance(img, str):
+        f = img
+        path = meta_path
+        size = entry.get('size') or meta.get('default_image_size')
+    elif img:
+        f = img['file']
+        path = img.get('path', meta_path)
+        size = img.get('size') or meta.get('default_image_size')
+    else:  # video
+        _parse_video_entry(entry)
+        path = meta_path
+        f = size = ''
+
+    path = links.media_dir(path)
+    entry['url'] = urljoin(path, f)
+    entry['size'] = size
+    return path
+
+
+def _album_context(data: Album, links: _Links, page: int, geomap: bool) -> str:
+    """Fill in an album (or geomap) page. Return the directory URL of the
+    last entry's thumbnail, which a relative cover is resolved against."""
+    meta = data['meta']
+    if geomap:
+        meta['ppp'] = 500
+
+    if meta.get('prev_story'):
+        data['prev_story'] = _story_link(meta['prev_story'])
+    if meta.get('next_story'):
+        data['next_story'] = _story_link(meta['next_story'])
+
+    entries_paginated = _paginate(cast(list[Entry], data['entries']), meta['ppp'], page)
+    data['entries'] = entries_paginated
+
+    path = urljoin(links.baseurl, meta.get('path', ''))
+    for entry in entries_paginated.object_list:
+        path = _album_entry(entry, meta, links)
+
+    # grouping entries into columns
+    columns = int(meta.get('columns', 3))
+    if columns:
+        data['groups'] = (
+            (e for e in t if e is not None)
+            for t in zip_longest(*(iter(entries_paginated.object_list),) * columns)
+        )
+
+    if geomap:
+        data['wxpb_settings'] = _wxpb_settings(
+            data, list(entries_paginated.object_list)
+        )
+        del data['entries']
+    return path
+
+
+def _story_link(story: str) -> str:
+    return story if story.startswith('/') else reverse('album', kwargs={'album': story})
+
+
+def _paginate(entries: list[Entry], ppp: int, page: int) -> Page[Entry]:
+    """The requested page (the last one if it is out of range), with a
+    `page_range_limited` of up to six pages either side on its paginator."""
+    paginator = Paginator(entries, ppp)
+    try:
+        entries_paginated: Page[Entry] = paginator.page(page)
+    except (EmptyPage, InvalidPage):
+        entries_paginated = paginator.page(paginator.num_pages)
+
+    pg_range = 6
+    cindex = entries_paginated.number - 1
+    page_range = range(1, paginator.num_pages + 1)
+    cast(Any, paginator).page_range_limited = page_range[
+        max(cindex - pg_range, 0) : cindex + pg_range
+    ]
+    return entries_paginated
+
+
+def _album_entry(entry: Entry, meta: MetaData, links: _Links) -> str:
+    """Set an album entry's full-size URL, thumbnail URL and size, and link.
+    Return the thumbnail's directory URL."""
+    meta_path = meta.get('path', '')
+    img: str | Image | None = entry.get('image')
+    if img:
+        f = img if isinstance(img, str) else img['file']
+        entry['url_full'] = urljoin(urljoin(links.baseurl, meta_path), f)
+
+    if meta.get('thumbs_skip'):
+        img = entry.get('image')
+        path = meta_path
+        item_type = 'image'
+    else:
+        img = entry.get('thumb', entry.get('image'))
+        path = meta.get('path_thumb', meta_path)
+        item_type = 'thumb'
+
+    if not img:  # non-image entries
+        _parse_video_entry(entry)
+        return urljoin(links.baseurl, meta_path)
+
+    size_key = 'default_%s_size' % item_type
+    if isinstance(img, str):
+        f = img
+        entry['size'] = cast(Any, meta).get(size_key)
+    else:
+        f = img['file']
+        path = img.get('path', meta.get('path_thumb', meta_path))
+        entry['size'] = img.get('size', cast(Any, meta).get(size_key))
+
+    path = links.media_dir(path)
+    entry['url'] = urljoin(path, f)
+    if 'link' not in entry:
+        entry['link'] = _album_entry_link(entry, links)
+    return path
+
+
+def _album_entry_link(entry: Entry, links: _Links) -> str:
+    if 'album' in entry:
+        return reverse('album', kwargs={'album': entry['album']})
+    slug = entry.get('slug')
+    return links.photo('%s/%s' % (entry['index'], slug) if slug else entry['index'])
+
+
+def _wxpb_settings(data: Album, entries: list[Entry]) -> str:
+    """Map plugin settings as JSON, with the entries grouped by GPS point."""
+    geo_points_map: dict[tuple[float, float], list[Entry]] = {}
+    for entry in entries:
+        if 'geo' in entry:
+            entry.pop('exif', None)
+            geo_points_map.setdefault(entry['geo'], []).append(entry)
+    geo_points = sorted(geo_points_map.items(), key=lambda x: x[1][0]['index'])
+
+    wxpb_settings = dict(getattr(settings, 'WXPB_SETTINGS', None) or {})
+    wxpb_settings.update(data.get('settings') or {})
+    wxpb_settings['geo_points'] = geo_points
+    return json.dumps(wxpb_settings)
+
+
+def _cover_url(cover: str | None, path: str, site_url: str | None) -> str | None:
     if cover and not cover.startswith('/'):
         cover = urljoin(path, cover)
     if cover and site_url:
         cover = urljoin(site_url, cover)
-    data['meta']['cover'] = cover
-
-    ctx: Album = {
-        'mode': mode,
-        'album': album,
-    }
-    ctx.update(data)
-
-    return ctx
+    return cover
 
 
 def _parse_video_entry(entry: Entry) -> None:
@@ -440,17 +408,19 @@ def _parse_video_entry(entry: Entry) -> None:
             entry['vid'] = vid
 
 
+_MIME_TYPES = {
+    '.mp4': 'video/mp4',
+    '.webm': 'video/webm',
+    '.ogg': 'video/ogg',
+    '.mov': 'video/quicktime',
+}
+
+
 def _get_mtype(video: str) -> str:
-    mtype = 'video'
-    if video.endswith('.mp4'):
-        mtype = 'video/mp4'
-    elif video.endswith('.webm'):
-        mtype = 'video/webm'
-    elif video.endswith('.ogg'):
-        mtype = 'video/ogg'
-    elif video.endswith('.mov'):
-        mtype = 'video/quicktime'
-    return mtype
+    for ext, mtype in _MIME_TYPES.items():
+        if video.endswith(ext):
+            return mtype
+    return 'video'
 
 
 def _open_albumfile(album_name: str) -> Album | None:

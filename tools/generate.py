@@ -23,7 +23,7 @@ import sys
 import json
 import getopt
 from datetime import date
-from typing import Any
+from typing import Any, Callable
 
 import yaml
 
@@ -36,117 +36,31 @@ from PIL import ImageFile
 OrderedDict: Any = _OrderedDict
 
 
-def main():
-    opts: dict[str, Any] = {
-        'album_name': None,
-        'album_dir': None,
-        'album_format': 'yaml',
-        'path': '',
-        'copyright': '',
-        'template': 'default',
-        'style': 'base.css',
-        'ppp': 12,  # pictures per page
-        'images_format': 'JPEG',
-        'images_quality': 95,
-        'images_maxsize': [900, 640],
-        'images_sharpness': 1.4,
-        'thumbs_skip': False,
-        'thumbs_quality': 90,
-        'thumbs_size': [180, 180],
-        'show_geo': True,
-        'correct_orientation': True,
-        'skip_image_gen': False,
-        'skip_thumb_gen': False,
-    }
+LONG_OPTIONS = [
+    'help',
+    'album-name=',
+    'album-dir=',
+    'album-format=',
+    'path=',
+    'copyright=',
+    'template=',
+    'style=',
+    'ppp=',
+    'images-format=',
+    'images-quality=',
+    'images-sharpness=',
+    'images-maxsize=',
+    'images-default-size=',
+    'thumbs-skip',
+    'thumbs-quality=',
+    'thumbs-size=',
+    'show-geo=',
+    'correct-orientation=',
+    'skip-image-gen',
+    'skip-thumb-gen',
+]
 
-    try:
-        gopts, args = getopt.getopt(
-            sys.argv[1:],
-            '',
-            [
-                'help',
-                'album-name=',
-                'album-dir=',
-                'album-format=',
-                'path=',
-                'copyright=',
-                'template=',
-                'style=',
-                'ppp=',
-                'images-format=',
-                'images-quality=',
-                'images-sharpness=',
-                'images-maxsize=',
-                'images-default-size=',
-                'thumbs-skip',
-                'thumbs-quality=',
-                'thumbs-size=',
-                'show-geo=',
-                'correct-orientation=',
-                'skip-image-gen',
-                'skip-thumb-gen',
-            ],
-        )
-        for o, arg in gopts:
-            if o == '--help':
-                raise getopt.GetoptError('')
-            if o == '--album-name':
-                opts['album_name'] = arg
-            elif o == '--album-dir':
-                opts['album_dir'] = arg
-            elif o == '--album-format':
-                opts['album_format'] = arg.lower()
-            elif o == '--path':
-                opts['path'] = arg
-            elif o == '--copyright':
-                opts['copyright'] = arg
-            elif o == '--template':
-                opts['template'] = arg
-            elif o == '--style':
-                opts['style'] = arg
-            elif o == '--ppp':
-                opts['ppp'] = int(arg)
-            elif o == '--show-geo':
-                opts['show_geo'] = bool(int(arg))
-            elif o == '--correct-orientation':
-                opts['correct_orientation'] = bool(int(arg))
-
-            elif o == '--images-format':
-                opts['images_format'] = arg
-            elif o in ('-q', '--images-quality'):
-                opts['images_quality'] = int(arg)
-            elif o == '--images-sharpness':
-                opts['images_sharpness'] = float(arg)
-            elif o == '--images-maxsize':
-                s = arg.split('x')
-                opts['images_maxsize'] = [int(s[0]), int(s[1])]
-            elif o == '--images-default-size':
-                s = arg.split('x')
-                opts['default_image_size'] = [int(s[0]), int(s[1])]
-
-            elif o == '--thumbs-skip':
-                opts['thumbs_skip'] = True
-            elif o == '--thumbs-quality':
-                opts['thumbs_quality'] = int(arg)
-            elif o == '--thumbs-size':
-                s = arg.split('x')
-                opts['thumbs_size'] = int(s[0]), int(s[1])
-
-            elif o == '--skip-image-gen':
-                opts['skip_image_gen'] = True
-            elif o == '--skip-thumb-gen':
-                opts['skip_thumb_gen'] = True
-
-        if len(args):
-            opts['inputdir'] = args[0]
-            opts['outputdir'] = args[1]
-        else:
-            raise getopt.GetoptError('')
-    except getopt.GetoptError:
-        print('Usage: %s [OPTION...] INPUT-DIR OUTPUT-DIR' % sys.argv[0])
-        print('%s -- album generator' % sys.argv[0])
-        print(
-            """
+USAGE = """
  Options                      Default values
  --album-name=STRING          [output dir's name]
  --album-dir=STRING           [output dir]
@@ -169,52 +83,93 @@ def main():
  --skip-image-gen             [%(skip_image_gen)s]
  --skip-thumb-gen             [%(skip_thumb_gen)s]
 """
-            % opts
-        )
-        sys.exit(1)
 
-    if not os.path.exists(opts['outputdir']):
-        os.makedirs(opts['outputdir'])
 
-    album: dict[str, Any] = {
-        'meta': {
-            'path': opts['path'],
-            'title': '',
-            'ppp': opts['ppp'],
-            'columns': 4,
-            'template': opts['template'],
-            'thumbs_skip': opts['thumbs_skip'],
-            'style': opts['style'],
-            'copyright': '%s' % date.today().year,
-            'geo': opts['show_geo'],
-            'default_image_size': [],
-            'default_thumb_size': opts['thumbs_size'],
-        },
-        'entries': [],
+def default_opts() -> dict[str, Any]:
+    return {
+        'album_name': None,
+        'album_dir': None,
+        'album_format': 'yaml',
+        'path': '',
+        'copyright': '',
+        'template': 'default',
+        'style': 'base.css',
+        'ppp': 12,  # pictures per page
+        'images_format': 'JPEG',
+        'images_quality': 95,
+        'images_maxsize': [900, 640],
+        'images_sharpness': 1.4,
+        'thumbs_skip': False,
+        'thumbs_quality': 90,
+        'thumbs_size': [180, 180],
+        'show_geo': True,
+        'correct_orientation': True,
+        'skip_image_gen': False,
+        'skip_thumb_gen': False,
     }
 
-    if opts['copyright']:
-        album['meta']['copyright'] = opts['copyright']
-    if opts['template'] == 'story':
-        album['meta']['thumbs_skip'] = True
-    if 'default_image_size' in opts:
-        album['meta']['default_image_size'] = opts['default_image_size']
 
-    if opts['inputdir'].endswith('.in'):
-        with open(opts['inputdir'], encoding='utf-8') as fp:
-            data = fp.readlines()
-        opts['inputdir'] = data[0].strip()  # first line points directory
-        files = []
-        for line in data[1:]:
-            line = line.split('#')[0].strip()
-            if line:
-                files.append(line)
-    else:
-        files = os.listdir(opts['inputdir'])
-        files.sort()
+def _size(arg: str) -> list[int]:
+    """'WxH' as [W, H]."""
+    s = arg.split('x')
+    return [int(s[0]), int(s[1])]
 
+
+# option -> (opts key, argument converter)
+OPTIONS: dict[str, tuple[str, Callable[[str], Any]]] = {
+    '--album-name': ('album_name', str),
+    '--album-dir': ('album_dir', str),
+    '--album-format': ('album_format', str.lower),
+    '--path': ('path', str),
+    '--copyright': ('copyright', str),
+    '--template': ('template', str),
+    '--style': ('style', str),
+    '--ppp': ('ppp', int),
+    '--show-geo': ('show_geo', lambda arg: bool(int(arg))),
+    '--correct-orientation': ('correct_orientation', lambda arg: bool(int(arg))),
+    '--images-format': ('images_format', str),
+    '--images-quality': ('images_quality', int),
+    '--images-sharpness': ('images_sharpness', float),
+    '--images-maxsize': ('images_maxsize', _size),
+    '--images-default-size': ('default_image_size', _size),
+    '--thumbs-skip': ('thumbs_skip', lambda arg: True),
+    '--thumbs-quality': ('thumbs_quality', int),
+    '--thumbs-size': ('thumbs_size', lambda arg: tuple(_size(arg))),
+    '--skip-image-gen': ('skip_image_gen', lambda arg: True),
+    '--skip-thumb-gen': ('skip_thumb_gen', lambda arg: True),
+}
+
+
+def parse_args(opts: dict[str, Any], argv: list[str]) -> None:
+    """Apply command line options to `opts`. Raises getopt.GetoptError."""
+    gopts, args = getopt.getopt(argv, '', LONG_OPTIONS)
+    for o, arg in gopts:
+        if o == '--help':
+            raise getopt.GetoptError('')
+        key, convert = OPTIONS[o]
+        opts[key] = convert(arg)
+
+    if len(args) < 2:
+        raise getopt.GetoptError('')
+    opts['inputdir'] = args[0]
+    opts['outputdir'] = args[1]
+
+
+def main(argv: list[str] | None = None) -> None:
+    opts = default_opts()
+    try:
+        parse_args(opts, sys.argv[1:] if argv is None else argv)
+    except getopt.GetoptError:
+        print('Usage: %s [OPTION...] INPUT-DIR OUTPUT-DIR' % sys.argv[0])
+        print('%s -- album generator' % sys.argv[0])
+        print(USAGE % opts)
+        sys.exit(1)
+
+    os.makedirs(opts['outputdir'], exist_ok=True)
+
+    album = new_album(opts)
     opts['idx'] = 1
-    for fname in files:
+    for fname in list_input_files(opts):
         if fname.lower().endswith('.jpg') or fname.lower().endswith('.jpeg'):
             process_image(opts, album, fname)
             opts['idx'] += 1
@@ -222,55 +177,84 @@ def main():
     album_name = (
         opts['album_name'] or os.path.basename(opts['outputdir'].rstrip('/')) or 'foo'
     )
-
     album_dir = opts['album_dir'] or opts['outputdir']
 
     if opts['album_format'] in ('json', 'all'):
-        # output json
-        filename = os.path.normpath('%s/%s.json' % (album_dir, album_name))
-        overwrite = True
-        if os.path.exists(filename):
-            overwrite = confirm('Overwrite album file %s?' % filename)
-        if overwrite:
-            with open(filename, 'w', encoding='utf-8') as album_file_json:
-                json.dump(album, album_file_json, indent=4)
-                album_file_json.write('\n')
-                print('saved %s' % album_file_json.name)
-
+        write_json(os.path.normpath('%s/%s.json' % (album_dir, album_name)), album)
     if opts['album_format'] in ('yaml', 'all'):
-        # output yaml
-        filename = os.path.normpath('%s/%s.yaml' % (album_dir, album_name))
-        overwrite = True
-        if os.path.exists(filename):
-            overwrite = confirm('Overwrite album file %s?' % filename)
-        if overwrite:
-            if OrderedDict:
-
-                def order_rep(dumper, data):
-                    return dumper.represent_mapping(
-                        'tag:yaml.org,2002:map', list(data.items()), flow_style=False
-                    )
-
-                yaml.add_representer(OrderedDict, order_rep)
-                album = OrderedDict(
-                    {
-                        'meta': album['meta'],
-                        'entries': album['entries'],
-                    }
-                )
-
-            with open(filename, 'w', encoding='utf-8') as album_file_yaml:
-                yaml.dump(
-                    album,
-                    album_file_yaml,
-                    encoding='utf-8',
-                    default_flow_style=None,
-                    indent=4,
-                    width=70,
-                )
-                print('saved %s' % album_file_yaml.name)
+        write_yaml(os.path.normpath('%s/%s.yaml' % (album_dir, album_name)), album)
 
     print('done')
+
+
+def new_album(opts: dict[str, Any]) -> dict[str, Any]:
+    """An album with no entries yet, its meta taken from the options."""
+    meta = {
+        'path': opts['path'],
+        'title': '',
+        'ppp': opts['ppp'],
+        'columns': 4,
+        'template': opts['template'],
+        'thumbs_skip': opts['thumbs_skip'] or opts['template'] == 'story',
+        'style': opts['style'],
+        'copyright': opts['copyright'] or '%s' % date.today().year,
+        'geo': opts['show_geo'],
+        'default_image_size': opts.get('default_image_size', []),
+        'default_thumb_size': opts['thumbs_size'],
+    }
+    return {'meta': meta, 'entries': []}
+
+
+def list_input_files(opts: dict[str, Any]) -> list[str]:
+    """Files in the input directory, sorted. An input ending in `.in` is a
+    list file instead: its first line names the directory, the other lines
+    the files (`#` starts a comment). `opts['inputdir']` is updated then."""
+    if not opts['inputdir'].endswith('.in'):
+        return sorted(os.listdir(opts['inputdir']))
+
+    with open(opts['inputdir'], encoding='utf-8') as fp:
+        data = fp.readlines()
+    opts['inputdir'] = data[0].strip()  # first line points directory
+    files = (line.split('#')[0].strip() for line in data[1:])
+    return [line for line in files if line]
+
+
+def _may_write(filename: str) -> bool:
+    return not os.path.exists(filename) or confirm(
+        'Overwrite album file %s?' % filename
+    )
+
+
+def write_json(filename: str, album: dict[str, Any]) -> None:
+    if not _may_write(filename):
+        return
+    with open(filename, 'w', encoding='utf-8') as album_file_json:
+        json.dump(album, album_file_json, indent=4)
+        album_file_json.write('\n')
+        print('saved %s' % album_file_json.name)
+
+
+def _represent_ordered(dumper: yaml.Dumper, data: dict[str, Any]) -> yaml.Node:
+    return dumper.represent_mapping(
+        'tag:yaml.org,2002:map', list(data.items()), flow_style=False
+    )
+
+
+def write_yaml(filename: str, album: dict[str, Any]) -> None:
+    if not _may_write(filename):
+        return
+    yaml.add_representer(OrderedDict, _represent_ordered)
+    ordered = OrderedDict({'meta': album['meta'], 'entries': album['entries']})
+    with open(filename, 'w', encoding='utf-8') as album_file_yaml:
+        yaml.dump(
+            ordered,
+            album_file_yaml,
+            encoding='utf-8',
+            default_flow_style=None,
+            indent=4,
+            width=70,
+        )
+        print('saved %s' % album_file_yaml.name)
 
 
 exif_tags = {
@@ -287,8 +271,11 @@ exif_tags = {
     'Model': lambda v: v,
 }
 
+# EXIF Orientation value -> rotation that makes the image upright
+ORIENTATION_ROTATION = {3: 180, 6: 270, 8: 90}
 
-def process_image(opts: dict[str, Any], album: dict[str, Any], fname: str):
+
+def process_image(opts: dict[str, Any], album: dict[str, Any], fname: str) -> None:
     img: Any = Image.open(os.path.join(opts['inputdir'], fname))
 
     # lower case for file suffix
@@ -296,7 +283,7 @@ def process_image(opts: dict[str, Any], album: dict[str, Any], fname: str):
     suffix = 'webp' if opts['images_format'] == 'WEBP' else 'jpg'
     fname = '%s.%s' % (''.join(fn[0:-1]), suffix)
 
-    data = OrderedDict() if OrderedDict else {}
+    data = OrderedDict()
     data['idx'] = opts['idx']
     data['image'] = fname
 
@@ -306,36 +293,9 @@ def process_image(opts: dict[str, Any], album: dict[str, Any], fname: str):
     if not opts['thumbs_skip']:
         data['thumb'] = gen_thumbnails(opts, img, fname)
 
-    try:
-        exif_getter = getattr(img, '_getexif', None)
-        exif = exif_getter() if exif_getter else None
-    except Exception:
-        exif = None
-
-    gps_data = {}
-    exif_data = {}
-    exif_accepted = set(exif_tags.keys())
-
-    if exif is not None:
-        for tag, value in list(exif.items()):
-            decoded = ExifTags.TAGS.get(tag, tag)
-            if decoded in exif_accepted:
-                exif_data[decoded] = value
-            elif decoded == 'Orientation':
-                if opts['correct_orientation']:
-                    if value == 3:
-                        img = img.rotate(180)
-                    if value == 6:
-                        img = img.rotate(270)
-                    if value == 8:
-                        img = img.rotate(90)
-            elif decoded == 'GPSInfo':
-                for t in value:
-                    sub_decoded = ExifTags.GPSTAGS.get(t, t)
-                    gps_data[sub_decoded] = value[t]
-
-    for k, v in list(exif_data.items()):
-        exif_data[k] = str(exif_tags[k](v)).strip()
+    exif_data, gps_data, orientation = parse_exif(read_exif(img))
+    if opts['correct_orientation'] and orientation in ORIENTATION_ROTATION:
+        img = img.rotate(ORIENTATION_ROTATION[orientation])
 
     lat, lng = get_latlng(gps_data)
     if lat and lng:
@@ -357,20 +317,52 @@ def process_image(opts: dict[str, Any], album: dict[str, Any], fname: str):
         return
 
     if not opts['skip_image_gen']:
-        if opts['images_sharpness']:
-            sharpener = ImageEnhance.Sharpness(img)
-            img = sharpener.enhance(opts['images_sharpness'])
+        save_image(opts, img, output_fname)
 
-        setattr(ImageFile, 'MAXBLOCK', img.size[0] * img.size[1])
-        img.save(
-            output_fname,
-            opts['images_format'],
-            optimize=True,
-            quality=opts['images_quality'],
-            progressive=False,
-        )
 
-        print('saved %s' % output_fname)
+def read_exif(img: Any) -> dict[int, Any] | None:
+    try:
+        exif_getter = getattr(img, '_getexif', None)
+        return exif_getter() if exif_getter else None
+    except Exception:
+        return None
+
+
+def parse_exif(
+    exif: dict[int, Any] | None,
+) -> tuple[dict[str, str], dict[str, Any], Any]:
+    """The accepted EXIF tags formatted for display, the GPS tags, and the
+    Orientation value."""
+    exif_data: dict[str, str] = {}
+    gps_data: dict[str, Any] = {}
+    orientation = None
+    for tag, value in (exif or {}).items():
+        decoded = ExifTags.TAGS.get(tag, str(tag))
+        if decoded in exif_tags:
+            exif_data[decoded] = str(exif_tags[decoded](value)).strip()
+        elif decoded == 'Orientation':
+            orientation = value
+        elif decoded == 'GPSInfo':
+            for t in value:
+                gps_data[ExifTags.GPSTAGS.get(t, t)] = value[t]
+    return exif_data, gps_data, orientation
+
+
+def save_image(opts: dict[str, Any], img: Any, output_fname: str) -> None:
+    if opts['images_sharpness']:
+        sharpener = ImageEnhance.Sharpness(img)
+        img = sharpener.enhance(opts['images_sharpness'])
+
+    setattr(ImageFile, 'MAXBLOCK', img.size[0] * img.size[1])
+    img.save(
+        output_fname,
+        opts['images_format'],
+        optimize=True,
+        quality=opts['images_quality'],
+        progressive=False,
+    )
+
+    print('saved %s' % output_fname)
 
 
 def gen_thumbnails(opts: dict[str, Any], img_blob: Any, fname: str) -> str:

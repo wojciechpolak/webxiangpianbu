@@ -26,7 +26,7 @@ import shutil
 import signal
 from datetime import datetime
 from urllib.parse import urljoin
-from typing import Any, cast
+from typing import Any, Callable, NoReturn, cast
 
 import http.server
 import socketserver
@@ -46,14 +46,45 @@ sys.path.insert(0, os.path.join(SITE_ROOT, '../'))
 if hasattr(django, 'setup'):
     django.setup()
 from webxiang import webxiang  # noqa: E402
-from webxiang.typing import Entry  # noqa: E402
+from webxiang.typing import Album, Entry  # noqa: E402
 
-__generated = set()
-__items_no = 0
+LONG_OPTIONS = [
+    'help',
+    'verbose=',
+    'lang=',
+    'output-dir=',
+    'album-dir=',
+    'photo-dir=',
+    'root=',
+    'assets-url=',
+    'photos-url=',
+    'relative-links',
+    'copy',
+    'quick=',
+    'serve=',
+    'port=',
+]
+
+USAGE = """
+ Options               Default values
+ -v, --verbose         [%(verbose)s]
+     --output-dir      [%(output_dir_help)s]
+     --album-dir       [%(album_dir_in)s]
+     --photo-dir       [%(photo_dir_in)s]
+     --root            [%(root)s]
+     --assets-url      [%(assets_url)s]
+     --photos-url      [%(photos_url)s]
+     --relative-links  [%(relative_links)s]
+ -l, --lang            [%(lang)s]
+     --copy            [%(copy)s]
+     --quick           [folder's name]
+ -s, --serve           [output dir]
+ -p, --port            [%(port)s]
+"""
 
 
-def main():
-    opts: dict[str, Any] = {
+def default_opts() -> dict[str, Any]:
+    return {
         'verbose': 1,
         'output_dir': None,
         'album_dir_in': getattr(settings, 'ALBUM_DIR', 'albums'),
@@ -70,101 +101,77 @@ def main():
         'port': 8000,
     }
 
+
+def _with_slash(arg: str) -> str:
+    return arg if arg.endswith('/') else arg + '/'
+
+
+def _set_album_dir(opts: dict[str, Any], arg: str) -> None:
+    opts['album_dir_in'] = arg
+    settings.ALBUM_DIR = arg
+
+
+def _set_relative_links(opts: dict[str, Any], arg: str) -> None:
+    opts['relative_links'] = True
+    opts['root'] = ''
+
+
+# option -> handler(opts, arg)
+OPTION_HANDLERS: dict[str, Callable[[dict[str, Any], str], None]] = {
+    '-v': lambda opts, arg: opts.update(verbose=int(arg)),
+    '--verbose': lambda opts, arg: opts.update(verbose=int(arg)),
+    '--output-dir': lambda opts, arg: opts.update(output_dir=arg),
+    '--album-dir': _set_album_dir,
+    '--photo-dir': lambda opts, arg: opts.update(photo_dir_in=arg),
+    '--relative-links': _set_relative_links,
+    '--root': lambda opts, arg: opts.update(root=arg and _with_slash(arg)),
+    '--assets-url': lambda opts, arg: opts.update(assets_url=_with_slash(arg)),
+    '--photos-url': lambda opts, arg: opts.update(photos_url=_with_slash(arg)),
+    '-l': lambda opts, arg: opts.update(lang=arg),
+    '--lang': lambda opts, arg: opts.update(lang=arg),
+    '--copy': lambda opts, arg: opts.update(copy=True),
+    '-s': lambda opts, arg: opts.update(serve=arg),
+    '--serve': lambda opts, arg: opts.update(serve=arg),
+    '-p': lambda opts, arg: opts.update(port=int(arg)),
+    '--port': lambda opts, arg: opts.update(port=int(arg)),
+    # a quick shortcut
+    '--quick': lambda opts, arg: opts.update(quick=os.path.expanduser(arg).rstrip('/')),
+}
+
+
+def parse_args(opts: dict[str, Any], argv: list[str]) -> None:
+    """Apply command line options to `opts`. Raises getopt.GetoptError."""
+    gopts, args = getopt.getopt(argv, 'v:yl:sp:', LONG_OPTIONS)
+    for o, arg in gopts:
+        if o == '--help':
+            raise getopt.GetoptError('')
+        if o in OPTION_HANDLERS:
+            OPTION_HANDLERS[o](opts, arg)
+
+    if opts['quick']:
+        args = [os.path.basename(opts['quick'])]
+    opts['names'] = args[0] if args else 'index'
+    if len(args) > 1:
+        opts['output_dir'] = args[1]
+
+
+def usage(opts: dict[str, Any]) -> None:
+    print('Usage: %s [OPTION...] [ALBUM-NAME1,NAME2]' % sys.argv[0])
+    print('%s -- album static HTML generator' % sys.argv[0])
+    opts['output_dir_help'] = opts['output_dir'] or 'output-DATETIME/'
+    print(USAGE % opts)
+
+
+def main(argv: list[str] | None = None) -> None:
+    opts = default_opts()
     try:
-        gopts, args = getopt.getopt(
-            sys.argv[1:],
-            'v:yl:sp:',
-            [
-                'help',
-                'verbose=',
-                'lang=',
-                'output-dir=',
-                'album-dir=',
-                'photo-dir=',
-                'root=',
-                'assets-url=',
-                'photos-url=',
-                'relative-links',
-                'copy',
-                'quick=',
-                'serve=',
-                'port=',
-            ],
-        )
-        for o, arg in gopts:
-            if o == '--help':
-                raise getopt.GetoptError('')
-            if o in ('-v', '--verbose'):
-                opts['verbose'] = int(arg)
-            elif o == '--output-dir':
-                opts['output_dir'] = arg
-            elif o == '--album-dir':
-                opts['album_dir_in'] = arg
-                settings.ALBUM_DIR = opts['album_dir_in']
-            elif o == '--photo-dir':
-                opts['photo_dir_in'] = arg
-            elif o == '--relative-links':
-                opts['relative_links'] = True
-                opts['root'] = ''
-            elif o == '--root':
-                if arg and not arg.endswith('/'):
-                    arg += '/'
-                opts['root'] = arg
-            elif o == '--assets-url':
-                if not arg.endswith('/'):
-                    arg += '/'
-                opts['assets_url'] = arg
-            elif o == '--photos-url':
-                if not arg.endswith('/'):
-                    arg += '/'
-                opts['photos_url'] = arg
-            elif o in ('-l', '--lang'):
-                opts['lang'] = arg
-            elif o == '--copy':
-                opts['copy'] = True
-            elif o in ('-s', '--serve'):
-                opts['serve'] = arg
-            elif o in ('-p', '--port'):
-                opts['port'] = int(arg)
-            elif o == '--quick':  # a quick shortcut
-                arg = os.path.expanduser(arg).rstrip('/')
-                opts['quick'] = arg
-                args = [os.path.basename(arg)]
-
-        if len(args):
-            opts['names'] = args[0]
-            if len(args) > 1:
-                opts['output_dir'] = args[1]
-        else:
-            opts['names'] = 'index'
-
+        parse_args(opts, sys.argv[1:] if argv is None else argv)
     except getopt.GetoptError:
-        print('Usage: %s [OPTION...] [ALBUM-NAME1,NAME2]' % sys.argv[0])
-        print('%s -- album static HTML generator' % sys.argv[0])
-        opts['output_dir_help'] = opts['output_dir'] or 'output-DATETIME/'
-        print(
-            """
- Options               Default values
- -v, --verbose         [%(verbose)s]
-     --output-dir      [%(output_dir_help)s]
-     --album-dir       [%(album_dir_in)s]
-     --photo-dir       [%(photo_dir_in)s]
-     --root            [%(root)s]
-     --assets-url      [%(assets_url)s]
-     --photos-url      [%(photos_url)s]
-     --relative-links  [%(relative_links)s]
- -l, --lang            [%(lang)s]
-     --copy            [%(copy)s]
-     --quick           [folder's name]
- -s, --serve           [output dir]
- -p, --port            [%(port)s]
-"""
-            % opts
-        )
+        usage(opts)
         sys.exit(1)
 
-    signal.signal(signal.SIGTERM, lambda signum, frame: __quit_app())
-    signal.signal(signal.SIGINT, lambda signum, frame: __quit_app())
+    signal.signal(signal.SIGTERM, lambda signum, frame: _quit_app())
+    signal.signal(signal.SIGINT, lambda signum, frame: _quit_app())
 
     if opts['serve']:
         serve(opts, opts['serve'])
@@ -183,29 +190,9 @@ def main():
         and os.path.expanduser(opts['output_dir'])
         or 'output-%s' % datetime.now().strftime('%Y%m%d-%H%M%S')
     )
-
     output_dir = os.path.join(root_dir, opts['root'].lstrip('/'))
 
-    if opts['quick']:
-        cwd = os.getcwd()
-        arg = opts['quick']
-        arg_basename = os.path.basename(arg)
-        opts['assets_dir'] = 'assets/'
-        opts['assets_url'] = opts['assets_dir']
-        opts['photo_dir_out'] = os.path.join(arg_basename, 'data/')
-        if opts['relative_links']:
-            opts['photos_url'] = 'data/'
-        else:
-            opts['photos_url'] = opts['photo_dir_out']
-        opts['album_dir_in'] = os.path.relpath(arg, cwd) + '/'
-        opts['photo_dir_in'] = opts['album_dir_in']
-        settings.ALBUM_DIR = opts['album_dir_in']
-
-    if not opts['relative_links']:
-        opts['assets_url'] = urljoin(opts['root'], opts['assets_url'])
-        opts['photos_url'] = urljoin(opts['root'], opts['photos_url'])
-
-    settings.WEBXIANG_PHOTOS_URL = opts['photos_url']
+    configure_urls(opts)
 
     if opts['verbose'] > 1:
         print('WEBXIANG_PHOTOS_URL', settings.WEBXIANG_PHOTOS_URL)
@@ -219,63 +206,78 @@ def main():
         pass
 
     if not opts['photos_url'].startswith('http'):
-        photo_dir_out = os.path.join(output_dir, opts['photo_dir_out'])
-
-        if opts['copy']:
-            print(
-                'Copying photos "%s" into "%s"'
-                % (opts['photo_dir_in'].rstrip('/'), photo_dir_out)
-            )
-            try:
-                if not os.path.exists(photo_dir_out):
-                    os.makedirs(photo_dir_out)
-                __copytree(opts['photo_dir_in'].rstrip('/'), photo_dir_out)
-            except Exception as exc:
-                print('Copying photos', exc)
-
-        else:
-            print(
-                'Linking photos: ln -s %s %s'
-                % (opts['photo_dir_in'].rstrip('/'), photo_dir_out.rstrip('/'))
-            )
-            try:
-                d = os.path.dirname(photo_dir_out.rstrip('/'))
-                if not os.path.exists(d):
-                    os.makedirs(d)
-                os.symlink(opts['photo_dir_in'].rstrip('/'), photo_dir_out.rstrip('/'))
-            except Exception as exc:
-                print('Linking photos', exc)
-
-    print(
-        'Copying assets (JS, CSS, etc.) into "%s"'
-        % os.path.join(root_dir, opts['assets_dir'].lstrip('/'))
-    )
-    try:
-        __copytree(
-            settings.STATIC_ROOT, os.path.join(root_dir, opts['assets_dir'].lstrip('/'))
-        )
-    except Exception as exc:
-        print('Copying assets', exc)
+        publish_photos(opts, os.path.join(output_dir, opts['photo_dir_out']))
+    copy_assets(os.path.join(root_dir, opts['assets_dir'].lstrip('/')))
 
     print('Generating static pages.')
+    generator = SiteGenerator(opts, output_dir)
     for album_name in opts['names'].split(','):
-        __gen_html_album(opts, album_name, output_dir=output_dir)
+        generator.album(album_name)
 
     if opts['verbose'] > 0:
         print()
     print('Finished %s' % output_dir)
-    print('Done. Created %d files.' % __items_no)
+    print('Done. Created %d files.' % generator.items_no)
 
-    if opts['serve'] is not False:
-        serve(opts, root_dir)
+    serve(opts, root_dir)
 
 
-def __quit_app(code=0):
+def configure_urls(opts: dict[str, Any]) -> None:
+    """Work out where assets and photos go and the URLs pages use for them."""
+    if opts['quick']:
+        arg = opts['quick']
+        opts['assets_dir'] = 'assets/'
+        opts['assets_url'] = opts['assets_dir']
+        opts['photo_dir_out'] = os.path.join(os.path.basename(arg), 'data/')
+        if opts['relative_links']:
+            opts['photos_url'] = 'data/'
+        else:
+            opts['photos_url'] = opts['photo_dir_out']
+        opts['album_dir_in'] = os.path.relpath(arg, os.getcwd()) + '/'
+        opts['photo_dir_in'] = opts['album_dir_in']
+        settings.ALBUM_DIR = opts['album_dir_in']
+
+    if not opts['relative_links']:
+        opts['assets_url'] = urljoin(opts['root'], opts['assets_url'])
+        opts['photos_url'] = urljoin(opts['root'], opts['photos_url'])
+
+    settings.WEBXIANG_PHOTOS_URL = opts['photos_url']
+
+
+def publish_photos(opts: dict[str, Any], photo_dir_out: str) -> None:
+    """Copy (--copy) or symlink the photo directory into the output."""
+    photo_dir_in = opts['photo_dir_in'].rstrip('/')
+    if opts['copy']:
+        print('Copying photos "%s" into "%s"' % (photo_dir_in, photo_dir_out))
+        try:
+            os.makedirs(photo_dir_out, exist_ok=True)
+            _copytree(photo_dir_in, photo_dir_out)
+        except Exception as exc:
+            print('Copying photos', exc)
+    else:
+        link = photo_dir_out.rstrip('/')
+        print('Linking photos: ln -s %s %s' % (photo_dir_in, link))
+        try:
+            os.makedirs(os.path.dirname(link), exist_ok=True)
+            os.symlink(photo_dir_in, link)
+        except Exception as exc:
+            print('Linking photos', exc)
+
+
+def copy_assets(assets_dir: str) -> None:
+    print('Copying assets (JS, CSS, etc.) into "%s"' % assets_dir)
+    try:
+        _copytree(settings.STATIC_ROOT, assets_dir)
+    except Exception as exc:
+        print('Copying assets', exc)
+
+
+def _quit_app(code: int = 0) -> NoReturn:
     print()
     sys.exit(code)
 
 
-def serve(opts, root_dir=None):
+def serve(opts: dict[str, Any], root_dir: str | None = None) -> None:
     class SimpleServer(socketserver.TCPServer):
         allow_reuse_address = True
 
@@ -290,139 +292,118 @@ def serve(opts, root_dir=None):
     httpd.serve_forever()
 
 
-def __gen_html_album(opts, album_name: str, output_dir='.', page=1):
-    global __generated, __items_no
+class SiteGenerator:
+    """Renders albums and their photos into `output_dir`, each page once."""
 
-    entry_id = '%s:%s' % (album_name, page)
-    if entry_id in __generated:
-        return
-    __generated.add(entry_id)
+    def __init__(self, opts: dict[str, Any], output_dir: str = '.'):
+        self.opts = opts
+        self.output_dir = output_dir
+        self.generated: set[str] = set()
+        self.items_no = 0
 
-    if page == 1:
-        print(album_name, end=' ')
+    def album(self, album_name: str, page: int = 1) -> None:
+        entry_id = '%s:%s' % (album_name, page)
+        if entry_id in self.generated:
+            return
+        self.generated.add(entry_id)
 
-    data = webxiang.get_data(
-        album=album_name,
-        page=page,
-        staticgen=True,
-        relative_links=opts['relative_links'],
-    )
-    if not data:
-        return
+        if page == 1:
+            print(album_name, end=' ')
 
-    tpl = data['meta'].get('template') or 'default.html'
-    if not tpl.endswith('.html'):
-        tpl += '.html'
-
-    settings.STATIC_URL = opts['assets_url']
-
-    try:
-        html = cast(str, render_to_string(tpl, data))
-    except TemplateDoesNotExist:
-        html = cast(str, render_to_string('default.html', data))
-
-    if opts['relative_links']:
-        html = html.replace('/' + opts['assets_url'], '../' + opts['assets_url'])
-
-    if page > 1:
-        output_file = os.path.join(
-            output_dir, album_name, _('page-%(number)s.html') % {'number': page}
+        data = webxiang.get_data(
+            album=album_name,
+            page=page,
+            staticgen=True,
+            relative_links=self.opts['relative_links'],
         )
-    else:
-        output_file = os.path.join(output_dir, album_name, 'index.html')
+        if not data:
+            return
 
-    if opts['verbose'] > 1:
-        print('writing %s' % output_file)
-    elif opts['verbose'] == 1:
-        sys.stdout.write('.')
-        sys.stdout.flush()
-
-    if not os.path.exists(os.path.dirname(output_file)):
-        os.makedirs(os.path.dirname(output_file))
-
-    with open(output_file, 'w', encoding='utf-8') as f:
-        f.write(html)
-    __items_no += 1
-
-    # symlink '/index.html' to '/index/index.html'
-    if album_name == 'index':
-        os.symlink('index/index.html', os.path.join(output_dir, 'index.html'))
-
-    entries = cast(Page[Entry], data['entries'])
-    for i in cast(Any, entries.paginator).page_range_limited:
-        __gen_html_album(opts, album_name, output_dir=output_dir, page=i)
-
-    for entry in entries:
-        if 'album' in entry:
-            __gen_html_album(opts, entry['album'], output_dir)
+        if page > 1:
+            name = _('page-%(number)s.html') % {'number': page}
         else:
-            __gen_html_photo(opts, album_name, '%s/' % entry['index'], output_dir)
+            name = 'index.html'
+        output_file = os.path.join(self.output_dir, album_name, name)
+        self._progress(output_file, print_level=2)
+        self._write(output_file, self._render(data))
+
+        # symlink '/index.html' to '/index/index.html'
+        if album_name == 'index' and page == 1:
+            os.symlink('index/index.html', os.path.join(self.output_dir, 'index.html'))
+
+        entries = cast(Page[Entry], data['entries'])
+        for i in cast(Any, entries.paginator).page_range_limited:
+            self.album(album_name, page=i)
+
+        for entry in entries:
+            if 'album' in entry:
+                self.album(entry['album'])
+            else:
+                self.photo(album_name, '%s/' % entry['index'])
+
+    def photo(self, album_name: str, entry_idx: str) -> None:
+        entry_id = '%s/%s' % (album_name, entry_idx)
+        if entry_id in self.generated:
+            return
+        self.generated.add(entry_id)
+
+        data = webxiang.get_data(
+            album=album_name,
+            photo=entry_idx,
+            staticgen=True,
+            relative_links=self.opts['relative_links'],
+        )
+        if not data:
+            return
+
+        photo_idx = entry_idx.split('/')[0]
+        entry = data['entry']
+        if 'slug' in entry:
+            photo_name = '%s/%s.html' % (photo_idx, entry['slug'])
+        else:
+            photo_name = '%s.html' % photo_idx
+
+        output_file = os.path.join(self.output_dir, album_name, photo_name)
+        self._progress(output_file, print_level=3)
+        self._write(output_file, self._render(data))
+
+    def _render(self, data: Album) -> str:
+        tpl = data['meta'].get('template') or 'default.html'
+        if not tpl.endswith('.html'):
+            tpl += '.html'
+
+        assets_url = self.opts['assets_url']
+        settings.STATIC_URL = assets_url
+
+        try:
+            html = cast(str, render_to_string(tpl, cast(dict, data)))
+        except TemplateDoesNotExist:
+            html = cast(str, render_to_string('default.html', cast(dict, data)))
+
+        if self.opts['relative_links']:
+            html = html.replace('/' + assets_url, '../' + assets_url)
+        return html
+
+    def _progress(self, output_file: str, print_level: int) -> None:
+        if self.opts['verbose'] >= print_level:
+            print('writing %s' % output_file)
+        elif self.opts['verbose'] >= 1:
+            sys.stdout.write('.')
+            sys.stdout.flush()
+
+    def _write(self, output_file: str, html: str) -> None:
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(html)
+        self.items_no += 1
 
 
-def __gen_html_photo(opts, album_name: str, entry_idx: str, output_dir='.'):
-    global __generated, __items_no
-
-    entry_id = '%s/%s' % (album_name, entry_idx)
-    if entry_id in __generated:
-        return
-    __generated.add(entry_id)
-
-    photo_idx = entry_idx.split('/')[0]
-
-    data = webxiang.get_data(
-        album=album_name,
-        photo=entry_idx,
-        staticgen=True,
-        relative_links=opts['relative_links'],
-    )
-    if not data:
-        return
-
-    tpl = data['meta'].get('template') or 'default.html'
-    if not tpl.endswith('.html'):
-        tpl += '.html'
-
-    settings.STATIC_URL = opts['assets_url']
-
-    try:
-        html = cast(str, render_to_string(tpl, data))
-    except TemplateDoesNotExist:
-        html = cast(str, render_to_string('default.html', data))
-
-    if opts['relative_links']:
-        html = html.replace('/' + opts['assets_url'], '../' + opts['assets_url'])
-
-    os.makedirs(os.path.join(output_dir, album_name), exist_ok=True)
-
-    entries = cast(list[Entry], data['entries'])
-    entry = entries[int(photo_idx) - 1]
-    if 'slug' in entry:
-        photo_name = '%s/%s.html' % (photo_idx, entry['slug'])
-    else:
-        photo_name = '%s.html' % photo_idx
-
-    output_file = os.path.join(output_dir, album_name, photo_name)
-
-    if not os.path.exists(os.path.dirname(output_file)):
-        os.makedirs(os.path.dirname(output_file))
-
-    if opts['verbose'] > 2:
-        print('writing %s' % output_file)
-    elif opts['verbose'] >= 1:
-        sys.stdout.write('.')
-        sys.stdout.flush()
-
-    with open(output_file, 'w', encoding='utf-8') as f:
-        f.write(html)
-    __items_no += 1
-
-
-def __copytree(src: str, dst: str, symlinks=False, ignore=None):
+def _copytree(src: str, dst: str) -> None:
     for item in os.listdir(src):
         s = os.path.join(src, item)
         d = os.path.join(dst, item)
         if os.path.isdir(s):
-            shutil.copytree(s, d, symlinks, ignore, dirs_exist_ok=True)
+            shutil.copytree(s, d, dirs_exist_ok=True)
         else:
             shutil.copy2(s, d)
 

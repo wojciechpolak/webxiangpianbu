@@ -22,6 +22,7 @@ import json
 from typing import Any, cast
 
 import pytest
+from django.conf import settings as django_settings
 from django.core.cache.backends.locmem import LocMemCache
 from django.core.paginator import Page
 from django.test import override_settings
@@ -397,3 +398,248 @@ def test_get_data_geomap_collects_geo_points(sample_repo_settings, monkeypatch):
         for _, entries in settings_data['geo_points']
         for entry in entries
     )
+
+
+@pytest.mark.parametrize(
+    ('video', 'expected'),
+    [
+        ('movie.mp4', 'video/mp4'),
+        ('movie.webm', 'video/webm'),
+        ('movie.ogg', 'video/ogg'),
+        ('movie.mov', 'video/quicktime'),
+        ('movie.avi', 'video'),
+    ],
+)
+def test_get_mtype_maps_extension_to_mime_type(video, expected):
+    assert webxiang._get_mtype(video) == expected
+
+
+@pytest.mark.parametrize(
+    ('entry', 'expected'),
+    [
+        ({'image': 'one.jpg'}, 'one.jpg'),
+        ({'image': {'file': 'two.jpg'}}, 'two.jpg'),
+        ({'video': 'clip.mp4'}, 'clip.mp4'),
+        ({'video': ['clip.webm', 'clip.mp4']}, 'clip.webm'),
+        ({'video': [{'src': 'clip.ogg'}]}, 'clip.ogg'),
+        ({'video': []}, None),
+        ({'video': True}, None),
+        ({'album': 'other'}, None),
+    ],
+)
+def test_entry_filename_picks_image_or_first_video(entry, expected):
+    assert webxiang._entry_filename(cast(Entry, entry)) == expected
+
+
+FILENAME_ALBUM: dict[str, Any] = {
+    'meta': {'title': 'Files', 'ppp': 2, 'columns': 2, 'path': 'p/'},
+    'entries': [
+        {'album': 'nested'},
+        {'image': 'one.jpg', 'slug': 'one'},
+        {'image': {'file': 'two.jpg', 'path': 'q/', 'size': [10, 20]}},
+        {'video': ['clip.webm', {'src': 'clip.mp4'}]},
+    ],
+}
+
+
+@pytest.mark.parametrize(
+    ('photo', 'reverse_order', 'expected_idx'),
+    [
+        ('one', False, 2),
+        ('one.jpg', False, 2),
+        ('ONE.JPG', False, None),
+        ('two.jpg', False, 3),
+        ('clip.webm', False, None),  # '.jpg' gets appended
+        ('one', True, 2),
+        ('two', True, 3),
+        ('missing', False, None),
+        ('0', False, None),
+        ('5', False, None),
+        ('4/some-slug', False, 4),
+    ],
+)
+def test_get_data_finds_photo_by_number_or_filename(
+    monkeypatch, photo, reverse_order, expected_idx
+):
+    album = copy.deepcopy(FILENAME_ALBUM)
+    album['meta']['reverse_order'] = reverse_order
+    monkeypatch.setattr(webxiang, '_open_albumfile', lambda album_name: album)
+
+    data = webxiang.get_data('files', photo=photo)
+
+    if expected_idx is None:
+        assert data is None
+    else:
+        assert data is not None
+        assert data['entry']['index'] == expected_idx
+
+
+def test_get_data_photo_with_image_dict_uses_its_path_and_size(monkeypatch):
+    album = copy.deepcopy(FILENAME_ALBUM)
+    monkeypatch.setattr(webxiang, '_open_albumfile', lambda album_name: album)
+
+    data = webxiang.get_data('files', photo='3')
+
+    assert data is not None
+    assert data['entry']['url'] == '/data/q/two.jpg'
+    assert data['entry']['size'] == [10, 20]
+    # third photo, two per page
+    assert data['entry']['link'] == '/files/?page=2'
+    assert data['prev_entry'] == '/files/2/one'
+    assert data['next_entry'] == '/files/4'
+
+
+def test_get_data_photo_with_video_parses_sources(monkeypatch):
+    album = copy.deepcopy(FILENAME_ALBUM)
+    monkeypatch.setattr(webxiang, '_open_albumfile', lambda album_name: album)
+
+    data = webxiang.get_data('files', photo='4', staticgen=True)
+
+    assert data is not None
+    entry = data['entry']
+    assert entry['type'] == 'html5'
+    assert entry['vid'] == [
+        {'src': 'clip.webm', 'type': 'video/webm'},
+        {'src': 'clip.mp4'},
+    ]
+    assert entry['url'] == '/data/'
+    assert entry['size'] == ''
+
+
+def test_get_data_photo_uses_entry_copyright_and_description(monkeypatch):
+    album = {
+        'meta': {'title': '', 'copyright': 'album', 'copyright_link': '/a/'},
+        'entries': [
+            {'image': 'one.jpg', 'geo': '1,2', 'exif': {'Make': 'X'}},
+            {
+                'image': 'two.jpg',
+                'description': 'Two',
+                'copyright': 'photo',
+                'copyright_link': '/p/',
+            },
+        ],
+    }
+    monkeypatch.setattr(
+        webxiang, '_open_albumfile', lambda album_name: copy.deepcopy(album)
+    )
+
+    first = webxiang.get_data('untitled', photo='1')
+    second = webxiang.get_data('untitled', photo='2')
+
+    assert first is not None
+    assert first['meta']['title'] == '#1 - untitled'
+    assert first['meta']['description'] == '#1 - untitled'
+    assert first['meta']['copyright'] == 'album'
+    assert first['meta']['copyright_link'] == '/a/'
+    assert 'exif' not in first['entry']
+    assert json.loads(first['wxpb_settings'])['geo_points'][0][0] == '1,2'
+
+    assert second is not None
+    assert second['meta']['description'] == 'Two'
+    assert second['meta']['copyright'] == 'photo'
+    assert second['meta']['copyright_link'] == '/p/'
+    assert json.loads(second['wxpb_settings'])['geo_points'] == []
+
+
+def test_get_data_wxpb_settings_does_not_leak_between_albums(monkeypatch):
+    album = {
+        'meta': {'title': 'Custom map'},
+        'entries': [{'image': 'one.jpg', 'geo': '1,2'}],
+    }
+    monkeypatch.setattr(webxiang, '_open_albumfile', lambda album_name: album)
+
+    with override_settings(WXPB_SETTINGS={'plugin': 'leaflet'}):
+        data = webxiang.get_data('custom', photo='1')
+        assert django_settings.WXPB_SETTINGS == {'plugin': 'leaflet'}
+
+    assert data is not None
+    wxpb_settings = json.loads(data['wxpb_settings'])
+    assert wxpb_settings['plugin'] == 'leaflet'
+    assert wxpb_settings['geo_points'][0][0] == '1,2'
+
+
+def test_get_data_album_entries_get_thumbs_links_and_videos(monkeypatch):
+    album = {
+        'meta': {
+            'title': 'Mixed',
+            'path': 'p/',
+            'path_thumb': 'p/t/',
+            'ppp': 10,
+            'columns': 0,
+            'default_thumb_size': [5, 5],
+        },
+        'entries': [
+            {'image': 'one.jpg', 'thumb': 'tone.jpg', 'slug': 'one'},
+            {
+                'image': {'file': 'two.jpg'},
+                'thumb': {'file': 'ttwo.jpg', 'path': 'x/', 'size': [1, 2]},
+            },
+            {'image': 'three.jpg', 'link': '/custom/'},
+            {'album': 'other', 'thumb': 'cover.jpg'},
+            {'video': 'https://vimeo.com/123'},
+        ],
+    }
+    monkeypatch.setattr(webxiang, '_open_albumfile', lambda album_name: album)
+
+    data = webxiang.get_data('mixed')
+
+    assert data is not None
+    assert 'groups' not in data
+    one, two, three, other, video = cast(Page[Entry], data['entries']).object_list
+    assert one['url_full'] == '/data/p/one.jpg'
+    assert one['url'] == '/data/p/t/tone.jpg'
+    assert one['size'] == [5, 5]
+    assert one['link'] == '/mixed/1/one'
+    assert two['url_full'] == '/data/p/two.jpg'
+    assert two['url'] == '/data/x/ttwo.jpg'
+    assert two['size'] == [1, 2]
+    assert two['link'] == '/mixed/2'
+    assert three['link'] == '/custom/'
+    assert other['link'] == '/other/'
+    assert video['type'] == 'vimeo'
+    assert 'url' not in video
+
+
+def test_get_data_album_thumbs_skip_uses_full_images(monkeypatch):
+    album = {
+        'meta': {
+            'path': 'p/',
+            'path_thumb': 'p/t/',
+            'thumbs_skip': True,
+            'default_image_size': [8, 6],
+            'cover': 'cover.jpg',
+        },
+        'entries': [
+            {'image': 'one.jpg', 'thumb': 'tone.jpg'},
+            {'image': {'file': 'two.jpg', 'size': [3, 4]}},
+        ],
+    }
+    monkeypatch.setattr(webxiang, '_open_albumfile', lambda album_name: album)
+
+    data = webxiang.get_data('skip', staticgen=True)
+
+    assert data is not None
+    one, two = cast(Page[Entry], data['entries']).object_list
+    assert one['url'] == '/data/one.jpg'
+    assert one['size'] == [8, 6]
+    assert two['url'] == '/data/two.jpg'
+    assert two['size'] == [3, 4]
+    # the cover is resolved against the last entry's directory
+    assert data['meta']['cover'] == '/data/cover.jpg'
+
+
+def test_get_data_empty_album_resolves_cover_against_album_path(monkeypatch):
+    album = {'meta': {'path': 'p/', 'cover': 'cover.jpg'}, 'entries': []}
+    monkeypatch.setattr(webxiang, '_open_albumfile', lambda album_name: album)
+
+    data = webxiang.get_data('empty', page=3)
+
+    assert data is not None
+    assert cast(Page[Entry], data['entries']).number == 1
+    assert data['meta']['cover'] == '/data/p/cover.jpg'
+
+
+def test_get_data_missing_album_returns_none(monkeypatch):
+    monkeypatch.setattr(webxiang, '_open_albumfile', lambda album_name: None)
+
+    assert webxiang.get_data('missing') is None
