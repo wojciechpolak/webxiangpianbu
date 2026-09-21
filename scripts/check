@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+
+"""
+#  WebXiangpianbu Copyright (C) 2026 Wojciech Polak
+#
+#  This program is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by the
+#  Free Software Foundation; either version 3 of the License, or (at your
+#  option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License along
+#  with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+Lint, types and tests, every check the repo has, in one pass.
+
+uv has no task runner, so this is the repo's `npm run check`. All four run
+whatever the others do. A pass that stopped at the first failure would hide
+the rest until you fixed the first.
+
+The checks need the `dev` dependency group, so this puts `.venv/bin` in front
+of PATH the way `uv run` does. That is what lets plain `./scripts/check` work
+without an activated virtualenv.
+"""
+
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+VENV = ROOT / '.venv'
+
+# Cheapest first, so a typo surfaces before the suite has finished.
+CHECKS = (
+    ('ruff', ['ruff', 'check', '.']),
+    ('ty', ['ty', 'check', '.']),
+    ('mypy', ['mypy', '.']),
+    ('pytest', ['pytest']),
+)
+
+WIDTH = max(len(name) for name, _ in CHECKS) + 12
+
+
+def environment() -> dict[str, str]:
+    """The caller's environment with the project virtualenv in front."""
+    env = dict(os.environ)
+    if (VENV / 'bin').is_dir():
+        env['PATH'] = f'{VENV / "bin"}{os.pathsep}{env.get("PATH", "")}'
+        env['VIRTUAL_ENV'] = str(VENV)
+    return env
+
+
+def run(argv: list[str], env: dict[str, str]) -> bool:
+    """Run one tool, letting it write straight to the terminal."""
+    try:
+        return subprocess.run(argv, cwd=ROOT, env=env).returncode == 0
+    except FileNotFoundError:
+        print(f'{argv[0]}: not found -- run `uv sync --group dev`', flush=True)
+        return False
+
+
+def main() -> int:
+    env = environment()
+    results = []
+    for name, argv in CHECKS:
+        print(f'$ {" ".join(argv)}', flush=True)
+        started = time.monotonic()
+        ok = run(argv, env)
+        results.append((name, ok, time.monotonic() - started))
+        print(flush=True)
+
+    for name, ok, elapsed in results:
+        status = 'ok' if ok else 'FAILED'
+        print(f'{name} {"." * (WIDTH - len(name))} {status:<6} {elapsed:5.1f}s')
+
+    failed = [name for name, ok, _ in results if not ok]
+    if failed:
+        # Flush first: stderr is unbuffered, stdout is not when piped, and the
+        # summary would otherwise print above the table it summarises.
+        sys.stdout.flush()
+        print('failed: ' + ', '.join(failed), file=sys.stderr)
+        return 1
+    print('all checks passed')
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
