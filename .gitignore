@@ -15,3 +15,7 @@ settings.py
 run/
 static/
 output-*
+htmlcov/
+.coverage
+.coverage.*
+coverage.lcov

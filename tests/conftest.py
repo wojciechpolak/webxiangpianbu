@@ -18,11 +18,19 @@
 from __future__ import annotations
 
 import copy
+import io
 from pathlib import Path
 
 import pytest
 from django.conf import settings as django_settings
 from django.test import override_settings
+
+from tests.coverage_report import (
+    COVERAGE_HTML_DIR,
+    COVERAGE_LCOV,
+    coverage_enabled,
+    describe_narrowed_run,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 SAMPLE_ALBUM_DIR = ROOT / 'run' / 'albums'
@@ -39,3 +47,38 @@ def sample_repo_settings():
         WXPB_SETTINGS=copy.deepcopy(getattr(django_settings, 'WXPB_SETTINGS', {})),
     ):
         yield
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_terminal_summary(
+    terminalreporter: pytest.TerminalReporter,
+    exitstatus: int,
+    config: pytest.Config,
+) -> None:
+    del exitstatus
+    if not coverage_enabled(config):
+        return
+
+    try:
+        from coverage import Coverage
+        from coverage.exceptions import CoverageException
+    except ImportError:
+        return
+
+    narrowed = describe_narrowed_run(config)
+    coverage = Coverage(config_file=True)
+    try:
+        coverage.load()
+        if not narrowed:
+            coverage.html_report(directory=COVERAGE_HTML_DIR)
+            coverage.lcov_report(outfile=COVERAGE_LCOV)
+        total = coverage.report(file=io.StringIO())
+    except CoverageException:
+        return
+
+    terminalreporter.write_line(f'total coverage: {total:.2f}%')
+    if narrowed:
+        terminalreporter.write_line(
+            'coverage.lcov and htmlcov/ kept from the last full run '
+            '(%s ran a subset)' % narrowed
+        )

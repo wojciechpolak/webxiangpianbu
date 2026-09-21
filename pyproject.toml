@@ -21,6 +21,7 @@ dev = [
     "mypy>=1,<2",
     "playwright>=1.55,<1.59",
     "pytest>=9,<10",
+    "pytest-cov>=6,<7",
     "pytest-django>=4,<5",
     "ruff>=0.14.9",
     "ty>=0.0.24",
@@ -45,3 +46,17 @@ django_settings_module = "webxiang.settings_ci"
 
 [tool.ruff.format]
 quote-style = "single"
+
+[tool.coverage.run]
+branch = true
+source = ["webxiang", "tools"]
+omit = [
+    "webxiang/settings*.py",
+    "webxiang/wsgi*.py",
+    "manage.py",
+    "run/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
