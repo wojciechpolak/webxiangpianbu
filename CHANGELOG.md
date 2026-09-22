@@ -30,6 +30,8 @@ and history and only list the major changes.
 - Photos use the browser's native lazy loading.
 - Simplified album caching.
 - Dependency management moved to Poetry and then to uv.
+- The project is a uv virtual project (`package = false`) and no longer
+  declares a build backend; it was never meant to be installed as a wheel.
 
 ### Security
 
