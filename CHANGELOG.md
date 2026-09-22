@@ -32,6 +32,22 @@ and history and only list the major changes.
 - Dependency management moved to Poetry and then to uv.
 - The project is a uv virtual project (`package = false`) and no longer
   declares a build backend; it was never meant to be installed as a wheel.
+- The command-line tools parse options with `argparse`: `--help` lists every
+  option with its default, invalid options and values exit with status 2,
+  and `convert.py -y`/`--overwrite` no longer takes a value.
+- The tools report errors through `logging` and exit with status 1 when an
+  input fails: `convert.py` on an unreadable album file, `generate.py` on a
+  missing input directory or a broken photo (which is skipped). `staticgen.py`
+  warns about albums and photos it cannot find.
+- A malformed album file is logged and treated as a missing album instead of
+  raising an exception.
+
+### Fixed
+
+- `staticgen.py -s` without a directory silently did nothing; it now
+  requires one.
+- `generate.py --thumbs-size` wrote the size to YAML albums as a Python
+  tuple (`!!python/tuple`).
 
 ### Security
 

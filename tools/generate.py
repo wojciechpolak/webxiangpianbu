@@ -17,12 +17,12 @@
 #  with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import getopt
+import argparse
 import json
+import logging
 import os
 import sys
 from collections import OrderedDict as _OrderedDict
-from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 
@@ -32,53 +32,7 @@ from PIL import ExifTags, Image, ImageEnhance, ImageFile
 OrderedDict: Any = _OrderedDict
 
 
-LONG_OPTIONS = [
-    'help',
-    'album-name=',
-    'album-dir=',
-    'album-format=',
-    'path=',
-    'copyright=',
-    'template=',
-    'style=',
-    'ppp=',
-    'images-format=',
-    'images-quality=',
-    'images-sharpness=',
-    'images-maxsize=',
-    'images-default-size=',
-    'thumbs-skip',
-    'thumbs-quality=',
-    'thumbs-size=',
-    'show-geo=',
-    'correct-orientation=',
-    'skip-image-gen',
-    'skip-thumb-gen',
-]
-
-USAGE = """
- Options                      Default values
- --album-name=STRING          [output dir's name]
- --album-dir=STRING           [output dir]
- --album-format=STRING        [%(album_format)s] (yaml|json|all)
- --path=STRING                ['']
- --copyright=STRING           ['']
- --template=STRING            [''] (default|floating|story)
- --style=STRING               ['']
- --ppp=INTEGER                [%(ppp)s]
- --images-format=FORMAT       [%(images_format)s] (JPEG|WEBP)
- --images-quality=INTEGER     [%(images_quality)s] (0..100)
- --images-sharpness=FLOAT     [%(images_sharpness)s]
- --images-maxsize=WxH         [900x640]
- --images-default-size=WxH    [None]
- --thumbs-skip                [%(thumbs_skip)s]
- --thumbs-quality=INTEGER     [%(thumbs_quality)s] (0..100)
- --thumbs-size=WxH            [180x180]
- --show-geo                   [%(show_geo)s]
- --correct-orientation        [%(correct_orientation)s]
- --skip-image-gen             [%(skip_image_gen)s]
- --skip-thumb-gen             [%(skip_thumb_gen)s]
-"""
+logger = logging.getLogger('tools.generate')
 
 
 def default_opts() -> dict[str, Any]:
@@ -95,6 +49,7 @@ def default_opts() -> dict[str, Any]:
         'images_quality': 95,
         'images_maxsize': [900, 640],
         'images_sharpness': 1.4,
+        'default_image_size': [],
         'thumbs_skip': False,
         'thumbs_quality': 90,
         'thumbs_size': [180, 180],
@@ -107,69 +62,143 @@ def default_opts() -> dict[str, Any]:
 
 def _size(arg: str) -> list[int]:
     """'WxH' as [W, H]."""
-    s = arg.split('x')
-    return [int(s[0]), int(s[1])]
+    try:
+        width, height = arg.split('x')
+        return [int(width), int(height)]
+    except ValueError:
+        raise argparse.ArgumentTypeError(f'expected WxH, got {arg!r}') from None
 
 
-# option -> (opts key, argument converter)
-OPTIONS: dict[str, tuple[str, Callable[[str], Any]]] = {
-    '--album-name': ('album_name', str),
-    '--album-dir': ('album_dir', str),
-    '--album-format': ('album_format', str.lower),
-    '--path': ('path', str),
-    '--copyright': ('copyright', str),
-    '--template': ('template', str),
-    '--style': ('style', str),
-    '--ppp': ('ppp', int),
-    '--show-geo': ('show_geo', lambda arg: bool(int(arg))),
-    '--correct-orientation': ('correct_orientation', lambda arg: bool(int(arg))),
-    '--images-format': ('images_format', str),
-    '--images-quality': ('images_quality', int),
-    '--images-sharpness': ('images_sharpness', float),
-    '--images-maxsize': ('images_maxsize', _size),
-    '--images-default-size': ('default_image_size', _size),
-    '--thumbs-skip': ('thumbs_skip', lambda arg: True),
-    '--thumbs-quality': ('thumbs_quality', int),
-    '--thumbs-size': ('thumbs_size', lambda arg: tuple(_size(arg))),
-    '--skip-image-gen': ('skip_image_gen', lambda arg: True),
-    '--skip-thumb-gen': ('skip_thumb_gen', lambda arg: True),
-}
+def _flag(arg: str) -> bool:
+    """'0' or '1' as a bool."""
+    if arg not in ('0', '1'):
+        raise argparse.ArgumentTypeError(f'expected 0 or 1, got {arg!r}')
+    return arg == '1'
 
 
-def parse_args(opts: dict[str, Any], argv: list[str]) -> None:
-    """Apply command line options to `opts`. Raises getopt.GetoptError."""
-    gopts, args = getopt.getopt(argv, '', LONG_OPTIONS)
-    for o, arg in gopts:
-        if o == '--help':
-            raise getopt.GetoptError('')
-        key, convert = OPTIONS[o]
-        opts[key] = convert(arg)
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description='Generate an album file, images and thumbnails '
+        'from a directory of JPEG photos.'
+    )
+    parser.add_argument(
+        'inputdir',
+        metavar='INPUT-DIR',
+        help='photo directory, or a .in list file whose first line names '
+        'the directory and the other lines the photos',
+    )
+    parser.add_argument(
+        'outputdir', metavar='OUTPUT-DIR', help='where images and thumbnails go'
+    )
+    parser.add_argument(
+        '--album-name', metavar='NAME', help="default: OUTPUT-DIR's name"
+    )
+    parser.add_argument('--album-dir', metavar='DIR', help='default: OUTPUT-DIR')
+    parser.add_argument(
+        '--album-format',
+        type=str.lower,
+        choices=('yaml', 'json', 'all'),
+        help='default: %(default)s',
+    )
+    parser.add_argument('--path', help='meta.path, default: empty')
+    parser.add_argument('--copyright', help='meta.copyright, default: the year')
+    parser.add_argument(
+        '--template',
+        help='meta.template (default, floating, story, ...), default: %(default)s',
+    )
+    parser.add_argument('--style', help='meta.style, default: %(default)s')
+    parser.add_argument(
+        '--ppp', type=int, metavar='N', help='pictures per page, default: %(default)s'
+    )
+    parser.add_argument(
+        '--images-format',
+        type=str.upper,
+        choices=('JPEG', 'WEBP'),
+        help='default: %(default)s',
+    )
+    parser.add_argument(
+        '--images-quality', type=int, metavar='0..100', help='default: %(default)s'
+    )
+    parser.add_argument(
+        '--images-sharpness', type=float, metavar='FACTOR', help='default: %(default)s'
+    )
+    parser.add_argument(
+        '--images-maxsize', type=_size, metavar='WxH', help='default: 900x640'
+    )
+    parser.add_argument(
+        '--images-default-size',
+        dest='default_image_size',
+        type=_size,
+        metavar='WxH',
+        help='meta.default_image_size, default: none',
+    )
+    parser.add_argument(
+        '--thumbs-skip', action='store_true', help='album without thumbnails'
+    )
+    parser.add_argument(
+        '--thumbs-quality', type=int, metavar='0..100', help='default: %(default)s'
+    )
+    parser.add_argument(
+        '--thumbs-size', type=_size, metavar='WxH', help='default: 180x180'
+    )
+    parser.add_argument(
+        '--show-geo', type=_flag, metavar='0|1', help='meta.geo, default: 1'
+    )
+    parser.add_argument(
+        '--correct-orientation',
+        type=_flag,
+        metavar='0|1',
+        help='rotate images upright using EXIF, default: 1',
+    )
+    parser.add_argument(
+        '--skip-image-gen', action='store_true', help='do not write images'
+    )
+    parser.add_argument(
+        '--skip-thumb-gen', action='store_true', help='do not write thumbnails'
+    )
+    parser.set_defaults(**default_opts())
+    return parser
 
-    if len(args) < 2:
-        raise getopt.GetoptError('')
-    opts['inputdir'] = args[0]
-    opts['outputdir'] = args[1]
+
+def parse_args(argv: list[str]) -> dict[str, Any]:
+    return vars(build_parser().parse_args(argv))
 
 
 def main(argv: list[str] | None = None) -> None:
-    opts = default_opts()
+    logging.basicConfig(format='%(levelname)s: %(message)s')
+    opts = parse_args(sys.argv[1:] if argv is None else argv)
+
     try:
-        parse_args(opts, sys.argv[1:] if argv is None else argv)
-    except getopt.GetoptError:
-        print(f'Usage: {sys.argv[0]} [OPTION...] INPUT-DIR OUTPUT-DIR')
-        print(f'{sys.argv[0]} -- album generator')
-        print(USAGE % opts)
+        fnames = list_input_files(opts)
+    except OSError as exc:
+        logger.error('cannot read %s: %s', opts['inputdir'], exc)
         sys.exit(1)
 
     os.makedirs(opts['outputdir'], exist_ok=True)
-
     album = new_album(opts)
-    opts['idx'] = 1
-    for fname in list_input_files(opts):
-        if fname.lower().endswith('.jpg') or fname.lower().endswith('.jpeg'):
-            process_image(opts, album, fname)
-            opts['idx'] += 1
+    failed = add_images(opts, album, fnames)
+    write_album(opts, album)
+    if failed:
+        sys.exit(1)
+    print('done')
 
+
+def add_images(opts: dict[str, Any], album: dict[str, Any], fnames: list[str]) -> int:
+    """Add the JPEG files among `fnames` to `album`. The number that failed."""
+    failed = 0
+    for fname in fnames:
+        if not fname.lower().endswith(('.jpg', '.jpeg')):
+            continue
+        opts['idx'] = len(album['entries']) + 1
+        try:
+            process_image(opts, album, fname)
+        except OSError as exc:
+            logger.error('skipping %s: %s', fname, exc)
+            failed += 1
+    return failed
+
+
+def write_album(opts: dict[str, Any], album: dict[str, Any]) -> None:
     album_name = (
         opts['album_name'] or os.path.basename(opts['outputdir'].rstrip('/')) or 'foo'
     )
@@ -179,8 +208,6 @@ def main(argv: list[str] | None = None) -> None:
         write_json(os.path.normpath(f'{album_dir}/{album_name}.json'), album)
     if opts['album_format'] in ('yaml', 'all'):
         write_yaml(os.path.normpath(f'{album_dir}/{album_name}.yaml'), album)
-
-    print('done')
 
 
 def new_album(opts: dict[str, Any]) -> dict[str, Any]:
@@ -195,7 +222,7 @@ def new_album(opts: dict[str, Any]) -> dict[str, Any]:
         'style': opts['style'],
         'copyright': opts['copyright'] or f'{datetime.now().astimezone().year}',
         'geo': opts['show_geo'],
-        'default_image_size': opts.get('default_image_size', []),
+        'default_image_size': opts['default_image_size'],
         'default_thumb_size': opts['thumbs_size'],
     }
     return {'meta': meta, 'entries': []}

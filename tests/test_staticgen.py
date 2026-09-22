@@ -79,9 +79,7 @@ def _opts(staticgen, **kwargs) -> dict:
 
 
 def test_parse_args_applies_options(staticgen):
-    opts = staticgen.default_opts()
-    staticgen.parse_args(
-        opts,
+    opts = staticgen.parse_args(
         [
             '-v',
             '2',
@@ -113,9 +111,8 @@ def test_parse_args_applies_options(staticgen):
 
 
 def test_parse_args_quick_and_relative_links(staticgen):
-    opts = staticgen.default_opts()
-    staticgen.parse_args(
-        opts, ['--relative-links', '--quick=~/photos/trip/', '--serve=site']
+    opts = staticgen.parse_args(
+        ['--relative-links', '--quick=~/photos/trip/', '-s', 'site', 'other', 'out']
     )
 
     assert opts['relative_links'] is True
@@ -127,19 +124,40 @@ def test_parse_args_quick_and_relative_links(staticgen):
 
 
 def test_parse_args_defaults_to_index(staticgen):
-    opts = staticgen.default_opts()
-    staticgen.parse_args(opts, ['--root='])
+    opts = staticgen.parse_args(['--root='])
 
-    assert opts['names'] == 'index'
-    assert opts['root'] == ''
+    assert opts == {**staticgen.default_opts(), 'root': ''}
 
 
-def test_main_prints_usage_for_help(staticgen, capsys):
+def test_parse_args_output_dir_option(staticgen):
+    opts = staticgen.parse_args(['--output-dir=out', 'one'])
+
+    assert (opts['names'], opts['output_dir']) == ('one', 'out')
+
+
+def test_main_prints_help(staticgen, capsys):
     with pytest.raises(SystemExit) as exc:
         staticgen.main(['--help'])
 
-    assert exc.value.code == 1
-    assert 'output-DATETIME/' in capsys.readouterr().out
+    assert exc.value.code == 0
+    assert 'default: output-DATETIME/' in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    ('argv', 'error'),
+    [
+        (['-y'], 'unrecognized arguments: -y'),
+        (['--port=http'], "invalid int value: 'http'"),
+        (['--serve'], 'argument -s/--serve: expected one argument'),
+        (['a', 'b', 'c'], 'unrecognized arguments: c'),
+    ],
+)
+def test_main_rejects_bad_arguments(staticgen, argv, error, capsys):
+    with pytest.raises(SystemExit) as exc:
+        staticgen.main(argv)
+
+    assert exc.value.code == 2
+    assert error in capsys.readouterr().err
 
 
 def test_main_serve_only_serves_the_directory(staticgen, monkeypatch):
@@ -202,7 +220,7 @@ def test_configure_urls_prefixes_root_when_not_relative(staticgen):
     assert django_settings.WEBXIANG_PHOTOS_URL == '/site/data/'
 
 
-def test_publish_photos_copies_or_links(staticgen, tmp_path, capsys):
+def test_publish_photos_copies_or_links(staticgen, tmp_path, caplog):
     source = tmp_path / 'photos'
     (source / 'sub').mkdir(parents=True)
     (source / 'a.jpg').write_bytes(b'a')
@@ -229,17 +247,20 @@ def test_publish_photos_copies_or_links(staticgen, tmp_path, capsys):
     with override_settings(STATIC_ROOT=missing):
         staticgen.copy_assets(str(tmp_path / 'assets'))
 
-    out = capsys.readouterr().out
-    assert 'Linking photos [Errno' in out
-    assert 'Copying photos [Errno' in out
-    assert 'Copying assets [Errno' in out
+    assert [msg.split(' [Errno')[0] for msg in caplog.messages] == [
+        'cannot link photos:',
+        'cannot copy photos:',
+        'cannot copy assets:',
+    ]
 
 
 def _write_album(album_dir: Path, name: str, album: dict) -> None:
     (album_dir / f'{name}.json').write_text(json.dumps(album), encoding='utf-8')
 
 
-def test_site_generator_writes_pages_photos_and_index_link(staticgen, tmp_path, capsys):
+def test_site_generator_writes_pages_photos_and_index_link(
+    staticgen, tmp_path, capsys, caplog
+):
     album_dir = tmp_path / 'albums'
     album_dir.mkdir()
     _write_album(
@@ -289,6 +310,7 @@ def test_site_generator_writes_pages_photos_and_index_link(staticgen, tmp_path, 
     assert 'trip writing ' in out
     assert 'nowhere ' in out
     assert 'writing %s' % (output / 'trip' / '2.html') in out
+    assert caplog.messages == ['album not found: nowhere', 'photo not found: trip/99/']
 
 
 def test_site_generator_progress_dots(staticgen, capsys):

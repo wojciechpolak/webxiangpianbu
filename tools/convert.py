@@ -17,9 +17,10 @@
 #  with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import getopt
+import argparse
 import glob
 import json
+import logging
 import os
 import sys
 from typing import Any, cast
@@ -39,76 +40,91 @@ except ImportError:
     yaml = None
 
 
-def parse_args(opts: dict[str, Any], argv: list[str]) -> None:
-    """Apply command line options to `opts`. Raises getopt.GetoptError."""
-    gopts, args = getopt.getopt(argv, 'y', ['overwrite='])
-    for o, _arg in gopts:
-        if o in ('-y', '--overwrite'):
-            opts['overwrite'] = True
-
-    if not args:
-        raise getopt.GetoptError('')
-    opts['input'] = glob.glob(args[0])
-    if len(args) > 1:
-        opts['output_dir'] = os.path.dirname(args[1])
-        opts['output_name'] = os.path.basename(args[1])
+logger = logging.getLogger('tools.convert')
 
 
-def default_opts() -> dict[str, Any]:
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description='Convert album files between YAML and JSON.'
+    )
+    parser.add_argument(
+        '-y',
+        '--overwrite',
+        action='store_true',
+        help='overwrite existing output files without asking',
+    )
+    parser.add_argument(
+        'input', help="album file, or a quoted glob pattern like 'albums/*.yaml'"
+    )
+    parser.add_argument(
+        'output',
+        nargs='?',
+        default='',
+        help='output file, or a directory when it ends with "/" '
+        '(default: next to each input)',
+    )
+    return parser
+
+
+def parse_args(argv: list[str]) -> dict[str, Any]:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    inputs = glob.glob(args.input)
+    if not inputs:
+        parser.error(f'no album files match {args.input!r}')
     return {
-        'overwrite': False,
-        'output_dir': '',
-        'output_name': '',
+        'overwrite': args.overwrite,
+        'input': inputs,
+        'output_dir': os.path.dirname(args.output),
+        'output_name': os.path.basename(args.output),
     }
 
 
 def main(argv: list[str] | None = None) -> None:
-    opts = default_opts()
-
-    try:
-        parse_args(opts, sys.argv[1:] if argv is None else argv)
-    except getopt.GetoptError:
-        print(f'Usage: {sys.argv[0]} [OPTION...] INPUT OUTPUT')
-        print(f'{sys.argv[0]} -- album converter')
-        print("""
- Options               Default values
- -y, --overwrite       [False]
-""")
-        sys.exit(1)
+    logging.basicConfig(format='%(levelname)s: %(message)s')
+    opts = parse_args(sys.argv[1:] if argv is None else argv)
 
     if opts['output_dir']:
         os.makedirs(opts['output_dir'], exist_ok=True)
 
-    for name in opts['input']:
-        convert_file(opts, name)
+    failed = [name for name in opts['input'] if not convert_file(opts, name)]
+    if failed:
+        sys.exit(1)
     print('done')
 
 
-def convert_file(opts: dict[str, Any], name: str) -> None:
-    """Write a JSON album file out as YAML, or a YAML one as JSON."""
+def convert_file(opts: dict[str, Any], name: str) -> bool:
+    """Write a JSON album file out as YAML, or a YAML one as JSON. False when
+    `name` could not be read."""
+    if not name.endswith(('.json', '.yaml')):
+        logger.warning('skipping %s: not a .json or .yaml file', name)
+        return True
     data = read_albumfile(name)
-    if not data:
-        return
+    if data is None:
+        return False
     if name.endswith('.json'):
         to_yaml(opts, name, data)
-    elif name.endswith('.yaml'):
+    else:
         to_json(opts, name, data)
+    return True
 
 
 def read_albumfile(name: str) -> dict[str, Any] | None:
-    if os.path.isfile(name) and name.endswith('.yaml'):
-        try:
-            with open(name, 'r', encoding='utf-8') as fp:
-                return cast(dict[str, Any], yaml.load(fp, Loader=YamlLoader))
-        except (OSError, yaml.YAMLError) as e:
-            print(e)
-    elif os.path.isfile(name) and name.endswith('.json'):
-        try:
-            with open(name, 'r', encoding='utf-8') as fp:
-                return cast(dict[str, Any], json.load(fp))
-        except (OSError, ValueError) as e:
-            print(e)
-    return None
+    """The album in a .yaml or .json file, or None (after logging why) when
+    it cannot be read."""
+    try:
+        with open(name, 'r', encoding='utf-8') as fp:
+            if name.endswith('.yaml'):
+                data = yaml.load(fp, Loader=YamlLoader)
+            else:
+                data = json.load(fp)
+    except (OSError, ValueError, yaml.YAMLError) as e:
+        logger.error('cannot read %s: %s', name, e)
+        return None
+    if not isinstance(data, dict):
+        logger.error('cannot read %s: not an album (expected a mapping)', name)
+        return None
+    return data
 
 
 def to_yaml(opts: dict[str, Any], name: str, data: dict[str, Any]) -> None:

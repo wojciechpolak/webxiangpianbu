@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import copy
 import json
+import logging
 from typing import Any, cast
 
 import pytest
@@ -100,6 +101,27 @@ def test_open_albumfile_uses_cache_when_file_changes(tmp_path, monkeypatch):
 def test_open_albumfile_missing_returns_none(tmp_path):
     with override_settings(ALBUM_DIR=str(tmp_path)):
         assert webxiang._open_albumfile('missing') is None
+
+
+@pytest.mark.parametrize(
+    ('filename', 'content'), [('broken.json', '{'), ('broken.yaml', 'meta: [')]
+)
+def test_open_albumfile_logs_malformed_files(
+    tmp_path, monkeypatch, caplog, filename, content
+):
+    (tmp_path / filename).write_text(content, encoding='utf-8')
+    # a plain logger, independent of how LOGGING configured 'main'
+    monkeypatch.setattr(webxiang, 'logger', logging.getLogger('tests.webxiang'))
+
+    with override_settings(ALBUM_DIR=str(tmp_path)):
+        monkeypatch.setattr(webxiang, 'cache', LocMemCache('malformed', {}))
+        assert webxiang._open_albumfile('broken') is None
+
+    (record,) = caplog.records
+    assert record.levelname == 'ERROR'
+    assert record.getMessage().startswith(
+        f'cannot load album file {tmp_path / filename}: '
+    )
 
 
 @pytest.mark.parametrize(

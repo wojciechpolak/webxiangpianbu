@@ -17,16 +17,16 @@
 #  with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import argparse
 import contextlib
-import getopt
 import http.server
 import json
+import logging
 import os
 import shutil
 import signal
 import socketserver
 import sys
-from collections.abc import Callable
 from datetime import datetime
 from typing import Any, NoReturn, cast
 from urllib.parse import urljoin
@@ -48,39 +48,7 @@ if hasattr(django, 'setup'):
 from webxiang import webxiang
 from webxiang.typing import Album, Entry
 
-LONG_OPTIONS = [
-    'help',
-    'verbose=',
-    'lang=',
-    'output-dir=',
-    'album-dir=',
-    'photo-dir=',
-    'root=',
-    'assets-url=',
-    'photos-url=',
-    'relative-links',
-    'copy',
-    'quick=',
-    'serve=',
-    'port=',
-]
-
-USAGE = """
- Options               Default values
- -v, --verbose         [%(verbose)s]
-     --output-dir      [%(output_dir_help)s]
-     --album-dir       [%(album_dir_in)s]
-     --photo-dir       [%(photo_dir_in)s]
-     --root            [%(root)s]
-     --assets-url      [%(assets_url)s]
-     --photos-url      [%(photos_url)s]
-     --relative-links  [%(relative_links)s]
- -l, --lang            [%(lang)s]
-     --copy            [%(copy)s]
-     --quick           [folder's name]
- -s, --serve           [output dir]
- -p, --port            [%(port)s]
-"""
+logger = logging.getLogger('tools.staticgen')
 
 
 def default_opts() -> dict[str, Any]:
@@ -106,69 +74,91 @@ def _with_slash(arg: str) -> str:
     return arg if arg.endswith('/') else arg + '/'
 
 
-def _set_album_dir(opts: dict[str, Any], arg: str) -> None:
-    opts['album_dir_in'] = arg
-    settings.ALBUM_DIR = arg
+def _root(arg: str) -> str:
+    return arg and _with_slash(arg)
 
 
-def _set_relative_links(opts: dict[str, Any], arg: str) -> None:
-    opts['relative_links'] = True
-    opts['root'] = ''
+def _quick(arg: str) -> str:
+    return os.path.expanduser(arg).rstrip('/')
 
 
-# option -> handler(opts, arg)
-OPTION_HANDLERS: dict[str, Callable[[dict[str, Any], str], None]] = {
-    '-v': lambda opts, arg: opts.update(verbose=int(arg)),
-    '--verbose': lambda opts, arg: opts.update(verbose=int(arg)),
-    '--output-dir': lambda opts, arg: opts.update(output_dir=arg),
-    '--album-dir': _set_album_dir,
-    '--photo-dir': lambda opts, arg: opts.update(photo_dir_in=arg),
-    '--relative-links': _set_relative_links,
-    '--root': lambda opts, arg: opts.update(root=arg and _with_slash(arg)),
-    '--assets-url': lambda opts, arg: opts.update(assets_url=_with_slash(arg)),
-    '--photos-url': lambda opts, arg: opts.update(photos_url=_with_slash(arg)),
-    '-l': lambda opts, arg: opts.update(lang=arg),
-    '--lang': lambda opts, arg: opts.update(lang=arg),
-    '--copy': lambda opts, arg: opts.update(copy=True),
-    '-s': lambda opts, arg: opts.update(serve=arg),
-    '--serve': lambda opts, arg: opts.update(serve=arg),
-    '-p': lambda opts, arg: opts.update(port=int(arg)),
-    '--port': lambda opts, arg: opts.update(port=int(arg)),
-    # a quick shortcut
-    '--quick': lambda opts, arg: opts.update(quick=os.path.expanduser(arg).rstrip('/')),
-}
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description='Render albums to static HTML, then serve the result.'
+    )
+    parser.add_argument(
+        'names',
+        nargs='?',
+        metavar='ALBUM-NAME1,NAME2',
+        help='albums to start from, default: %(default)s',
+    )
+    parser.add_argument(
+        'output', nargs='?', metavar='OUTPUT-DIR', help='same as --output-dir'
+    )
+    parser.add_argument(
+        '-v',
+        '--verbose',
+        type=int,
+        metavar='LEVEL',
+        help='0 quiet, 1 progress dots, 2 album pages, 3 every page; '
+        'default: %(default)s',
+    )
+    parser.add_argument('--output-dir', metavar='DIR', help='default: output-DATETIME/')
+    parser.add_argument(
+        '--album-dir', dest='album_dir_in', metavar='DIR', help='default: %(default)s'
+    )
+    parser.add_argument(
+        '--photo-dir', dest='photo_dir_in', metavar='DIR', help='default: %(default)s'
+    )
+    parser.add_argument(
+        '--root', type=_root, metavar='PATH', help='default: %(default)s'
+    )
+    parser.add_argument(
+        '--assets-url', type=_with_slash, metavar='URL', help='default: %(default)s'
+    )
+    parser.add_argument(
+        '--photos-url', type=_with_slash, metavar='URL', help='default: %(default)s'
+    )
+    parser.add_argument(
+        '--relative-links',
+        action='store_true',
+        help='link pages relative to each other; implies --root=',
+    )
+    parser.add_argument('-l', '--lang', help='default: %(default)s')
+    parser.add_argument(
+        '--copy', action='store_true', help='copy photos instead of symlinking them'
+    )
+    parser.add_argument(
+        '--quick',
+        type=_quick,
+        metavar='DIR',
+        help='render a folder holding both album files and photos, '
+        'starting from the album named after the folder',
+    )
+    parser.add_argument(
+        '-s', '--serve', metavar='DIR', help='only serve DIR, generate nothing'
+    )
+    parser.add_argument(
+        '-p', '--port', type=int, metavar='N', help='default: %(default)s'
+    )
+    parser.set_defaults(**default_opts())
+    return parser
 
 
-def parse_args(opts: dict[str, Any], argv: list[str]) -> None:
-    """Apply command line options to `opts`. Raises getopt.GetoptError."""
-    gopts, args = getopt.getopt(argv, 'v:yl:sp:', LONG_OPTIONS)
-    for o, arg in gopts:
-        if o == '--help':
-            raise getopt.GetoptError('')
-        if o in OPTION_HANDLERS:
-            OPTION_HANDLERS[o](opts, arg)
-
+def parse_args(argv: list[str]) -> dict[str, Any]:
+    opts = vars(build_parser().parse_args(argv))
+    output = opts.pop('output')
+    if opts['relative_links']:
+        opts['root'] = ''
     if opts['quick']:
-        args = [os.path.basename(opts['quick'])]
-    opts['names'] = args[0] if args else 'index'
-    if len(args) > 1:
-        opts['output_dir'] = args[1]
-
-
-def usage(opts: dict[str, Any]) -> None:
-    print(f'Usage: {sys.argv[0]} [OPTION...] [ALBUM-NAME1,NAME2]')
-    print(f'{sys.argv[0]} -- album static HTML generator')
-    opts['output_dir_help'] = opts['output_dir'] or 'output-DATETIME/'
-    print(USAGE % opts)
+        opts['names'] = os.path.basename(opts['quick'])
+    elif output:
+        opts['output_dir'] = output
+    return opts
 
 
 def main(argv: list[str] | None = None) -> None:
-    opts = default_opts()
-    try:
-        parse_args(opts, sys.argv[1:] if argv is None else argv)
-    except getopt.GetoptError:
-        usage(opts)
-        sys.exit(1)
+    opts = parse_args(sys.argv[1:] if argv is None else argv)
 
     signal.signal(signal.SIGTERM, lambda signum, frame: _quit_app())
     signal.signal(signal.SIGINT, lambda signum, frame: _quit_app())
@@ -233,12 +223,12 @@ def configure_urls(opts: dict[str, Any]) -> None:
             opts['photos_url'] = opts['photo_dir_out']
         opts['album_dir_in'] = os.path.relpath(arg, os.getcwd()) + '/'
         opts['photo_dir_in'] = opts['album_dir_in']
-        settings.ALBUM_DIR = opts['album_dir_in']
 
     if not opts['relative_links']:
         opts['assets_url'] = urljoin(opts['root'], opts['assets_url'])
         opts['photos_url'] = urljoin(opts['root'], opts['photos_url'])
 
+    settings.ALBUM_DIR = opts['album_dir_in']
     settings.WEBXIANG_PHOTOS_URL = opts['photos_url']
 
 
@@ -251,7 +241,7 @@ def publish_photos(opts: dict[str, Any], photo_dir_out: str) -> None:
             os.makedirs(photo_dir_out, exist_ok=True)
             _copytree(photo_dir_in, photo_dir_out)
         except OSError as exc:
-            print('Copying photos', exc)
+            logger.error('cannot copy photos: %s', exc)
     else:
         link = photo_dir_out.rstrip('/')
         print(f'Linking photos: ln -s {photo_dir_in} {link}')
@@ -259,7 +249,7 @@ def publish_photos(opts: dict[str, Any], photo_dir_out: str) -> None:
             os.makedirs(os.path.dirname(link), exist_ok=True)
             os.symlink(photo_dir_in, link)
         except OSError as exc:
-            print('Linking photos', exc)
+            logger.error('cannot link photos: %s', exc)
 
 
 def copy_assets(assets_dir: str) -> None:
@@ -267,7 +257,7 @@ def copy_assets(assets_dir: str) -> None:
     try:
         _copytree(settings.STATIC_ROOT, assets_dir)
     except OSError as exc:
-        print('Copying assets', exc)
+        logger.error('cannot copy assets: %s', exc)
 
 
 def _quit_app(code: int = 0) -> NoReturn:
@@ -315,6 +305,8 @@ class SiteGenerator:
             relative_links=self.opts['relative_links'],
         )
         if not data:
+            if page == 1:
+                logger.warning('album not found: %s', album_name)
             return
 
         if page > 1:
@@ -352,6 +344,7 @@ class SiteGenerator:
             relative_links=self.opts['relative_links'],
         )
         if not data:
+            logger.warning('photo not found: %s/%s', album_name, entry_idx)
             return
 
         photo_idx = entry_idx.split('/')[0]

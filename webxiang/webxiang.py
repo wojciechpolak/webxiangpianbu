@@ -422,41 +422,46 @@ def _get_mtype(video: str) -> str:
     return 'video'
 
 
-def _open_albumfile(album_name: str) -> Album | None:
+def _albumfile_path(album_name: str) -> str:
+    """The album's YAML file if it has one (and YAML is available), otherwise
+    its JSON file. The file may not exist."""
     albumfile_yaml = os.path.join(settings.ALBUM_DIR, album_name + '.yaml')
-    albumfile_json = os.path.join(settings.ALBUM_DIR, album_name + '.json')
+    if yaml and os.path.isfile(albumfile_yaml):
+        return albumfile_yaml
+    return os.path.join(settings.ALBUM_DIR, album_name + '.json')
+
+
+def _load_errors() -> tuple[type[Exception], ...]:
+    if yaml:
+        return (OSError, ValueError, yaml.YAMLError)
+    return (OSError, ValueError)
+
+
+def _open_albumfile(album_name: str) -> Album | None:
+    albumfile = _albumfile_path(album_name)
+    try:
+        mtime = os.path.getmtime(albumfile)
+    except OSError:
+        logger.debug('album not found: %s', album_name)
+        return None
 
     cache_key = 'album:' + album_name
     cache_data = cache.get(cache_key)
-
-    try:
-        mt1 = os.path.getmtime(albumfile_yaml)
-    except OSError:
-        try:
-            mt1 = os.path.getmtime(albumfile_json)
-        except OSError as exc:
-            print('_open_albumfile exception', exc)
-            return None
-    try:
-        mt2 = cache_data['mtime']
-    except (KeyError, TypeError):
-        mt2 = 0
-
-    if cache_data and 'data' in cache_data and mt2 >= mt1:
-        logger.debug('cache: get %s (%s)', cache_key, mt1)
+    if cache_data and 'data' in cache_data and cache_data.get('mtime', 0) >= mtime:
+        logger.debug('cache: get %s (%s)', cache_key, mtime)
         return cast(Album, cache_data['data'])
 
-    if os.path.isfile(albumfile_yaml) and yaml:
-        with open(albumfile_yaml, 'r', encoding='utf-8') as fp:
-            data = cast(Album, yaml.load(fp.read(), Loader=YamlLoader))
-    elif os.path.isfile(albumfile_json):
-        with open(albumfile_json, 'r', encoding='utf-8') as fp:
-            data = cast(Album, json.loads(fp.read()))
-    else:
+    try:
+        with open(albumfile, 'r', encoding='utf-8') as fp:
+            if albumfile.endswith('.yaml'):
+                data = cast(Album, yaml.load(fp.read(), Loader=YamlLoader))
+            else:
+                data = cast(Album, json.loads(fp.read()))
+    except _load_errors() as exc:
+        logger.error('cannot load album file %s: %s', albumfile, exc)
         return None
 
-    # save cache
-    logger.debug('cache: set %s (%s)', cache_key, mt1)
-    cache.set(cache_key, {'mtime': mt1, 'data': data}, None)
+    logger.debug('cache: set %s (%s)', cache_key, mtime)
+    cache.set(cache_key, {'mtime': mtime, 'data': data}, None)
 
     return data
