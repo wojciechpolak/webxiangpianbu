@@ -54,11 +54,8 @@ class _Links:
     album: str
     baseurl: str
     staticgen: bool
-    relative_links: bool
 
     def photo(self, link: str | int) -> str:
-        if self.relative_links:
-            return reverse('photo_relative', kwargs={'photo': link}).replace('/', '')
         return reverse('photo', kwargs={'album': self.album, 'photo': link})
 
     def media_dir(self, path: str) -> str:
@@ -72,7 +69,6 @@ def get_data(
     site_url: str | None = None,
     is_mobile: bool = False,
     staticgen: bool = False,
-    relative_links: bool = False,
 ) -> Album | None:
     album_data = _open_albumfile(album)
     if not album_data:
@@ -80,7 +76,7 @@ def get_data(
 
     data = _init_data(album, album_data, is_mobile)
     meta = data['meta']
-    links = _Links(album, data['URL_PHOTOS'], staticgen, relative_links)
+    links = _Links(album, data['URL_PHOTOS'], staticgen)
 
     if photo and photo != 'geomap':
         mode = 'photo'
@@ -171,11 +167,7 @@ def _photo_context(data: Album, links: _Links, photo: str) -> str | None:
 
     path = _photo_media(entry, meta, links)
 
-    entry['link'] = (
-        'index.html'
-        if links.relative_links
-        else reverse('album', kwargs={'album': links.album})
-    )
+    entry['link'] = reverse('album', kwargs={'album': links.album})
     page = pos // int(meta['ppp']) + 1
     if page > 1:
         entry['link'] += page_url({}, links.album, '', page)

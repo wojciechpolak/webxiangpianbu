@@ -31,8 +31,8 @@ def test_page_tag_switches_to_static_urls(monkeypatch):
         'webxiang.templatetags.page.get_urlconf', lambda: 'webxiang.urls_static'
     )
 
-    assert page({}, 'album-one', '/album-one/', 1) == 'index.html'
-    assert page({}, 'album-one', '/album-one/', 3) == 'page-3.html'
+    assert page({}, 'album-one', '/album-one/', 1) == '/album-one/'
+    assert page({}, 'album-one', '/album-one/', 3) == '/album-one/page-3.html'
 
 
 def test_gen_video_source_includes_optional_attributes():

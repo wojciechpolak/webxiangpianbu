@@ -23,6 +23,7 @@ import http.server
 import json
 import logging
 import os
+import re
 import shutil
 import signal
 import socketserver
@@ -83,8 +84,6 @@ class Options:
     @property
     def photo_dir_out(self) -> str:
         """Where photos go, relative to the output root."""
-        if self.quick and self.relative_links:
-            return os.path.join(os.path.basename(self.quick), 'data/')
         return urlparse(self.photos_url).path.lstrip('/')
 
 
@@ -140,7 +139,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         '--relative-links',
         action='store_true',
-        help='link pages relative to each other; implies --root=',
+        help='link pages relative to each other, so the site works from any '
+        'directory or without a web server; ignores --root',
     )
     parser.add_argument('-l', '--lang', help='default: %(default)s')
     parser.add_argument(
@@ -168,18 +168,16 @@ def parse_args(argv: list[str]) -> Options:
     output = args.pop('output')
     opts = Options(**args)
     if opts.relative_links:
-        opts = replace(opts, root='')
+        opts = replace(opts, root='/')
     if opts.quick:
         opts = quick_options(opts, opts.quick)
     elif output:
         opts = replace(opts, output_dir=output)
-    if not opts.relative_links:
-        opts = replace(
-            opts,
-            assets_url=urljoin(opts.root, opts.assets_url),
-            photos_url=urljoin(opts.root, opts.photos_url),
-        )
-    return opts
+    return replace(
+        opts,
+        assets_url=urljoin(opts.root, opts.assets_url),
+        photos_url=urljoin(opts.root, opts.photos_url),
+    )
 
 
 def quick_options(opts: Options, folder: str) -> Options:
@@ -193,7 +191,7 @@ def quick_options(opts: Options, folder: str) -> Options:
         album_dir_in=source,
         photo_dir_in=source,
         assets_url='assets/',
-        photos_url='data/' if opts.relative_links else os.path.join(name, 'data/'),
+        photos_url=os.path.join(name, 'data/'),
     )
 
 
@@ -229,9 +227,10 @@ def main(argv: list[str] | None = None) -> None:
     if opts.lang and opts.verbose > 1:
         print(f'Switching language to {opts.lang}')
     print('Generating static pages.')
+    album_names = opts.names.split(',')
     with site_context(opts):
-        generator = SiteGenerator(opts, output_dir)
-        for album_name in opts.names.split(','):
+        generator = SiteGenerator(opts, output_dir, home=album_names[0])
+        for album_name in album_names:
             generator.album(album_name)
 
     if opts.verbose > 0:
@@ -284,7 +283,7 @@ def publish_photos(opts: Options, photo_dir_out: str) -> None:
         print(f'Linking photos: ln -s {photo_dir_in} {link}')
         try:
             os.makedirs(os.path.dirname(link), exist_ok=True)
-            os.symlink(photo_dir_in, link)
+            os.symlink(os.path.abspath(photo_dir_in), link)
         except OSError as exc:
             logger.error('cannot link photos: %s', exc)
 
@@ -316,11 +315,13 @@ def serve(opts: Options, root_dir: str | None = None) -> None:
 
 
 class SiteGenerator:
-    """Renders albums and their photos into `output_dir`, each page once."""
+    """Renders albums and their photos into `output_dir`, each page once.
+    The first page of the `home` album is also the site's `index.html`."""
 
-    def __init__(self, opts: Options, output_dir: str = '.'):
+    def __init__(self, opts: Options, output_dir: str = '.', home: str = 'index'):
         self.opts = opts
         self.output_dir = output_dir
+        self.home = home
         self.generated: set[str] = set()
         self.items_no = 0
 
@@ -337,7 +338,6 @@ class SiteGenerator:
             album=album_name,
             page=page,
             staticgen=True,
-            relative_links=self.opts.relative_links,
         )
         if not data:
             if page == 1:
@@ -350,11 +350,11 @@ class SiteGenerator:
             name = 'index.html'
         output_file = os.path.join(self.output_dir, album_name, name)
         self._progress(output_file, print_level=2)
-        self._write(output_file, self._render(data))
+        html = self._render(data)
+        self._write(output_file, html)
 
-        # symlink '/index.html' to '/index/index.html'
-        if album_name == 'index' and page == 1:
-            os.symlink('index/index.html', os.path.join(self.output_dir, 'index.html'))
+        if album_name == self.home and page == 1:
+            self._home(album_name, html)
 
         entries = cast(Page[Entry], data['entries'])
         for i in cast(Any, entries.paginator).page_range_limited:
@@ -376,7 +376,6 @@ class SiteGenerator:
             album=album_name,
             photo=entry_idx,
             staticgen=True,
-            relative_links=self.opts.relative_links,
         )
         if not data:
             logger.warning('photo not found: %s/%s', album_name, entry_idx)
@@ -393,7 +392,15 @@ class SiteGenerator:
         self._progress(output_file, print_level=3)
         self._write(output_file, self._render(data))
 
+    def _home(self, album_name: str, html: str) -> None:
+        home = os.path.join(self.output_dir, 'index.html')
+        if self.opts.relative_links:
+            self._write(home, html)  # a link would resolve its URLs one level up
+        else:
+            os.symlink(f'{album_name}/index.html', home)
+
     def _render(self, data: Album) -> str:
+        """The page's HTML, its links rooted at the site root."""
         tpl = data['meta'].get('template') or 'default.html'
         if not tpl.endswith('.html'):
             tpl += '.html'
@@ -402,10 +409,6 @@ class SiteGenerator:
             html = cast(str, render_to_string(tpl, cast(dict, data)))
         except TemplateDoesNotExist:
             html = cast(str, render_to_string('default.html', cast(dict, data)))
-
-        if self.opts.relative_links:
-            assets_url = self.opts.assets_url
-            html = html.replace('/' + assets_url, '../' + assets_url)
         return html
 
     def _progress(self, output_file: str, print_level: int) -> None:
@@ -416,10 +419,31 @@ class SiteGenerator:
             sys.stdout.flush()
 
     def _write(self, output_file: str, html: str) -> None:
+        if self.opts.relative_links:
+            depth = os.path.relpath(output_file, self.output_dir).count(os.sep)
+            html = relative_urls(html, depth)
         os.makedirs(os.path.dirname(output_file), exist_ok=True)
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(html)
         self.items_no += 1
+
+
+_ROOT_URL = re.compile(r'"/(?!/)([^"]*)"')
+
+
+def relative_urls(html: str, depth: int) -> str:
+    """`html` with its quoted root-relative URLs, like "/album/", made
+    relative to a page `depth` directories below the root. Directory URLs
+    get `index.html` added, so the pages work without a web server."""
+    prefix = '../' * depth
+
+    def relative(match: re.Match[str]) -> str:
+        path = match[1]
+        if not path or path.endswith('/'):
+            path += 'index.html'
+        return f'"{prefix}{path}"'
+
+    return _ROOT_URL.sub(relative, html)
 
 
 def _copytree(src: str, dst: str) -> None:

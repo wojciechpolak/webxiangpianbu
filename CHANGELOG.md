@@ -41,11 +41,9 @@ and history and only list the major changes.
   warns about albums and photos it cannot find.
 - A malformed album file is logged and treated as a missing album instead of
   raising an exception.
-- `staticgen.py` no longer changes Django settings for the rest of the
-  process: the album directory, photos URL, static URL, urlconf, script
-  prefix and language are set only while pages render. Without `--quick`,
-  assets and photos go where their URLs point (by default `static/` and
-  `data/` in the output directory).
+- `staticgen.py`: `--relative-links` pages work at any depth and straight
+  from disk (it now ignores `--root`), and the site's `index.html` is the
+  first album given rather than always `index`.
 
 ### Fixed
 
@@ -53,10 +51,8 @@ and history and only list the major changes.
   requires one.
 - `generate.py --thumbs-size` wrote the size to YAML albums as a Python
   tuple (`!!python/tuple`).
-- `staticgen.py` without `--quick` failed with a `KeyError` before writing
-  any page.
-- `staticgen.py --quick` with `--root` copied the assets outside the root,
-  where the pages did not find them.
+- `staticgen.py` failed without `--quick`, and produced broken asset and
+  photo links with `--quick --root` or `--relative-links`.
 
 ### Security
 

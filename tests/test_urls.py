@@ -27,7 +27,7 @@ def test_dynamic_urlconf_resolves_album_and_photo_routes():
     assert resolve('/1.jpg').url_name == 'onephoto'
 
 
-def test_static_urlconf_resolves_relative_photo_route():
+def test_static_urlconf_resolves_photo_pages():
     with override_settings(ROOT_URLCONF='webxiang.urls_static'):
-        assert resolve('/2.html').url_name == 'photo_relative'
         assert resolve('/album-one/2.html').url_name == 'photo'
+        assert resolve('/album-one/1/first.html').url_name == 'photo'

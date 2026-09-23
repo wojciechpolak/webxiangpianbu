@@ -27,6 +27,7 @@ from django.conf import settings as django_settings
 from django.core.cache.backends.locmem import LocMemCache
 from django.core.paginator import Page
 from django.test import override_settings
+from django.urls import set_urlconf
 
 from webxiang import webxiang
 from webxiang.typing import Entry
@@ -294,13 +295,9 @@ def test_get_data_reverse_order_flips_navigation_and_canonical(monkeypatch):
     assert data['prev_entry'] == '/reverse-album/3/third'
 
 
-def test_get_data_relative_links_switch_photo_navigation(monkeypatch):
+def test_get_data_static_photo_links_back_to_its_album_page(monkeypatch):
     album = {
-        'meta': {
-            'title': 'Relative Album',
-            'ppp': 2,
-            'columns': 2,
-        },
+        'meta': {'title': 'Static Album', 'ppp': 2, 'columns': 2},
         'entries': [
             {'image': 'first.jpg'},
             {'image': 'second.jpg'},
@@ -311,13 +308,16 @@ def test_get_data_relative_links_switch_photo_navigation(monkeypatch):
     monkeypatch.setattr(
         webxiang, '_open_albumfile', lambda album_name: copy.deepcopy(album)
     )
-    with override_settings(ROOT_URLCONF='webxiang.urls_static'):
-        data = webxiang.get_data('relative-album', photo='2', relative_links=True)
+    set_urlconf('webxiang.urls_static')
+    try:
+        data = webxiang.get_data('static-album', photo='3', staticgen=True)
+    finally:
+        set_urlconf(None)
 
     assert data is not None
-    assert data['entry']['link'] == 'index.html'
-    assert data['prev_entry'] == '1.html'
-    assert data['next_entry'] == '3.html'
+    assert data['entry']['link'] == '/static-album/page-2.html'
+    assert data['prev_entry'] == '/static-album/2.html'
+    assert data['next_entry'] is None
 
 
 def test_get_data_story_prev_and_next_story_links(monkeypatch):

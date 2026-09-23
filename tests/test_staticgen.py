@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import socketserver
 from pathlib import Path
@@ -54,15 +55,52 @@ def staticgen(monkeypatch, tmp_path):
     cache.clear()
 
 
+def _write_album(album_dir: Path, name: str, album: dict) -> None:
+    (album_dir / f'{name}.json').write_text(json.dumps(album), encoding='utf-8')
+
+
 def _gallery(tmp_path: Path) -> Path:
     """A --quick folder: album files and photos side by side, the top album
-    named after the folder."""
+    named after the folder. album-one has two pages and a photo with a slug."""
     gallery = tmp_path / 'gallery'
-    shutil.copytree(SAMPLE_PHOTO_ROOT, gallery)
-    for album in SAMPLE_ALBUM_DIR.glob('*.json'):
-        shutil.copy(album, gallery)
-    shutil.copy(SAMPLE_ALBUM_DIR / 'index.json', gallery / 'gallery.json')
+    gallery.mkdir()
+    for photo in SAMPLE_PHOTO_ROOT.rglob('*.jpg'):
+        shutil.copy(photo, gallery)
+    for name in ('index', 'album-one'):
+        album = json.loads((SAMPLE_ALBUM_DIR / f'{name}.json').read_text())
+        for key in ('path', 'path_thumb'):
+            album['meta'].pop(key, None)
+        if name == 'album-one':
+            album['meta']['ppp'] = 2
+            album['entries'][0]['slug'] = 'first'
+        _write_album(gallery, name, album)
+    shutil.copy(gallery / 'index.json', gallery / 'gallery.json')
     return gallery
+
+
+_LINK = re.compile(r'(?:src|href)="([^"#?]*)"|"(?:url|url_full|link)": "([^"]*)"')
+
+
+def _broken_links(output: Path) -> list[str]:
+    """Local links in the pages under `output` that lead to no file, as
+    'page: link'. Root-relative links are resolved against `output`."""
+    broken = []
+    for page in output.rglob('*.html'):
+        if 'data' in page.parts or 'assets' in page.parts:
+            continue
+        for match in _LINK.finditer(page.read_text(encoding='utf-8')):
+            link = match[1] or match[2]
+            if link.startswith(('http:', 'https:', '//')):
+                continue
+            if link.startswith('/'):
+                target = output / link.lstrip('/')
+            else:
+                target = page.parent / link
+            if not link or link.endswith('/'):
+                target /= 'index.html'
+            if not os.path.exists(os.path.normpath(target)):
+                broken.append(f'{page.relative_to(output)}: {link}')
+    return broken
 
 
 def _opts(staticgen, **kwargs):
@@ -135,13 +173,12 @@ def test_parse_args_quick_and_relative_links(staticgen):
     source = os.path.relpath(quick) + '/'
     assert opts == staticgen.Options(
         relative_links=True,
-        root='',
         quick=quick,
         names='trip',
         album_dir_in=source,
         photo_dir_in=source,
-        assets_url='assets/',
-        photos_url='data/',
+        assets_url='/assets/',
+        photos_url='/trip/data/',
         serve='site',
     )
     assert (opts.assets_dir, opts.photo_dir_out) == ('assets/', 'trip/data/')
@@ -223,23 +260,47 @@ def test_main_quick_renders_the_gallery(
         for path in output.rglob('*.html')
         if 'data' not in path.parts
     ) == [
-        'album-one/1.html',
+        'album-one/1/first.html',
         'album-one/2.html',
         'album-one/3.html',
         'album-one/index.html',
+        'album-one/page-2.html',
         'gallery/index.html',
+        'index.html',
     ]
-    assert (output / 'gallery' / 'data').is_symlink()
+    assert (output / 'gallery' / 'data' / 'dsc08340.jpg').exists()
     assert (output / 'assets' / 'staticfiles.json').exists()
+    assert _broken_links(output) == []
 
-    photo = (output / 'album-one' / '2.html').read_text(encoding='utf-8')
+    photo = (output / 'album-one' / '1' / 'first.html').read_text(encoding='utf-8')
     if relative_links:
-        assert '../assets/' in photo
-        assert 'href="3.html"' in photo
+        assert not (output / 'index.html').is_symlink()
+        assert 'href="../../assets/css/' in photo
+        assert 'href="../../album-one/2.html"' in photo
+        assert 'href="../../index.html"' in photo
     else:
-        assert '/assets/' in photo
-        assert 'href="/album-one/3.html"' in photo
-    assert capsys.readouterr().out.endswith('Done. Created 5 files.\n')
+        assert os.readlink(output / 'index.html') == 'gallery/index.html'
+        assert 'href="/assets/css/' in photo
+        assert 'href="/album-one/2.html"' in photo
+        assert 'href="/"' in photo
+    files = 7 if relative_links else 6
+    assert capsys.readouterr().out.endswith(f'Done. Created {files} files.\n')
+
+
+def test_relative_urls_follow_the_page_depth(staticgen):
+    html = (
+        '<a href="/">home</a> <a href="/trip/">trip</a> <img src="/data/a.jpg">'
+        ' <a href="//cdn/x.js"></a> <a href="page-2.html"></a> {"link": "/trip/2.html"}'
+    )
+
+    assert staticgen.relative_urls(html, 0) == (
+        '<a href="index.html">home</a> <a href="trip/index.html">trip</a>'
+        ' <img src="data/a.jpg"> <a href="//cdn/x.js"></a> <a href="page-2.html"></a>'
+        ' {"link": "trip/2.html"}'
+    )
+    assert staticgen.relative_urls(html, 2).startswith(
+        '<a href="../../index.html">home</a> <a href="../../trip/index.html">'
+    )
 
 
 def test_main_renders_albums_from_settings_under_a_root(
@@ -308,10 +369,6 @@ def test_publish_photos_copies_or_links(staticgen, tmp_path, caplog):
         'cannot copy photos:',
         'cannot copy assets:',
     ]
-
-
-def _write_album(album_dir: Path, name: str, album: dict) -> None:
-    (album_dir / f'{name}.json').write_text(json.dumps(album), encoding='utf-8')
 
 
 def test_site_generator_writes_pages_photos_and_index_link(
@@ -413,7 +470,7 @@ def test_main_quick_defaults_to_a_dated_output_dir(
 
     (output,) = tmp_path.glob('output-*')
     assert (output / 'gallery' / 'index.html').exists()
-    assert (output / 'album-one' / '1.html').exists()
+    assert (output / 'album-one' / '2.html').exists()
     # no progress dots, no blank line before the summary
     assert 'Generating static pages.\ngallery album-one Finished' in (
         capsys.readouterr().out

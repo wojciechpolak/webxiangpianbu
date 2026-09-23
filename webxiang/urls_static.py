@@ -26,5 +26,4 @@ urlpatterns = [
     re_path(
         r'^(?P<album>[\w-]+)/(?P<photo>[\w\-\./]+)\.html$', views.display, name='photo'
     ),
-    re_path(r'^(?P<photo>[\w\-\./]+)\.html$', views.display, name='photo_relative'),
 ]

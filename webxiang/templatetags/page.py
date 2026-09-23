@@ -28,11 +28,9 @@ register = template.Library()
 def page(
     context: dict[str, Any], album_name: str, album_url: str, page_number: int
 ) -> str:
+    if page_number <= 1:
+        return album_url
     if get_urlconf() == 'webxiang.urls_static':
-        if page_number > 1:
-            # Translators: this is an URL
-            return _('page-%(number)s.html') % {'number': page_number}
-        return 'index.html'
-    if page_number > 1:
-        return f'?page={page_number}'
-    return album_url
+        # Translators: this is an URL
+        return album_url + _('page-%(number)s.html') % {'number': page_number}
+    return f'?page={page_number}'
