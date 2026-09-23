@@ -27,16 +27,19 @@ import shutil
 import signal
 import socketserver
 import sys
+from collections.abc import Callable, Iterator
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
 from typing import Any, NoReturn, cast
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 import django
 from django.conf import settings
 from django.core.paginator import Page
 from django.template import TemplateDoesNotExist
 from django.template.loader import render_to_string
-from django.urls import set_script_prefix, set_urlconf
+from django.test import override_settings
+from django.urls import get_script_prefix, set_script_prefix, set_urlconf
 from django.utils import translation
 from django.utils.translation import gettext as _
 
@@ -51,23 +54,38 @@ from webxiang.typing import Album, Entry
 logger = logging.getLogger('tools.staticgen')
 
 
-def default_opts() -> dict[str, Any]:
-    return {
-        'verbose': 1,
-        'output_dir': None,
-        'album_dir_in': getattr(settings, 'ALBUM_DIR', 'albums'),
-        'photo_dir_in': getattr(settings, 'WEBXIANG_PHOTOS_ROOT', ''),
-        'root': '/',
-        'assets_url': getattr(settings, 'STATIC_URL', 'assets/'),
-        'photos_url': getattr(settings, 'WEBXIANG_PHOTOS_URL', 'data/'),
-        'relative_links': False,
-        'names': 'index',
-        'lang': 'en',
-        'quick': False,
-        'copy': False,
-        'serve': None,
-        'port': 8000,
-    }
+def _setting(name: str, default: str) -> Callable[[], str]:
+    return lambda: getattr(settings, name, default)
+
+
+@dataclass(frozen=True)
+class Options:
+    verbose: int = 1
+    output_dir: str | None = None
+    album_dir_in: str = field(default_factory=_setting('ALBUM_DIR', 'albums'))
+    photo_dir_in: str = field(default_factory=_setting('WEBXIANG_PHOTOS_ROOT', ''))
+    root: str = '/'
+    assets_url: str = field(default_factory=_setting('STATIC_URL', 'assets/'))
+    photos_url: str = field(default_factory=_setting('WEBXIANG_PHOTOS_URL', 'data/'))
+    relative_links: bool = False
+    names: str = 'index'
+    lang: str = 'en'
+    quick: str | None = None
+    copy: bool = False
+    serve: str | None = None
+    port: int = 8000
+
+    @property
+    def assets_dir(self) -> str:
+        """Where assets go, relative to the output root."""
+        return urlparse(self.assets_url).path.lstrip('/')
+
+    @property
+    def photo_dir_out(self) -> str:
+        """Where photos go, relative to the output root."""
+        if self.quick and self.relative_links:
+            return os.path.join(os.path.basename(self.quick), 'data/')
+        return urlparse(self.photos_url).path.lstrip('/')
 
 
 def _with_slash(arg: str) -> str:
@@ -141,20 +159,42 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         '-p', '--port', type=int, metavar='N', help='default: %(default)s'
     )
-    parser.set_defaults(**default_opts())
+    parser.set_defaults(**asdict(Options()))
     return parser
 
 
-def parse_args(argv: list[str]) -> dict[str, Any]:
-    opts = vars(build_parser().parse_args(argv))
-    output = opts.pop('output')
-    if opts['relative_links']:
-        opts['root'] = ''
-    if opts['quick']:
-        opts['names'] = os.path.basename(opts['quick'])
+def parse_args(argv: list[str]) -> Options:
+    args = vars(build_parser().parse_args(argv))
+    output = args.pop('output')
+    opts = Options(**args)
+    if opts.relative_links:
+        opts = replace(opts, root='')
+    if opts.quick:
+        opts = quick_options(opts, opts.quick)
     elif output:
-        opts['output_dir'] = output
+        opts = replace(opts, output_dir=output)
+    if not opts.relative_links:
+        opts = replace(
+            opts,
+            assets_url=urljoin(opts.root, opts.assets_url),
+            photos_url=urljoin(opts.root, opts.photos_url),
+        )
     return opts
+
+
+def quick_options(opts: Options, folder: str) -> Options:
+    """--quick: album files and photos both in `folder`, the album named after
+    it rendered first, assets and photos kept next to the pages."""
+    name = os.path.basename(folder)
+    source = os.path.relpath(folder, os.getcwd()) + '/'
+    return replace(
+        opts,
+        names=name,
+        album_dir_in=source,
+        photo_dir_in=source,
+        assets_url='assets/',
+        photos_url='data/' if opts.relative_links else os.path.join(name, 'data/'),
+    )
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -163,46 +203,38 @@ def main(argv: list[str] | None = None) -> None:
     signal.signal(signal.SIGTERM, lambda signum, frame: _quit_app())
     signal.signal(signal.SIGINT, lambda signum, frame: _quit_app())
 
-    if opts['serve']:
-        serve(opts, opts['serve'])
+    if opts.serve:
+        serve(opts, opts.serve)
         sys.exit(0)
 
-    if opts['lang']:
-        if opts['verbose'] > 1:
-            print(f'Switching language to {opts["lang"]}')
-        translation.activate(opts['lang'])
-
-    set_urlconf('webxiang.urls_static')
-    set_script_prefix(opts['root'])
-
     root_dir = (
-        opts['output_dir']
-        and os.path.expanduser(opts['output_dir'])
-        or f'output-{datetime.now().astimezone():%Y%m%d-%H%M%S}'
+        os.path.expanduser(opts.output_dir)
+        if opts.output_dir
+        else f'output-{datetime.now().astimezone():%Y%m%d-%H%M%S}'
     )
-    output_dir = os.path.join(root_dir, opts['root'].lstrip('/'))
+    output_dir = os.path.join(root_dir, opts.root.lstrip('/'))
 
-    configure_urls(opts)
-
-    if opts['verbose'] > 1:
-        print('WEBXIANG_PHOTOS_URL', settings.WEBXIANG_PHOTOS_URL)
-        print('OPTIONS', json.dumps(opts, indent=2, sort_keys=True))
+    if opts.verbose > 1:
+        print('OPTIONS', json.dumps(asdict(opts), indent=2, sort_keys=True))
 
     if not os.path.exists(output_dir):
         print(f'Creating directory "{output_dir}"')
         with contextlib.suppress(OSError):
             os.makedirs(output_dir)
 
-    if not opts['photos_url'].startswith('http'):
-        publish_photos(opts, os.path.join(output_dir, opts['photo_dir_out']))
-    copy_assets(os.path.join(root_dir, opts['assets_dir'].lstrip('/')))
+    if not opts.photos_url.startswith('http'):
+        publish_photos(opts, os.path.join(root_dir, opts.photo_dir_out))
+    copy_assets(os.path.join(root_dir, opts.assets_dir))
 
+    if opts.lang and opts.verbose > 1:
+        print(f'Switching language to {opts.lang}')
     print('Generating static pages.')
-    generator = SiteGenerator(opts, output_dir)
-    for album_name in opts['names'].split(','):
-        generator.album(album_name)
+    with site_context(opts):
+        generator = SiteGenerator(opts, output_dir)
+        for album_name in opts.names.split(','):
+            generator.album(album_name)
 
-    if opts['verbose'] > 0:
+    if opts.verbose > 0:
         print()
     print(f'Finished {output_dir}')
     print(f'Done. Created {generator.items_no:d} files.')
@@ -210,32 +242,37 @@ def main(argv: list[str] | None = None) -> None:
     serve(opts, root_dir)
 
 
-def configure_urls(opts: dict[str, Any]) -> None:
-    """Work out where assets and photos go and the URLs pages use for them."""
-    if opts['quick']:
-        arg = opts['quick']
-        opts['assets_dir'] = 'assets/'
-        opts['assets_url'] = opts['assets_dir']
-        opts['photo_dir_out'] = os.path.join(os.path.basename(arg), 'data/')
-        if opts['relative_links']:
-            opts['photos_url'] = 'data/'
-        else:
-            opts['photos_url'] = opts['photo_dir_out']
-        opts['album_dir_in'] = os.path.relpath(arg, os.getcwd()) + '/'
-        opts['photo_dir_in'] = opts['album_dir_in']
+@contextlib.contextmanager
+def site_context(opts: Options) -> Iterator[None]:
+    """The settings, urlconf, script prefix and language pages are rendered
+    with, all restored afterwards."""
+    language = (
+        translation.override(opts.lang, deactivate=True)
+        if opts.lang
+        else contextlib.nullcontext()
+    )
+    script_prefix = get_script_prefix()
+    set_urlconf('webxiang.urls_static')
+    set_script_prefix(opts.root)
+    try:
+        with (
+            language,
+            override_settings(
+                ALBUM_DIR=opts.album_dir_in,
+                WEBXIANG_PHOTOS_URL=opts.photos_url,
+                STATIC_URL=opts.assets_url,
+            ),
+        ):
+            yield
+    finally:
+        set_urlconf(None)
+        set_script_prefix(script_prefix)
 
-    if not opts['relative_links']:
-        opts['assets_url'] = urljoin(opts['root'], opts['assets_url'])
-        opts['photos_url'] = urljoin(opts['root'], opts['photos_url'])
 
-    settings.ALBUM_DIR = opts['album_dir_in']
-    settings.WEBXIANG_PHOTOS_URL = opts['photos_url']
-
-
-def publish_photos(opts: dict[str, Any], photo_dir_out: str) -> None:
+def publish_photos(opts: Options, photo_dir_out: str) -> None:
     """Copy (--copy) or symlink the photo directory into the output."""
-    photo_dir_in = opts['photo_dir_in'].rstrip('/')
-    if opts['copy']:
+    photo_dir_in = opts.photo_dir_in.rstrip('/')
+    if opts.copy:
         print(f'Copying photos "{photo_dir_in}" into "{photo_dir_out}"')
         try:
             os.makedirs(photo_dir_out, exist_ok=True)
@@ -265,17 +302,15 @@ def _quit_app(code: int = 0) -> NoReturn:
     sys.exit(code)
 
 
-def serve(opts: dict[str, Any], root_dir: str | None = None) -> None:
+def serve(opts: Options, root_dir: str | None = None) -> None:
     class SimpleServer(socketserver.TCPServer):
         allow_reuse_address = True
 
     if root_dir:
         os.chdir(root_dir)
 
-    httpd = SimpleServer(
-        ('localhost', opts['port']), http.server.SimpleHTTPRequestHandler
-    )
-    print(f'Serving at localhost:{opts["port"]:d}{opts["root"]}')
+    httpd = SimpleServer(('localhost', opts.port), http.server.SimpleHTTPRequestHandler)
+    print(f'Serving at localhost:{opts.port:d}{opts.root}')
     print('Quit the server with CONTROL-C.')
     httpd.serve_forever()
 
@@ -283,7 +318,7 @@ def serve(opts: dict[str, Any], root_dir: str | None = None) -> None:
 class SiteGenerator:
     """Renders albums and their photos into `output_dir`, each page once."""
 
-    def __init__(self, opts: dict[str, Any], output_dir: str = '.'):
+    def __init__(self, opts: Options, output_dir: str = '.'):
         self.opts = opts
         self.output_dir = output_dir
         self.generated: set[str] = set()
@@ -302,7 +337,7 @@ class SiteGenerator:
             album=album_name,
             page=page,
             staticgen=True,
-            relative_links=self.opts['relative_links'],
+            relative_links=self.opts.relative_links,
         )
         if not data:
             if page == 1:
@@ -341,7 +376,7 @@ class SiteGenerator:
             album=album_name,
             photo=entry_idx,
             staticgen=True,
-            relative_links=self.opts['relative_links'],
+            relative_links=self.opts.relative_links,
         )
         if not data:
             logger.warning('photo not found: %s/%s', album_name, entry_idx)
@@ -363,22 +398,20 @@ class SiteGenerator:
         if not tpl.endswith('.html'):
             tpl += '.html'
 
-        assets_url = self.opts['assets_url']
-        settings.STATIC_URL = assets_url
-
         try:
             html = cast(str, render_to_string(tpl, cast(dict, data)))
         except TemplateDoesNotExist:
             html = cast(str, render_to_string('default.html', cast(dict, data)))
 
-        if self.opts['relative_links']:
+        if self.opts.relative_links:
+            assets_url = self.opts.assets_url
             html = html.replace('/' + assets_url, '../' + assets_url)
         return html
 
     def _progress(self, output_file: str, print_level: int) -> None:
-        if self.opts['verbose'] >= print_level:
+        if self.opts.verbose >= print_level:
             print(f'writing {output_file}')
-        elif self.opts['verbose'] >= 1:
+        elif self.opts.verbose >= 1:
             sys.stdout.write('.')
             sys.stdout.flush()
 

@@ -27,7 +27,7 @@ import pytest
 from django.conf import settings as django_settings
 from django.core.cache import cache
 from django.test import override_settings
-from django.urls import set_script_prefix, set_urlconf
+from django.urls import get_script_prefix, get_urlconf
 from django.utils import translation
 
 from tests.conftest import SAMPLE_ALBUM_DIR, SAMPLE_PHOTO_ROOT
@@ -35,11 +35,10 @@ from tests.conftest import SAMPLE_ALBUM_DIR, SAMPLE_PHOTO_ROOT
 
 @pytest.fixture
 def staticgen(monkeypatch, tmp_path):
-    """The staticgen module, with the global state it touches restored.
+    """The staticgen module, reading the sample albums and photos.
 
-    Importing it points DJANGO_SETTINGS_MODULE at `webxiang.settings`, and a
-    run changes settings, the urlconf, the script prefix, the language and
-    the working directory."""
+    Importing it points DJANGO_SETTINGS_MODULE at `webxiang.settings`, and
+    serving changes the working directory; both are restored."""
     monkeypatch.setenv('DJANGO_SETTINGS_MODULE', os.environ['DJANGO_SETTINGS_MODULE'])
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr('signal.signal', lambda signum, handler: None)
@@ -47,18 +46,12 @@ def staticgen(monkeypatch, tmp_path):
     from tools import staticgen
 
     cache.clear()
-    # Overriding STATIC_URL, even to itself, drops the cached staticfiles
-    # storage. Staticgen needs one created after it sets its assets URL.
     with override_settings(
         ALBUM_DIR=str(SAMPLE_ALBUM_DIR),
         WEBXIANG_PHOTOS_ROOT=str(SAMPLE_PHOTO_ROOT),
-        STATIC_URL=django_settings.STATIC_URL,
     ):
         yield staticgen
     cache.clear()
-    set_urlconf(None)
-    set_script_prefix('/')
-    translation.deactivate()
 
 
 def _gallery(tmp_path: Path) -> Path:
@@ -72,10 +65,20 @@ def _gallery(tmp_path: Path) -> Path:
     return gallery
 
 
-def _opts(staticgen, **kwargs) -> dict:
-    opts: dict = staticgen.default_opts()
-    opts.update(kwargs)
-    return opts
+def _opts(staticgen, **kwargs):
+    return staticgen.Options(**kwargs)
+
+
+def _global_state() -> tuple:
+    """What rendering pages changes and must put back."""
+    return (
+        django_settings.ALBUM_DIR,
+        django_settings.STATIC_URL,
+        django_settings.WEBXIANG_PHOTOS_URL,
+        get_urlconf(),
+        get_script_prefix(),
+        translation.get_language(),
+    )
 
 
 def test_parse_args_applies_options(staticgen):
@@ -97,17 +100,30 @@ def test_parse_args_applies_options(staticgen):
         ],
     )
 
-    assert opts['verbose'] == 2
-    assert opts['lang'] == 'pl'
-    assert opts['album_dir_in'] == 'albums'
-    assert opts['photo_dir_in'] == 'photos'
-    assert opts['root'] == '/site/'
-    assert opts['assets_url'] == '/assets/'
-    assert opts['photos_url'] == '/photos/'
-    assert opts['copy'] is True
-    assert opts['port'] == 9000
-    assert opts['names'] == 'one,two'
-    assert opts['output_dir'] == 'out'
+    assert opts == staticgen.Options(
+        verbose=2,
+        lang='pl',
+        album_dir_in='albums',
+        photo_dir_in='photos',
+        root='/site/',
+        assets_url='/assets/',
+        photos_url='/photos/',
+        copy=True,
+        port=9000,
+        names='one,two',
+        output_dir='out',
+    )
+    assert (opts.assets_dir, opts.photo_dir_out) == ('assets/', 'photos/')
+
+
+def test_parse_args_puts_relative_urls_under_the_root(staticgen):
+    opts = staticgen.parse_args(
+        ['--root=/site', '--assets-url=assets', '--photos-url=https://cdn/p']
+    )
+
+    assert opts.assets_url == '/site/assets/'
+    assert opts.photos_url == 'https://cdn/p/'
+    assert opts.assets_dir == 'site/assets/'
 
 
 def test_parse_args_quick_and_relative_links(staticgen):
@@ -115,24 +131,40 @@ def test_parse_args_quick_and_relative_links(staticgen):
         ['--relative-links', '--quick=~/photos/trip/', '-s', 'site', 'other', 'out']
     )
 
-    assert opts['relative_links'] is True
-    assert opts['root'] == ''
-    assert opts['quick'] == os.path.expanduser('~/photos/trip')
-    assert opts['names'] == 'trip'
-    assert opts['serve'] == 'site'
-    assert opts['output_dir'] is None
+    quick = os.path.expanduser('~/photos/trip')
+    source = os.path.relpath(quick) + '/'
+    assert opts == staticgen.Options(
+        relative_links=True,
+        root='',
+        quick=quick,
+        names='trip',
+        album_dir_in=source,
+        photo_dir_in=source,
+        assets_url='assets/',
+        photos_url='data/',
+        serve='site',
+    )
+    assert (opts.assets_dir, opts.photo_dir_out) == ('assets/', 'trip/data/')
+
+
+def test_parse_args_quick_keeps_photos_under_the_album_name(staticgen):
+    opts = staticgen.parse_args(['--root=/site/', '--quick=trip'])
+
+    assert (opts.assets_url, opts.photos_url) == ('/site/assets/', '/site/trip/data/')
+    assert (opts.assets_dir, opts.photo_dir_out) == ('site/assets/', 'site/trip/data/')
 
 
 def test_parse_args_defaults_to_index(staticgen):
     opts = staticgen.parse_args(['--root='])
 
-    assert opts == {**staticgen.default_opts(), 'root': ''}
+    assert opts == staticgen.Options(root='')
+    assert opts.album_dir_in == str(SAMPLE_ALBUM_DIR)
 
 
 def test_parse_args_output_dir_option(staticgen):
     opts = staticgen.parse_args(['--output-dir=out', 'one'])
 
-    assert (opts['names'], opts['output_dir']) == ('one', 'out')
+    assert (opts.names, opts.output_dir) == ('one', 'out')
 
 
 def test_main_prints_help(staticgen, capsys):
@@ -210,14 +242,38 @@ def test_main_quick_renders_the_gallery(
     assert capsys.readouterr().out.endswith('Done. Created 5 files.\n')
 
 
-def test_configure_urls_prefixes_root_when_not_relative(staticgen):
-    opts = _opts(staticgen, root='/site/', assets_url='assets/', photos_url='data/')
+def test_main_renders_albums_from_settings_under_a_root(
+    staticgen, tmp_path, monkeypatch
+):
+    output = tmp_path / 'site'
+    monkeypatch.setattr(staticgen, 'serve', lambda opts, root: None)
+    before = _global_state()
 
-    staticgen.configure_urls(opts)
+    staticgen.main(['-v', '0', '--lang=pl', '--root=/sub/', 'index', str(output)])
 
-    assert opts['assets_url'] == '/site/assets/'
-    assert opts['photos_url'] == '/site/data/'
-    assert django_settings.WEBXIANG_PHOTOS_URL == '/site/data/'
+    assert _global_state() == before
+    assert (output / 'sub' / 'index' / 'index.html').exists()
+    assert (output / 'data').is_symlink()
+    assert (output / 'static' / 'staticfiles.json').exists()
+    page = (output / 'sub' / 'album-one' / 'index.html').read_text(encoding='utf-8')
+    assert 'href="/sub/album-one/1.html"' in page
+    assert 'src="/data/' in page
+    assert 'href="/static/css/' in page
+
+
+def test_site_context_restores_state_after_errors(staticgen):
+    before = _global_state()
+
+    with (
+        pytest.raises(RuntimeError),
+        staticgen.site_context(_opts(staticgen, root='/x/', assets_url='/a/')),
+    ):
+        assert django_settings.STATIC_URL == '/a/'
+        assert get_script_prefix() == '/x/'
+        assert translation.get_language() == 'en'
+        raise RuntimeError
+
+    assert _global_state() == before
 
 
 def test_publish_photos_copies_or_links(staticgen, tmp_path, caplog):
@@ -285,10 +341,9 @@ def test_site_generator_writes_pages_photos_and_index_link(
     )
     output = tmp_path / 'site'
 
-    with override_settings(ALBUM_DIR=str(album_dir)):
-        generator = staticgen.SiteGenerator(
-            _opts(staticgen, verbose=3, assets_url='/assets/'), str(output)
-        )
+    opts = _opts(staticgen, verbose=3, album_dir_in=str(album_dir))
+    with staticgen.site_context(opts):
+        generator = staticgen.SiteGenerator(opts, str(output))
         generator.album('index')
         generator.album('index')  # already done
         generator.photo('trip', '99/')  # no such photo

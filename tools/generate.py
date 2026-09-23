@@ -23,6 +23,7 @@ import logging
 import os
 import sys
 from collections import OrderedDict as _OrderedDict
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
 from typing import Any
 
@@ -35,29 +36,30 @@ OrderedDict: Any = _OrderedDict
 logger = logging.getLogger('tools.generate')
 
 
-def default_opts() -> dict[str, Any]:
-    return {
-        'album_name': None,
-        'album_dir': None,
-        'album_format': 'yaml',
-        'path': '',
-        'copyright': '',
-        'template': 'default',
-        'style': 'base.css',
-        'ppp': 12,  # pictures per page
-        'images_format': 'JPEG',
-        'images_quality': 95,
-        'images_maxsize': [900, 640],
-        'images_sharpness': 1.4,
-        'default_image_size': [],
-        'thumbs_skip': False,
-        'thumbs_quality': 90,
-        'thumbs_size': [180, 180],
-        'show_geo': True,
-        'correct_orientation': True,
-        'skip_image_gen': False,
-        'skip_thumb_gen': False,
-    }
+@dataclass(frozen=True)
+class Options:
+    inputdir: str = ''
+    outputdir: str = ''
+    album_name: str | None = None
+    album_dir: str | None = None
+    album_format: str = 'yaml'
+    path: str = ''
+    copyright: str = ''
+    template: str = 'default'
+    style: str = 'base.css'
+    ppp: int = 12  # pictures per page
+    images_format: str = 'JPEG'
+    images_quality: int = 95
+    images_maxsize: list[int] = field(default_factory=lambda: [900, 640])
+    images_sharpness: float = 1.4
+    default_image_size: list[int] = field(default_factory=list)
+    thumbs_skip: bool = False
+    thumbs_quality: int = 90
+    thumbs_size: list[int] = field(default_factory=lambda: [180, 180])
+    show_geo: bool = True
+    correct_orientation: bool = True
+    skip_image_gen: bool = False
+    skip_thumb_gen: bool = False
 
 
 def _size(arg: str) -> list[int]:
@@ -156,12 +158,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         '--skip-thumb-gen', action='store_true', help='do not write thumbnails'
     )
-    parser.set_defaults(**default_opts())
+    parser.set_defaults(**asdict(Options()))
     return parser
 
 
-def parse_args(argv: list[str]) -> dict[str, Any]:
-    return vars(build_parser().parse_args(argv))
+def parse_args(argv: list[str]) -> Options:
+    return Options(**vars(build_parser().parse_args(argv)))
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -169,12 +171,13 @@ def main(argv: list[str] | None = None) -> None:
     opts = parse_args(sys.argv[1:] if argv is None else argv)
 
     try:
-        fnames = list_input_files(opts)
+        inputdir, fnames = list_input_files(opts.inputdir)
     except OSError as exc:
-        logger.error('cannot read %s: %s', opts['inputdir'], exc)
+        logger.error('cannot read %s: %s', opts.inputdir, exc)
         sys.exit(1)
+    opts = replace(opts, inputdir=inputdir)
 
-    os.makedirs(opts['outputdir'], exist_ok=True)
+    os.makedirs(opts.outputdir, exist_ok=True)
     album = new_album(opts)
     failed = add_images(opts, album, fnames)
     write_album(opts, album)
@@ -183,13 +186,12 @@ def main(argv: list[str] | None = None) -> None:
     print('done')
 
 
-def add_images(opts: dict[str, Any], album: dict[str, Any], fnames: list[str]) -> int:
+def add_images(opts: Options, album: dict[str, Any], fnames: list[str]) -> int:
     """Add the JPEG files among `fnames` to `album`. The number that failed."""
     failed = 0
     for fname in fnames:
         if not fname.lower().endswith(('.jpg', '.jpeg')):
             continue
-        opts['idx'] = len(album['entries']) + 1
         try:
             process_image(opts, album, fname)
         except OSError as exc:
@@ -198,48 +200,47 @@ def add_images(opts: dict[str, Any], album: dict[str, Any], fnames: list[str]) -
     return failed
 
 
-def write_album(opts: dict[str, Any], album: dict[str, Any]) -> None:
+def write_album(opts: Options, album: dict[str, Any]) -> None:
     album_name = (
-        opts['album_name'] or os.path.basename(opts['outputdir'].rstrip('/')) or 'foo'
+        opts.album_name or os.path.basename(opts.outputdir.rstrip('/')) or 'foo'
     )
-    album_dir = opts['album_dir'] or opts['outputdir']
+    album_dir = opts.album_dir or opts.outputdir
 
-    if opts['album_format'] in ('json', 'all'):
+    if opts.album_format in ('json', 'all'):
         write_json(os.path.normpath(f'{album_dir}/{album_name}.json'), album)
-    if opts['album_format'] in ('yaml', 'all'):
+    if opts.album_format in ('yaml', 'all'):
         write_yaml(os.path.normpath(f'{album_dir}/{album_name}.yaml'), album)
 
 
-def new_album(opts: dict[str, Any]) -> dict[str, Any]:
+def new_album(opts: Options) -> dict[str, Any]:
     """An album with no entries yet, its meta taken from the options."""
     meta = {
-        'path': opts['path'],
+        'path': opts.path,
         'title': '',
-        'ppp': opts['ppp'],
+        'ppp': opts.ppp,
         'columns': 4,
-        'template': opts['template'],
-        'thumbs_skip': opts['thumbs_skip'] or opts['template'] == 'story',
-        'style': opts['style'],
-        'copyright': opts['copyright'] or f'{datetime.now().astimezone().year}',
-        'geo': opts['show_geo'],
-        'default_image_size': opts['default_image_size'],
-        'default_thumb_size': opts['thumbs_size'],
+        'template': opts.template,
+        'thumbs_skip': opts.thumbs_skip or opts.template == 'story',
+        'style': opts.style,
+        'copyright': opts.copyright or f'{datetime.now().astimezone().year}',
+        'geo': opts.show_geo,
+        'default_image_size': list(opts.default_image_size),
+        'default_thumb_size': list(opts.thumbs_size),
     }
     return {'meta': meta, 'entries': []}
 
 
-def list_input_files(opts: dict[str, Any]) -> list[str]:
-    """Files in the input directory, sorted. An input ending in `.in` is a
-    list file instead: its first line names the directory, the other lines
-    the files (`#` starts a comment). `opts['inputdir']` is updated then."""
-    if not opts['inputdir'].endswith('.in'):
-        return sorted(os.listdir(opts['inputdir']))
+def list_input_files(inputdir: str) -> tuple[str, list[str]]:
+    """The photo directory and the files in it, sorted. An input ending in
+    `.in` is a list file instead: its first line names the directory, the
+    other lines the files (`#` starts a comment)."""
+    if not inputdir.endswith('.in'):
+        return inputdir, sorted(os.listdir(inputdir))
 
-    with open(opts['inputdir'], encoding='utf-8') as fp:
+    with open(inputdir, encoding='utf-8') as fp:
         data = fp.readlines()
-    opts['inputdir'] = data[0].strip()  # first line points directory
     files = (line.split('#')[0].strip() for line in data[1:])
-    return [line for line in files if line]
+    return data[0].strip(), [line for line in files if line]
 
 
 def _may_write(filename: str) -> bool:
@@ -296,26 +297,27 @@ exif_tags = {
 ORIENTATION_ROTATION = {3: 180, 6: 270, 8: 90}
 
 
-def process_image(opts: dict[str, Any], album: dict[str, Any], fname: str) -> None:
-    img: Any = Image.open(os.path.join(opts['inputdir'], fname))
+def process_image(opts: Options, album: dict[str, Any], fname: str) -> None:
+    """Add `fname` to the end of the album, writing its image and thumbnail."""
+    img: Any = Image.open(os.path.join(opts.inputdir, fname))
 
     # lower case for file suffix
     fn = fname.split('.')
-    suffix = 'webp' if opts['images_format'] == 'WEBP' else 'jpg'
+    suffix = 'webp' if opts.images_format == 'WEBP' else 'jpg'
     fname = f'{"".join(fn[0:-1])}.{suffix}'
 
     data = OrderedDict()
-    data['idx'] = opts['idx']
+    data['idx'] = len(album['entries']) + 1
     data['image'] = fname
 
     if img.mode != 'RGB':
         img = img.convert('RGB')
 
-    if not opts['thumbs_skip']:
+    if not opts.thumbs_skip:
         data['thumb'] = gen_thumbnails(opts, img, fname)
 
     exif_data, gps_data, orientation = parse_exif(read_exif(img))
-    if opts['correct_orientation'] and orientation in ORIENTATION_ROTATION:
+    if opts.correct_orientation and orientation in ORIENTATION_ROTATION:
         img = img.rotate(ORIENTATION_ROTATION[orientation])
 
     lat, lng = get_latlng(gps_data)
@@ -328,16 +330,16 @@ def process_image(opts: dict[str, Any], album: dict[str, Any], fname: str) -> No
     album['entries'].append(data)
 
     resample = Image.Resampling.LANCZOS
-    img.thumbnail(opts['images_maxsize'], resample)
+    img.thumbnail(opts.images_maxsize, resample)
     if list(img.size) != album['meta']['default_image_size']:
         data['image'] = {'file': fname, 'size': list(img.size)}
 
-    output_fname = os.path.join(opts['outputdir'], fname)
+    output_fname = os.path.join(opts.outputdir, fname)
     if os.path.exists(output_fname):
         print(f'file exists, skipping... {output_fname}')
         return
 
-    if not opts['skip_image_gen']:
+    if not opts.skip_image_gen:
         save_image(opts, img, output_fname)
 
 
@@ -369,32 +371,32 @@ def parse_exif(
     return exif_data, gps_data, orientation
 
 
-def save_image(opts: dict[str, Any], img: Any, output_fname: str) -> None:
-    if opts['images_sharpness']:
+def save_image(opts: Options, img: Any, output_fname: str) -> None:
+    if opts.images_sharpness:
         sharpener = ImageEnhance.Sharpness(img)
-        img = sharpener.enhance(opts['images_sharpness'])
+        img = sharpener.enhance(opts.images_sharpness)
 
     setattr(ImageFile, 'MAXBLOCK', img.size[0] * img.size[1])  # noqa: B010 - stubs type it Literal
     img.save(
         output_fname,
-        opts['images_format'],
+        opts.images_format,
         optimize=True,
-        quality=opts['images_quality'],
+        quality=opts.images_quality,
         progressive=False,
     )
 
     print(f'saved {output_fname}')
 
 
-def gen_thumbnails(opts: dict[str, Any], img_blob: Any, fname: str) -> str:
-    size = opts['thumbs_size']
+def gen_thumbnails(opts: Options, img_blob: Any, fname: str) -> str:
+    size = opts.thumbs_size
     fn = fname.split('.')
     fname = f'{"".join(fn[0:-1])}-{size[0]:d}x{size[1]:d}.{fn[-1]}'
 
-    if opts['skip_thumb_gen']:
+    if opts.skip_thumb_gen:
         return fname
 
-    output_fname = os.path.join(opts['outputdir'], fname)
+    output_fname = os.path.join(opts.outputdir, fname)
     if os.path.exists(output_fname):
         print(f'file exists, skipping... {output_fname}')
         return fname
@@ -421,9 +423,9 @@ def gen_thumbnails(opts: dict[str, Any], img_blob: Any, fname: str) -> str:
     setattr(ImageFile, 'MAXBLOCK', 131072)  # noqa: B010 - stubs type it Literal
     img.save(
         output_fname,
-        opts['images_format'],
+        opts.images_format,
         optimize=True,
-        quality=opts['thumbs_quality'],
+        quality=opts.thumbs_quality,
         progressive=True,
     )
 

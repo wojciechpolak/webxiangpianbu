@@ -23,6 +23,7 @@ import json
 import logging
 import os
 import sys
+from dataclasses import dataclass
 from typing import Any, cast
 
 yaml: Any = None
@@ -41,6 +42,14 @@ except ImportError:
 
 
 logger = logging.getLogger('tools.convert')
+
+
+@dataclass(frozen=True)
+class Options:
+    inputs: list[str]
+    overwrite: bool = False
+    output_dir: str = ''
+    output_name: str = ''
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -66,34 +75,34 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def parse_args(argv: list[str]) -> dict[str, Any]:
+def parse_args(argv: list[str]) -> Options:
     parser = build_parser()
     args = parser.parse_args(argv)
     inputs = glob.glob(args.input)
     if not inputs:
         parser.error(f'no album files match {args.input!r}')
-    return {
-        'overwrite': args.overwrite,
-        'input': inputs,
-        'output_dir': os.path.dirname(args.output),
-        'output_name': os.path.basename(args.output),
-    }
+    return Options(
+        inputs=inputs,
+        overwrite=args.overwrite,
+        output_dir=os.path.dirname(args.output),
+        output_name=os.path.basename(args.output),
+    )
 
 
 def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(format='%(levelname)s: %(message)s')
     opts = parse_args(sys.argv[1:] if argv is None else argv)
 
-    if opts['output_dir']:
-        os.makedirs(opts['output_dir'], exist_ok=True)
+    if opts.output_dir:
+        os.makedirs(opts.output_dir, exist_ok=True)
 
-    failed = [name for name in opts['input'] if not convert_file(opts, name)]
+    failed = [name for name in opts.inputs if not convert_file(opts, name)]
     if failed:
         sys.exit(1)
     print('done')
 
 
-def convert_file(opts: dict[str, Any], name: str) -> bool:
+def convert_file(opts: Options, name: str) -> bool:
     """Write a JSON album file out as YAML, or a YAML one as JSON. False when
     `name` could not be read."""
     if not name.endswith(('.json', '.yaml')):
@@ -127,14 +136,14 @@ def read_albumfile(name: str) -> dict[str, Any] | None:
     return data
 
 
-def to_yaml(opts: dict[str, Any], name: str, data: dict[str, Any]) -> None:
+def to_yaml(opts: Options, name: str, data: dict[str, Any]) -> None:
     filename = os.path.join(
-        opts['output_dir'] or os.path.dirname(name),
-        opts['output_name'] or os.path.basename(name.replace('.json', '.yaml')),
+        opts.output_dir or os.path.dirname(name),
+        opts.output_name or os.path.basename(name.replace('.json', '.yaml')),
     )
     overwrite = True
     if os.path.exists(filename):
-        overwrite = opts['overwrite'] or confirm(f'Overwrite album file {filename}?')
+        overwrite = opts.overwrite or confirm(f'Overwrite album file {filename}?')
     if overwrite:
         with open(filename, 'w', encoding='utf-8') as album_file_yaml:
             yaml.dump(
@@ -150,14 +159,14 @@ def to_yaml(opts: dict[str, Any], name: str, data: dict[str, Any]) -> None:
             print(f'saved {album_file_yaml.name}')
 
 
-def to_json(opts: dict[str, Any], name: str, data: dict[str, Any]) -> None:
+def to_json(opts: Options, name: str, data: dict[str, Any]) -> None:
     filename = os.path.join(
-        opts['output_dir'] or os.path.dirname(name),
-        opts['output_name'] or os.path.basename(name.replace('.yaml', '.json')),
+        opts.output_dir or os.path.dirname(name),
+        opts.output_name or os.path.basename(name.replace('.yaml', '.json')),
     )
     overwrite = True
     if os.path.exists(filename):
-        overwrite = opts['overwrite'] or confirm(f'Overwrite album file {filename}?')
+        overwrite = opts.overwrite or confirm(f'Overwrite album file {filename}?')
     if overwrite:
         with open(filename, 'w', encoding='utf-8') as album_file_json:
             json.dump(data, album_file_json, indent=4)

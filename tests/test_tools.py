@@ -65,15 +65,7 @@ def test_generate_gen_thumbnails_creates_center_crop(tmp_path):
 
     img = Image.open(source)
     thumb_name = generate.gen_thumbnails(
-        {
-            'outputdir': str(output_dir),
-            'thumbs_size': (180, 180),
-            'skip_thumb_gen': False,
-            'images_format': 'JPEG',
-            'thumbs_quality': 90,
-        },
-        img,
-        'source.jpg',
+        generate.Options(outputdir=str(output_dir)), img, 'source.jpg'
     )
 
     assert thumb_name == 'source-180x180.jpg'
@@ -126,24 +118,20 @@ def test_generate_process_image_writes_rotated_output(tmp_path, monkeypatch):
     monkeypatch.setattr(generate.Image, 'open', lambda path: FakeImage())
 
     album: dict[str, Any] = {'meta': {'default_image_size': []}, 'entries': []}
-    opts = {
-        'inputdir': str(source_dir),
-        'outputdir': str(output_dir),
-        'idx': 1,
-        'images_format': 'JPEG',
-        'images_quality': 95,
-        'images_maxsize': (1000, 1000),
-        'images_sharpness': 0,
-        'thumbs_skip': True,
-        'skip_image_gen': False,
-        'correct_orientation': True,
-    }
+    opts = generate.Options(
+        inputdir=str(source_dir),
+        outputdir=str(output_dir),
+        images_maxsize=[1000, 1000],
+        images_sharpness=0,
+        thumbs_skip=True,
+    )
 
     generate.process_image(opts, album, 'portrait.jpg')
 
     output = Image.open(output_dir / 'portrait.jpg')
     assert rotations == [270]
     assert output.size == (100, 200)
+    assert album['entries'][0]['idx'] == 1
     assert album['entries'][0]['image']['size'] == [100, 200]
     assert album['entries'][0]['geo'] == '50.5,19.5'
     assert album['entries'][0]['exif']['DateTimeOriginal'] == '2024:01:02 03:04:05'
@@ -178,7 +166,7 @@ def test_convert_read_albumfile_handles_json_and_yaml(tmp_path):
 
 def test_convert_to_json_and_yaml_write_files(tmp_path):
     data = {'meta': {'title': 'Album'}, 'entries': [{'image': 'one.jpg'}]}
-    opts = {'output_dir': str(tmp_path), 'output_name': '', 'overwrite': True}
+    opts = convert.Options(inputs=[], overwrite=True, output_dir=str(tmp_path))
 
     convert.to_json(opts, str(tmp_path / 'album.yaml'), data)
     convert.to_yaml(opts, str(tmp_path / 'album.json'), data)
@@ -217,26 +205,29 @@ def test_generate_parse_args_converts_option_values():
         ],
     )
 
-    assert opts['album_name'] == 'trip'
-    assert opts['album_format'] == 'json'
-    assert opts['ppp'] == 7
-    assert opts['show_geo'] is False
-    assert opts['correct_orientation'] is False
-    assert opts['images_quality'] == 80
-    assert opts['images_sharpness'] == 1.5
-    assert opts['images_maxsize'] == [640, 480]
-    assert opts['default_image_size'] == [640, 427]
-    assert opts['thumbs_skip'] is True
-    assert opts['thumbs_size'] == [90, 60]
-    assert opts['skip_image_gen'] is True
-    assert opts['skip_thumb_gen'] is True
-    assert (opts['inputdir'], opts['outputdir']) == ('in', 'out')
+    assert opts == generate.Options(
+        inputdir='in',
+        outputdir='out',
+        album_name='trip',
+        album_format='json',
+        ppp=7,
+        show_geo=False,
+        correct_orientation=False,
+        images_quality=80,
+        images_sharpness=1.5,
+        images_maxsize=[640, 480],
+        default_image_size=[640, 427],
+        thumbs_skip=True,
+        thumbs_size=[90, 60],
+        skip_image_gen=True,
+        skip_thumb_gen=True,
+    )
 
 
 def test_generate_parse_args_keeps_defaults():
     opts = generate.parse_args(['in', 'out'])
 
-    assert opts == {**generate.default_opts(), 'inputdir': 'in', 'outputdir': 'out'}
+    assert opts == generate.Options(inputdir='in', outputdir='out')
 
 
 def test_generate_main_prints_help(capsys):
@@ -272,8 +263,7 @@ def test_generate_main_rejects_bad_arguments(argv, error, capsys):
 
 
 def test_generate_new_album_takes_meta_from_options():
-    opts = generate.default_opts()
-    opts.update(template='story', copyright='Me', default_image_size=[4, 3])
+    opts = generate.Options(template='story', copyright='Me', default_image_size=[4, 3])
 
     album = generate.new_album(opts)
 
@@ -282,7 +272,7 @@ def test_generate_new_album_takes_meta_from_options():
     assert album['meta']['copyright'] == 'Me'
     assert album['meta']['default_image_size'] == [4, 3]
 
-    album = generate.new_album(generate.default_opts())
+    album = generate.new_album(generate.Options())
     assert album['meta']['thumbs_skip'] is False
     assert album['meta']['copyright'] == str(datetime.now().astimezone().year)
     assert album['meta']['default_image_size'] == []
@@ -296,12 +286,14 @@ def test_generate_list_input_files_reads_a_list_file(tmp_path):
         f'{tmp_path}\nb.jpg  # the best one\n\n# skipped\na.jpg\n', encoding='utf-8'
     )
 
-    opts = {'inputdir': str(tmp_path)}
-    assert generate.list_input_files(opts) == ['a.jpg', 'b.jpg', 'photos.in']
-
-    opts = {'inputdir': str(list_file)}
-    assert generate.list_input_files(opts) == ['b.jpg', 'a.jpg']
-    assert opts['inputdir'] == str(tmp_path)
+    assert generate.list_input_files(str(tmp_path)) == (
+        str(tmp_path),
+        ['a.jpg', 'b.jpg', 'photos.in'],
+    )
+    assert generate.list_input_files(str(list_file)) == (
+        str(tmp_path),
+        ['b.jpg', 'a.jpg'],
+    )
 
 
 def test_generate_parse_exif_formats_tags_and_collects_gps():
@@ -335,11 +327,10 @@ def test_generate_read_exif_tolerates_missing_or_broken_exif():
     assert generate.read_exif(Broken()) is None
 
 
-def _generate_opts(source_dir: Path, output_dir: Path, **kwargs) -> dict:
-    opts = generate.default_opts()
-    opts.update(inputdir=str(source_dir), outputdir=str(output_dir), idx=1)
-    opts.update(kwargs)
-    return opts
+def _generate_opts(source_dir: Path, output_dir: Path, **kwargs) -> generate.Options:
+    return generate.Options(
+        inputdir=str(source_dir), outputdir=str(output_dir), **kwargs
+    )
 
 
 def test_generate_process_image_converts_and_skips_existing_output(tmp_path):
@@ -460,13 +451,12 @@ def test_convert_parse_args_collects_inputs_and_output(tmp_path):
     (tmp_path / 'two.json').touch()
     opts = convert.parse_args(['-y', str(tmp_path / '*.json'), 'out/album.yaml'])
 
-    assert opts['overwrite'] is True
-    assert sorted(opts['input']) == [
+    assert opts.overwrite is True
+    assert sorted(opts.inputs) == [
         str(tmp_path / 'one.json'),
         str(tmp_path / 'two.json'),
     ]
-    assert opts['output_dir'] == 'out'
-    assert opts['output_name'] == 'album.yaml'
+    assert (opts.output_dir, opts.output_name) == ('out', 'album.yaml')
 
 
 def test_convert_parse_args_writes_next_to_the_input_by_default(tmp_path):
@@ -474,8 +464,7 @@ def test_convert_parse_args_writes_next_to_the_input_by_default(tmp_path):
 
     opts = convert.parse_args([str(tmp_path / 'one.json')])
 
-    assert opts['overwrite'] is False
-    assert (opts['output_dir'], opts['output_name']) == ('', '')
+    assert opts == convert.Options(inputs=[str(tmp_path / 'one.json')])
 
 
 @pytest.mark.parametrize(
@@ -541,7 +530,7 @@ def test_convert_main_fails_on_unreadable_inputs(tmp_path, capsys, caplog):
 
 def test_convert_file_ignores_other_extensions(tmp_path, monkeypatch):
     monkeypatch.setattr(convert, 'read_albumfile', lambda name: {'meta': {}})
-    opts = {'overwrite': True, 'output_dir': str(tmp_path), 'output_name': ''}
+    opts = convert.Options(inputs=[], overwrite=True, output_dir=str(tmp_path))
 
     assert convert.convert_file(opts, 'album.txt') is True
 
@@ -552,7 +541,7 @@ def test_convert_asks_before_overwriting(tmp_path, monkeypatch):
     for target in (tmp_path / 'album.json', tmp_path / 'album.yaml'):
         target.write_text('{}', encoding='utf-8')
     monkeypatch.setattr('builtins.input', lambda prompt: 'n')
-    opts: dict[str, Any] = {'overwrite': False, 'output_dir': '', 'output_name': ''}
+    opts = convert.Options(inputs=[])
 
     convert.to_json(opts, str(tmp_path / 'album.yaml'), {'meta': {}})
     convert.to_yaml(opts, str(tmp_path / 'album.json'), {'meta': {}})
