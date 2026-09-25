@@ -96,12 +96,16 @@ PIPELINE: dict[str, Any] = {
     'DISABLE_WRAPPER': True,
     'JS_COMPRESSOR': None,
     'CSS_COMPRESSOR': None,
+    # One source per package: an output that bundled several files under
+    # one of their own names would be read back as a source on the next
+    # collectstatic run, piling up copies.
     'JAVASCRIPT': {
+        'jquery': {
+            'source_filenames': ('js/jquery.min.js',),
+            'output_filename': 'js/jquery.min.js',
+        },
         'gallery': {
-            'source_filenames': (
-                'js/jquery.min.js',
-                'js/gallery.js',
-            ),
+            'source_filenames': ('js/gallery.js',),
             'output_filename': 'js/gallery.js',
         },
     },

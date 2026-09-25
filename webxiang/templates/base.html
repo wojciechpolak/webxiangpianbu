@@ -9,6 +9,7 @@
     <meta name="description" content="{% filter striptags %}{% firstof meta.description meta.title %}{% endfilter %}">
     <meta property="og:title" content="{{ meta.title }}">
     {% stylesheet meta.style %}
+    {% javascript "jquery" %}
     {% javascript "gallery" %}
     {% if meta.cover and mode != "photo" %}<link rel="image_src" href="{{ meta.cover }}">
     <meta property="og:image" content="{{ meta.cover }}">{% endif %}
