@@ -24,6 +24,7 @@ import shutil
 from collections.abc import Generator
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import pytest
 from django.conf import settings as django_settings
@@ -33,6 +34,7 @@ from playwright.sync_api import (
     BrowserContext,
     Page,
     Playwright,
+    Route,
     sync_playwright,
 )
 
@@ -131,7 +133,7 @@ def _build_sample_site(root: Path) -> tuple[Path, Path]:
                 'meta': {
                     'title': 'Story Album',
                     'template': 'story',
-                    'style': 'dark',
+                    'style': 'base',
                     'copyright': '2024 Example',
                     'copyright_link': '/',
                     'custom_menu': True,
@@ -310,3 +312,22 @@ def page(
 @pytest.fixture
 def vrt(request: pytest.FixtureRequest) -> VisualRegressionSession:
     return VisualRegressionSession.from_request(request)
+
+
+@pytest.fixture
+def static_page(page: Page) -> Page:
+    """A page whose /static/ requests are answered from the collected
+    STATIC_ROOT, so the manifest-hashed CSS and JS actually load."""
+    static_root = Path(django_settings.STATIC_ROOT)
+    static_url = django_settings.STATIC_URL
+
+    def serve(route: Route) -> None:
+        path = urlsplit(route.request.url).path.removeprefix(static_url)
+        asset = static_root / path
+        if asset.is_file():
+            route.fulfill(path=asset)
+        else:
+            route.fulfill(status=404)
+
+    page.route(f'**{static_url}**', serve)
+    return page

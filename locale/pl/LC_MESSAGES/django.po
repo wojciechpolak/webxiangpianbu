@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: webxiang 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-02-22 19:13+0100\n"
+"POT-Creation-Date: 2026-09-25 15:48+0000\n"
 "PO-Revision-Date: 2014-02-22 19:08+0100\n"
 "Language-Team: Polish\n"
 "Language: pl\n"
@@ -15,51 +15,125 @@ msgstr ""
 "|| n%100>=20) ? 1 : 2)\n"
 
 #. Translators: this is an URL
+#: tools/staticgen.py:348 webxiang/templatetags/page.py:35
 #, python-format
 msgid "page-%(number)s.html"
 msgstr "strona-%(number)s.html"
 
-msgid "Help"
-msgstr "Pomoc"
+#: webxiang/templates/_menu.html:1
+msgid "Breadcrumb"
+msgstr "Ścieżka nawigacji"
 
-msgid "Keyboard Shortcuts"
-msgstr "Skróty klawiszowe"
-
-msgid "return to top menu"
-msgstr "powrót do głównego menu"
-
-msgid "navigate level up"
-msgstr "nawigacja poziom wyżej"
-
-msgid "toggle geo map (when available)"
-msgstr "włącza/wyłącza geo mapę (jeśli dostępna)"
-
-msgid "go to next page (or photo)"
-msgstr "przechodzi do następnej strony (lub zdjęcia)"
-
-msgid "go to previous page (or photo)"
-msgstr "przechodzi do poprzedniej strony (lub zdjęcia)"
-
-msgid "(right arrow) &ndash; view next photo"
-msgstr "(strzałka w prawo) &ndash; następne zdjęcie"
-
-msgid "(left arrow) &ndash; view previous photo"
-msgstr "(strzałka w lewo) &ndash; poprzednie zdjęcie"
-
-msgid "Close"
-msgstr "Zamknij"
-
+#: webxiang/templates/_menu.html:2
 msgid "all galleries"
 msgstr "galerie"
 
-msgid "previous"
-msgstr "poprzednie"
+#: webxiang/templates/_pages.html:4
+msgid "Pages (bottom)"
+msgstr "Strony (dół)"
 
-msgid "next"
-msgstr "następne"
+#: webxiang/templates/_pages.html:4
+msgid "Pages"
+msgstr "Strony"
 
+#: webxiang/templates/_pages.html:6
 msgid "previous page"
 msgstr "poprzednia strona"
 
+#: webxiang/templates/_pages.html:12
+#, python-format
+msgid "Page %(i)s"
+msgstr "Strona %(i)s"
+
+#: webxiang/templates/_pages.html:16
 msgid "next page"
 msgstr "następna strona"
+
+#: webxiang/templates/_photo.html:3
+msgid "Photos"
+msgstr "Zdjęcia"
+
+#: webxiang/templates/_photo.html:4 webxiang/templates/story.html:11
+msgid "previous"
+msgstr "poprzednie"
+
+#: webxiang/templates/_photo.html:5 webxiang/templates/story.html:12
+msgid "next"
+msgstr "następne"
+
+#: webxiang/templates/_photo.html:13
+msgid "back to album"
+msgstr "powrót do albumu"
+
+#: webxiang/templates/base.html:20
+msgid "Skip to main content"
+msgstr "Przejdź do treści"
+
+#: webxiang/templates/base.html:35 webxiang/templates/base.html:37
+msgid "Help"
+msgstr "Pomoc"
+
+#: webxiang/templates/base.html:41
+msgid "Keyboard Shortcuts"
+msgstr "Skróty klawiszowe"
+
+#: webxiang/templates/base.html:43
+msgid "return to top menu"
+msgstr "powrót do głównego menu"
+
+#: webxiang/templates/base.html:44
+msgid "navigate level up"
+msgstr "nawigacja poziom wyżej"
+
+#: webxiang/templates/base.html:45
+msgid "toggle geo map (when available)"
+msgstr "włącza/wyłącza geo mapę (jeśli dostępna)"
+
+#: webxiang/templates/base.html:46
+msgid "go to next page (or photo)"
+msgstr "przechodzi do następnej strony (lub zdjęcia)"
+
+#: webxiang/templates/base.html:47
+msgid "go to previous page (or photo)"
+msgstr "przechodzi do poprzedniej strony (lub zdjęcia)"
+
+#: webxiang/templates/base.html:48
+msgid "(right arrow) &ndash; view next photo"
+msgstr "(strzałka w prawo) &ndash; następne zdjęcie"
+
+#: webxiang/templates/base.html:49
+msgid "(left arrow) &ndash; view previous photo"
+msgstr "(strzałka w lewo) &ndash; poprzednie zdjęcie"
+
+#: webxiang/templates/base.html:52
+msgid "Enable keyboard shortcuts"
+msgstr "Włącz skróty klawiszowe"
+
+#: webxiang/templates/base.html:55
+msgid "Close"
+msgstr "Zamknij"
+
+#: webxiang/templates/story.html:10
+msgid "Stories"
+msgstr "Historie"
+
+#: webxiang/templatetags/embed.py:36
+msgid "YouTube video"
+msgstr "Film YouTube"
+
+#: webxiang/templatetags/embed.py:45
+msgid "Vimeo video"
+msgstr "Film Vimeo"
+
+#: webxiang/templatetags/embed.py:75
+msgid "Download"
+msgstr "Pobierz"
+
+#: webxiang/templatetags/embed.py:77
+msgid "Download video"
+msgstr "Pobierz film"
+
+#: webxiang/webxiang.py:355
+#, python-format
+msgid "Photo %(number)s"
+msgstr "Zdjęcie %(number)s"

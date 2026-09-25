@@ -9,7 +9,8 @@
     --color-background-pages: #0063dc;
     --color-background: #f4f4f4;
     --color-font: #333;
-    --color-link: #008edd;
+    --color-link: #0070b8;
+    --color-current-page: #c8006a;
     --color-text-shadow: #fff;
     --max-width-photo: 995px;
 }
@@ -21,6 +22,7 @@
         --color-background: #111;
         --color-font: #ccc;
         --color-link: #769dff;
+        --color-current-page: #ff4fa3;
         --color-text-shadow: #333;
     }
 }
@@ -79,11 +81,21 @@ p.description {
 }
 
 #show-help {
-    color: #777;
+    color: #555;
 }
 
 #show-help:hover {
     color: #333;
+}
+
+@media (prefers-color-scheme: dark) {
+    #show-help {
+        color: #bbb;
+    }
+
+    #show-help:hover {
+        color: #fff;
+    }
 }
 
 .dialog-content {

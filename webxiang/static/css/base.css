@@ -7,6 +7,8 @@
     --color-background: #111;
     --color-font: #aaa;
     --color-link: #ffcc00;
+    --color-current-page: #ff0084;
+    --color-focus: var(--color-link);
     --max-width-photo: 900px;
 }
 
@@ -32,6 +34,41 @@ a:active {
 a:hover {
     text-decoration: underline;
     color: var(--color-link, #ffcc00);
+}
+
+:focus-visible {
+    outline: 3px solid var(--color-focus, #ffcc00);
+    outline-offset: 2px;
+}
+
+.skip-link {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 30;
+    padding: 8px 12px;
+    background-color: var(--color-background, #111);
+}
+
+.skip-link:not(:focus) {
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
 }
 
 html {
@@ -66,13 +103,13 @@ h1, h2, h3, h4 {
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
-h2#title {
+#title {
     font-size: 225%;
     font-weight: 200;
     line-height: 1.2;
     margin: 16px 0 20px;
 }
-body.no-title h2#title {
+body.no-title #title {
     display: none;
 }
 
@@ -80,6 +117,11 @@ body.no-title h2#title {
     font-size: 90%;
     margin-top: 1.12em;
     margin-bottom: 1em;
+}
+
+#navigation a:link,
+#navigation a:visited {
+    text-decoration: underline;
 }
 
 #otherSizes {
@@ -91,13 +133,22 @@ body.no-title h2#title {
     margin-top: 0.5em;
 }
 
+.item h2 {
+    font-size: 1.17em;
+}
+
 .pages {
     font-size: 90%;
     margin-bottom: 2em;
 }
 
-.pages a {
-    padding: 0.2em 0.4em;
+.pages a, .thisPage {
+    display: inline-block;
+    box-sizing: border-box;
+    min-width: 24px;
+    min-height: 24px;
+    line-height: 22px;
+    padding: 0 0.4em;
     margin-right: 0.4em;
     border: 1px solid #333;
 }
@@ -110,10 +161,7 @@ body.no-title h2#title {
 }
 
 .thisPage {
-    padding: 0.2em 0.4em;
-    margin-right: 0.4em;
-    border: 1px solid #333;
-    color: #ff0084;
+    color: var(--color-current-page, #ff0084);
 }
 
 .thumbnails {
@@ -157,18 +205,26 @@ body.no-title h2#title {
 }
 
 .thumbnails img.loaded {
-    transition: .2s ease-out;
-    -webkit-transition: 0.2s ease-out;
+    transition: transform .2s ease-out;
+    -webkit-transition: transform 0.2s ease-out;
 }
 
 .thumbnails img.loaded:hover,
-.thumbnails img.loaded:active {
+.thumbnails img.loaded:active,
+.thumbnails a:focus-visible img.loaded {
     transform: scale(1.1);
     -webkit-transform: scale(1.1);
 }
 
-.photo a, .thumbnails a, .story a {
+.photo a:focus-visible, .thumbnails a:focus-visible, .story a:focus-visible {
     outline: 0;
+}
+
+.photo a:focus-visible img,
+.thumbnails a:focus-visible img,
+.story a:focus-visible img {
+    outline: 3px solid var(--color-focus, #ffcc00);
+    outline-offset: 3px;
 }
 
 .photo {
@@ -305,11 +361,15 @@ body.rounded div.video {
     position: fixed;
     top: 2px;
     right: 16px;
+    box-sizing: content-box;
     color: #ffcc00;
     cursor: pointer;
     padding: 4px;
     width: 16px;
     height: 16px;
+    border: 0;
+    font: inherit;
+    line-height: 16px;
     background-color: var(--color-background-help, transparent);
     border-radius: 50%;
 }
@@ -339,17 +399,20 @@ body.no-help #show-help {
     text-align: left;
     padding: 10px;
     margin: 13px;
-    color: #777;
+    color: #555;
     font-family: arial, helvetica, sans-serif;
     font-size: 75%;
 }
 
-.dialog span.button {
+.dialog .button {
     margin: 16px auto 0 auto;
     text-align: center;
     display: block;
+    box-sizing: content-box;
     width: 50px;
     padding: 5px 10px 5px;
+    border: 0;
+    font: inherit;
     color: #fff !important;
     text-decoration: none;
     font-weight: bold;
@@ -367,23 +430,31 @@ body.no-help #show-help {
     cursor: pointer;
 }
 
-.dialog span.button:hover {
+.dialog .button:hover {
     background-color: #c22100;
 }
 
-.dialog-content p {
+.dialog-content p,
+.dialog-content ul {
     margin: 0;
+    padding: 0;
+    list-style: none;
 }
 
-.dialog-content h4 {
-    margin-top: 0;
+.dialog-content h2 {
+    margin: 0 0 1.33em;
+    font-size: 1em;
     font-weight: bold;
     color: #333;
 }
 
-.dialog-content b {
+.dialog-content kbd {
     font-family: monospace, arial;
     font-weight: 700;
+}
+
+.dialog-content .shortcuts-toggle {
+    margin-top: 1em;
 }
 
 #geomap {
@@ -407,7 +478,7 @@ body.no-help #show-help {
         display: none;
     }
 
-    h2#title {
+    #title {
         font-size: 18px;
     }
 
@@ -448,7 +519,7 @@ body.no-help #show-help {
     }
 
     .pages a, .thisPage {
-        padding: 2px 8px;
+        padding: 0 8px;
         margin-right: 4px;
     }
 
@@ -461,5 +532,17 @@ body.no-help #show-help {
     .thumbnails.float img {
         max-width: 140px;
         height: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .thumbnails img.loaded {
+        transition: none;
+    }
+
+    .thumbnails img.loaded:hover,
+    .thumbnails img.loaded:active,
+    .thumbnails a:focus-visible img.loaded {
+        transform: none;
     }
 }

@@ -29,6 +29,7 @@ class MetaData(TypedDict, total=False):
     default_image_size: tuple[int, int]
     default_thumb_size: tuple[int, int]
     description: str
+    lang: str
     next_story: str
     path: str
     path_thumb: str
@@ -57,6 +58,8 @@ class VideoSrc(TypedDict, total=False):
 
 class Entry(TypedDict, total=False):
     album: str
+    alt: str
+    comment: str
     copyright: str
     copyright_link: str
     description: str
@@ -69,6 +72,7 @@ class Entry(TypedDict, total=False):
     size: tuple[int, int] | str | None
     slug: str
     thumb: str
+    title: str
     type: str
     url: str
     url_full: str

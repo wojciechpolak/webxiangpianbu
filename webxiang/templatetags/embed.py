@@ -18,6 +18,7 @@
 from typing import cast
 
 from django import template
+from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 
@@ -32,15 +33,19 @@ def embed(entry: Entry) -> str:
     if entry['video']:
         if entry['type'] == 'youtube':
             vid = cast(str, entry['vid'])
+            title = _video_title(entry, _('YouTube video'))
             s = (
                 '<div class="video"><iframe width="853" height="480" '
+                f'title="{title}" '
                 f'src="//www.youtube.com/embed/{vid}?rel=0" '
                 'frameborder="0" allowfullscreen></iframe></div>'
             )
         elif entry['type'] == 'vimeo':
             vid = cast(str, entry['vid'])
+            title = _video_title(entry, _('Vimeo video'))
             s = (
                 '<div class="video vimeo"><iframe width="854" height="480" '
+                f'title="{title}" '
                 f'src="//player.vimeo.com/video/{vid}" '
                 'frameborder="0" allowfullscreen></iframe></div>'
             )
@@ -68,9 +73,15 @@ def embed(entry: Entry) -> str:
                     + download
                     + '" title="'
                     + _('Download')
+                    + '" aria-label="'
+                    + _('Download video')
                     + '" download>⬇️</a></div>'
                 )
     return mark_safe(s)
+
+
+def _video_title(entry: Entry, default: str) -> str:
+    return escape(entry.get('title') or entry.get('comment') or default)
 
 
 def gen_video_source(x: VideoSrc) -> str:

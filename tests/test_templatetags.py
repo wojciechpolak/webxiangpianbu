@@ -17,8 +17,13 @@
 
 from __future__ import annotations
 
+from typing import cast
+
+from django.template.loader import render_to_string
+
 from webxiang.templatetags.embed import embed, gen_video_source
 from webxiang.templatetags.page import page
+from webxiang.webxiang import _paginate, get_data
 
 
 def test_page_tag_uses_query_string_for_dynamic_urls():
@@ -87,3 +92,45 @@ def test_embed_renders_html5_video_and_download_link():
         in html
     )
     assert 'href="/download/movie.mp4"' in html
+
+
+def test_embed_gives_iframes_a_title():
+    youtube = embed({'video': True, 'type': 'youtube', 'vid': 'abc'})
+    vimeo = embed(
+        {'video': True, 'type': 'vimeo', 'vid': '1', 'title': 'A "quoted" <clip>'}
+    )
+
+    assert 'title="YouTube video"' in youtube
+    assert 'title="A &quot;quoted&quot; &lt;clip&gt;"' in vimeo
+
+
+def test_pages_partial_marks_current_page(sample_repo_settings):
+    entries = _paginate([{'index': i} for i in range(1, 4)], 1, 2)
+    html = render_to_string('_pages.html', {'entries': entries, 'album': 'album-one'})
+    bottom = render_to_string(
+        '_pages.html',
+        {'entries': entries, 'album': 'album-one', 'pages_bottom': True},
+    )
+
+    assert '<nav class="pages" aria-label="Pages">' in html
+    assert '<span class="thisPage" aria-current="page">2</span>' in html
+    assert 'aria-label="Page 3"' in html
+    assert 'id="prevPage"' in html and 'id="nextPage"' in html
+    assert 'aria-label="Pages (bottom)"' in bottom
+    assert 'id="prevPage"' not in bottom and 'id="nextPage"' not in bottom
+
+
+def test_album_page_has_landmarks_and_lang(sample_repo_settings):
+    data = get_data('album-one')
+    assert data is not None
+    data['meta']['lang'] = 'pl'
+
+    html = render_to_string('default.html', cast(dict, data))
+
+    assert '<html lang="pl">' in html
+    assert '<a class="skip-link" href="#main">' in html
+    for tag in ('<header>', '<nav id="menu"', '<main id="main">', '<footer>'):
+        assert tag in html
+    assert '<h1 id="title">Fireworks</h1>' in html
+    assert 'alt="Photo 1"' in html
+    assert 'role="dialog"' in html

@@ -184,15 +184,20 @@ def _screenshot_locator(
         style = f'{screenshot_style}\n{style}'
     elif screenshot_style:
         style = screenshot_style
-    image_bytes = page.screenshot(
-        full_page=True,
-        animations='disabled',
-        caret='hide',
-        scale='css',
-        mask=mask,
-        style=style,
-    )
-    box = target.bounding_box()
+    # measure the target with the same styles the screenshot is taken with
+    style_tag = page.add_style_tag(content=style) if style else None
+    try:
+        image_bytes = page.screenshot(
+            full_page=True,
+            animations='disabled',
+            caret='hide',
+            scale='css',
+            mask=mask,
+        )
+        box = target.bounding_box()
+    finally:
+        if style_tag is not None:
+            style_tag.evaluate('element => element.remove()')
     if box is None:
         return image_bytes
 

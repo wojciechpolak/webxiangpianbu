@@ -88,6 +88,7 @@ def onephoto(request: HttpRequest, photo: str) -> HttpResponse:
         },
         'entry': {
             'url': str(urljoin(baseurl, photo)),
+            'alt': photo,
         },
     }
     return render(request, 'photo.html', ctx)

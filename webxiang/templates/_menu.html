@@ -1,0 +1,4 @@
+{% load i18n %}<nav id="menu" aria-label="{% trans 'Breadcrumb' %}">
+  <a id="levelTop" href="{% url 'index' %}">{% trans "all galleries" %}</a> /
+  {% if mode == "photo" %}<a href="{{ entry.link }}">{{ meta.title_gallery }}</a>{% endif %}
+</nav>

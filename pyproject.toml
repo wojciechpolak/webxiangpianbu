@@ -16,6 +16,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "axe-playwright-python>=0.1.8",
     "django-stubs-ext==6.0.2",
     "django-stubs[compatible-mypy]==6.0.2",
     "mypy>=1,<2",
@@ -43,6 +44,10 @@ exclude = '(?x)^(run/vrt-uv-cache/|run/vrt-venv/|run/vrt-home/)'
 module = ["webxiang.*", "tools.*"]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = ["axe_playwright_python.*"]
+ignore_missing_imports = true
 
 [tool.django-stubs]
 django_settings_module = "webxiang.settings_ci"

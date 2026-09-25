@@ -27,6 +27,8 @@
     var mem = {};
     var memCnt = 0;
     var cookie_showmap = 'showMap';
+    var storage_shortcuts = 'wxpbShortcuts';
+    var dialogOpener = null;
     var useRandomFadeIn = false;
 
     function GID(id) {
@@ -193,12 +195,83 @@
 
     function showDialog(id) {
         var $el = $(id);
+        if ($el.is(':visible')) {
+            return;
+        }
+        dialogOpener = document.activeElement;
         var h = parseInt($(window).height(), 10);
         var w = parseInt($(window).width(), 10);
         var dtop = (h / 2) - ($el.height() / 1.5) + $(window).scrollTop();
         var dleft = (w / 2) - ($el.width() / 2);
         $('#overlay').css({height: h, width: w}).show();
         $el.css({top: dtop, left: dleft}).fadeIn('fast');
+        $el.find('.close').focus();
+    }
+    window.showDialog = showDialog;
+
+    function hideDialog() {
+        if (!$('.dialog:visible').length) {
+            return;
+        }
+        $('.dialog, #overlay').hide();
+        if (dialogOpener && dialogOpener.focus) {
+            dialogOpener.focus();
+        }
+        dialogOpener = null;
+    }
+
+    /* keep Tab focus inside an open dialog */
+    function trapDialogFocus(e) {
+        var $dialog = $('.dialog:visible');
+        if (!$dialog.length) {
+            return;
+        }
+        var $items = $dialog.find('a[href], button, input').filter(':visible');
+        if (!$items.length) {
+            return;
+        }
+        var first = $items.get(0);
+        var last = $items.get($items.length - 1);
+        var inside = $.contains($dialog.get(0), document.activeElement);
+        if (e.shiftKey && (!inside || document.activeElement === first)) {
+            e.preventDefault();
+            last.focus();
+        }
+        else if (!e.shiftKey && (!inside || document.activeElement === last)) {
+            e.preventDefault();
+            first.focus();
+        }
+    }
+
+    function shortcutsEnabled() {
+        try {
+            return window.localStorage.getItem(storage_shortcuts) !== '0';
+        }
+        catch (e) {
+            return true;
+        }
+    }
+
+    function setShortcutsEnabled(enabled) {
+        try {
+            if (enabled) {
+                window.localStorage.removeItem(storage_shortcuts);
+            }
+            else {
+                window.localStorage.setItem(storage_shortcuts, '0');
+            }
+        }
+        catch (e) {
+        }
+    }
+
+    function isEditable(el) {
+        if (!el || !el.tagName) {
+            return false;
+        }
+        var tag = el.tagName.toLowerCase();
+        return tag === 'input' || tag === 'textarea' || tag === 'select' ||
+            el.isContentEditable;
     }
 
     window.navigateBack = function(a) {
@@ -223,7 +296,18 @@
         else if (e.which) {
             code = e.which;
         }
-        if (e.ctrlKey || e.altKey) {
+        if (e.ctrlKey || e.altKey || e.metaKey) {
+            return;
+        }
+        if (code === 9) { /* tab */
+            trapDialogFocus(e);
+            return;
+        }
+        if (code === 27) { /* esc - hide dialog */
+            hideDialog();
+            return;
+        }
+        if (isEditable(e.target || e.srcElement) || !shortcutsEnabled()) {
             return;
         }
 
@@ -278,9 +362,6 @@
                 if (e.shiftKey) {
                     showDialog('#help');
                 }
-                break;
-            case 27: /* esc - hide dialog */
-                $('.dialog .close').click();
                 break;
         }
     };
@@ -344,8 +425,14 @@
         });
         $(document).on('click', '.dialog .close', function(e) {
             e.preventDefault();
-            $('.dialog, #overlay').hide();
+            hideDialog();
         });
+        $('#overlay').click(hideDialog);
+        $('#shortcuts-enabled')
+            .prop('checked', shortcutsEnabled())
+            .change(function() {
+                setShortcutsEnabled(this.checked);
+            });
 
         if (GID('geomap')) {
             switch (wxpb_settings.geo_map_plugin) {
@@ -501,18 +588,26 @@
             content.push('<p><a class="gminiphoto" href="' + x.link +
                 '" target="_blank"><img src="' + x.url_full +
                 '" width="' + width + '" height="' + height +
-                '" alt="[photo]"></a></p>');
+                '" alt="' + escapeAttr(x.alt || '') + '"></a></p>');
             if (x.description) {
                 content.push('<p>' + x.description + '</p>');
             }
         }
         content.push('<p>');
-        content.push('<a href="#" class="inav prev" data-idx="' +
+        content.push('<a href="#" class="inav prev" aria-label="Previous" data-idx="' +
             mark.chain_idx + '">&lt;&lt;</a> ');
-        content.push('| <a href="#" class="inav next" data-idx="' +
+        content.push('| <a href="#" class="inav next" aria-label="Next" data-idx="' +
             mark.chain_idx + '">&gt;&gt;</a>');
         content.push('</p>');
         return content;
+    }
+
+    function escapeAttr(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
     }
 
     function read_cookie(name) {

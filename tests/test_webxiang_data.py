@@ -665,3 +665,31 @@ def test_get_data_missing_album_returns_none(monkeypatch):
     monkeypatch.setattr(webxiang, '_open_albumfile', lambda album_name: None)
 
     assert webxiang.get_data('missing') is None
+
+
+@pytest.mark.parametrize(
+    ('entry', 'expected'),
+    [
+        ({'alt': 'Own alt', 'title': 'Title', 'index': 1}, 'Own alt'),
+        ({'title': 'Title', 'comment': 'Comment', 'index': 1}, 'Title'),
+        ({'comment': 'Comment', 'description': 'Text', 'index': 1}, 'Comment'),
+        (
+            {'description': '<b>Fish &amp; chips</b>\n here', 'index': 1},
+            'Fish & chips here',
+        ),
+        ({'description': 'x' * 200, 'index': 1}, 'x' * 124 + '…'),
+        ({'title': '  ', 'index': 7}, 'Photo 7'),
+    ],
+)
+def test_entry_alt_picks_first_text_source(entry, expected):
+    assert webxiang._entry_alt(cast(Entry, entry)) == expected
+
+
+def test_get_data_sets_alt_on_album_and_photo_entries(sample_repo_settings):
+    album = webxiang.get_data('index')
+    photo = webxiang.get_data('album-one', photo='2')
+
+    assert album is not None and photo is not None
+    entries = cast(Page, album['entries'])
+    assert entries.object_list[0]['alt'] == 'First Album: Fireworks!'
+    assert photo['entry']['alt'] == 'Photo 2'

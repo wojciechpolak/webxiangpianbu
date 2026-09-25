@@ -1,0 +1,20 @@
+{% load i18n page %}{% spaceless %}
+{% if entries.paginator.num_pages > 1 %}
+{% url 'album' album=album as album_url %}
+<nav class="pages" aria-label="{% if pages_bottom %}{% trans 'Pages (bottom)' %}{% else %}{% trans 'Pages' %}{% endif %}">
+  {% if entries.has_previous %}
+  <a{% if not pages_bottom %} id="prevPage"{% endif %} href="{% page album album_url entries.previous_page_number %}" title="{% trans 'previous page' %}" aria-label="{% trans 'previous page' %}">&laquo;</a>
+  {% endif %}
+  {% for i in entries.paginator.page_range_limited %}
+  {% if i == entries.number %}
+  <span class="thisPage" aria-current="page">{{ i }}</span>
+  {% else %}
+  <a href="{% page album album_url i %}" aria-label="{% blocktrans %}Page {{ i }}{% endblocktrans %}">{{ i }}</a>
+  {% endif %}
+  {% endfor %}
+  {% if entries.has_next %}
+  <a{% if not pages_bottom %} id="nextPage"{% endif %} href="{% page album album_url entries.next_page_number %}" title="{% trans 'next page' %}" aria-label="{% trans 'next page' %}">&raquo;</a>
+  {% endif %}
+</nav>
+{% endif %}
+{% endspaceless %}

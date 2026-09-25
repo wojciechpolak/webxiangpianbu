@@ -34,7 +34,7 @@ def test_home_page_lists_sample_album(page, live_server, vrt):
         page.locator('a[href="/album-one/"]').click()
 
     expect(page).to_have_title('Fireworks')
-    expect(page.locator('h2#title')).to_have_text('Fireworks')
+    expect(page.locator('h1#title')).to_have_text('Fireworks')
     expect(page.locator('a[data-index="1"] img')).to_be_visible()
 
 

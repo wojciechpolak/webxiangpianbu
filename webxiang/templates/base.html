@@ -1,9 +1,9 @@
-{% load i18n pipeline %}<!DOCTYPE html>
-<html>
+{% load i18n pipeline %}{% get_current_language as LANGUAGE_CODE %}<!DOCTYPE html>
+<html lang="{% firstof meta.lang LANGUAGE_CODE %}">
   <head prefix="og: http://ogp.me/ns#">
+    <meta charset="utf-8">
     <title>{{ meta.title }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="generator" content="WebXiangpianbu">
     <meta name="robots" content="{{ meta.robots }}">
     <meta name="description" content="{% filter striptags %}{% firstof meta.description meta.title %}{% endfilter %}">
@@ -17,29 +17,43 @@
     </style>{% endif %}
   </head>
   <body{% if meta.body_class %} class="{{ meta.body_class }}"{% endif %}>
+    <a class="skip-link" href="#main">{% trans "Skip to main content" %}</a>
     <div id="content">
-      {% block main %}{% endblock main %}
+      {% block header %}<header>
+        {% if not meta.custom_menu %}{% include "_menu.html" %}{% else %}{% include "user-menu.html" %}{% endif %}
+      </header>{% endblock header %}
+
+      <main id="main">
+        {% block main %}{% endblock main %}
+      </main>
+
+      {% block footer %}{% if meta.copyright %}<footer>
+        {% include "_copyright.html" %}
+      </footer>{% endif %}{% endblock footer %}
     </div><!-- /content -->
 
-    {% if album != "index" and not exception %}<aside>
+    {% if album != "index" and not exception %}<aside aria-label="{% trans 'Help' %}">
       <div id="overlay" style="display:none"></div>
-      <div id="show-help" title="{% trans 'Help' %}">?</div>
-      <div id="help" class="dialog" style="display:none">
-	<div class="dialog-content">
-	  <div id="dialog-message">
-	    <h4>{% trans "Keyboard Shortcuts" %}</h4>
-	    <p>
-	      <b>t</b> &ndash; {% trans "return to top menu" %}<br/>
-	      <b>u</b> &ndash; {% trans "navigate level up" %}<br/>
-	      <b>m</b> &ndash; {% trans "toggle geo map (when available)" %}<br/>
-	      <b>n</b> &ndash; {% trans "go to next page (or photo)" %}<br/>
-	      <b>p</b> &ndash; {% trans "go to previous page (or photo)" %}<br/>
-	      <b>j</b>, <b>&rarr;</b> {% trans "(right arrow) &ndash; view next photo" %}<br/>
-	      <b>k</b>, <b>&larr;</b> {% trans "(left arrow) &ndash; view previous photo" %}<br/>
-	    </p>
-	  </div>
-	  <span class="close button">{% trans "Close" %}</span>
-	</div>
+      <button type="button" id="show-help" aria-label="{% trans 'Help' %}" aria-haspopup="dialog" aria-controls="help">?</button>
+      <div id="help" class="dialog" role="dialog" aria-modal="true" aria-labelledby="help-title" style="display:none">
+        <div class="dialog-content">
+          <div id="dialog-message">
+            <h2 id="help-title">{% trans "Keyboard Shortcuts" %}</h2>
+            <ul class="shortcuts">
+              <li><kbd>t</kbd> &ndash; {% trans "return to top menu" %}</li>
+              <li><kbd>u</kbd> &ndash; {% trans "navigate level up" %}</li>
+              <li><kbd>m</kbd> &ndash; {% trans "toggle geo map (when available)" %}</li>
+              <li><kbd>n</kbd> &ndash; {% trans "go to next page (or photo)" %}</li>
+              <li><kbd>p</kbd> &ndash; {% trans "go to previous page (or photo)" %}</li>
+              <li><kbd>j</kbd>, <kbd>&rarr;</kbd> {% trans "(right arrow) &ndash; view next photo" %}</li>
+              <li><kbd>k</kbd>, <kbd>&larr;</kbd> {% trans "(left arrow) &ndash; view previous photo" %}</li>
+            </ul>
+            <p class="shortcuts-toggle">
+              <label><input type="checkbox" id="shortcuts-enabled" checked> {% trans "Enable keyboard shortcuts" %}</label>
+            </p>
+          </div>
+          <button type="button" class="close button">{% trans "Close" %}</button>
+        </div>
       </div>
     </aside>{% endif %}
 

@@ -15,6 +15,7 @@
 #  with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import html
 import json
 import logging
 import os
@@ -28,6 +29,9 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.paginator import EmptyPage, InvalidPage, Page, Paginator
 from django.urls import reverse
+from django.utils.html import strip_tags
+from django.utils.text import Truncator
+from django.utils.translation import gettext as _
 
 from .templatetags.page import page as page_url
 from .typing import Album, Entry, Image, MetaData, VideoSrc
@@ -156,6 +160,7 @@ def _photo_context(data: Album, links: _Links, photo: str) -> str | None:
 
     meta['title'] = f'#{photo_idx} - {meta["title"] or links.album}'
     entry = data['entry'] = entries[pos]
+    entry['alt'] = _entry_alt(entry)
 
     # determine canonical photo url
     canon_link = f'{photo_idx}/{entry["slug"]}' if 'slug' in entry else photo_idx
@@ -304,6 +309,7 @@ def _paginate(entries: list[Entry], ppp: int, page: int) -> Page[Entry]:
 def _album_entry(entry: Entry, meta: MetaData, links: _Links) -> str:
     """Set an album entry's full-size URL, thumbnail URL and size, and link.
     Return the thumbnail's directory URL."""
+    entry['alt'] = _entry_alt(entry)
     meta_path = meta.get('path', '')
     img: str | Image | None = entry.get('image')
     if img:
@@ -337,6 +343,16 @@ def _album_entry(entry: Entry, meta: MetaData, links: _Links) -> str:
     if 'link' not in entry:
         entry['link'] = _album_entry_link(entry, links)
     return path
+
+
+def _entry_alt(entry: Entry) -> str:
+    """Text alternative for an entry's image: its own `alt`, title, comment
+    or description, falling back to the photo number."""
+    for key in ('alt', 'title', 'comment', 'description'):
+        text = html.unescape(strip_tags(str(entry.get(key) or ''))).strip()
+        if text:
+            return Truncator(' '.join(text.split())).chars(125)
+    return _('Photo %(number)s') % {'number': entry.get('index', '')}
 
 
 def _album_entry_link(entry: Entry, links: _Links) -> str:

@@ -1,0 +1,22 @@
+{% load i18n embed %}<h1 class="visually-hidden">{{ meta.title }}</h1>
+
+<nav id="navigation" aria-label="{% trans 'Photos' %}">
+  {% if prev_entry %}<a id="prevPhoto" href="{{ prev_entry }}" rel="prev">&laquo; {% trans "previous" %}</a>{% else %}<span aria-disabled="true">&laquo; {% trans "previous" %}</span>{% endif %} |
+  {% if next_entry %}<a id="nextPhoto" href="{{ next_entry }}" rel="next">{% trans "next" %} &raquo;</a>{% else %}<span aria-disabled="true">{% trans "next" %} &raquo;</span>{% endif %}
+</nav>
+
+<figure class="photo">
+  {% if entry.video %}
+  {{ entry|embed }}
+  {% else %}
+  <a id="levelIndex" href="{{ entry.link }}" onclick="return navigateBack(this);">
+    <img src="{{ entry.url }}" alt="{{ entry.alt }}" {% if entry.size %}width="{{ entry.size.0 }}" height="{{ entry.size.1 }}"{% endif %} /><span class="visually-hidden"> ({% trans "back to album" %})</span>
+  </a>
+  {% endif %}
+  {% if entry.geo and meta.geo %}<div id="geomap-mini" class="geo" data-geo="{{ entry.geo }}"></div>{% endif %}
+  {% if entry.date or entry.description or show_comment and entry.comment %}<figcaption>
+    {% if entry.date %}<div class="date">{{ entry.date }}</div>{% endif %}
+    {% if show_comment and entry.comment %}<div class="comment">{{ entry.comment }}</div>{% endif %}
+    {% if entry.description %}<p class="description">{{ entry.description|safe }}</p>{% endif %}
+  </figcaption>{% endif %}
+</figure>
