@@ -28,7 +28,7 @@ import shutil
 import signal
 import socketserver
 import sys
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
 from typing import Any, NoReturn, cast
@@ -242,7 +242,7 @@ def main(argv: list[str] | None = None) -> None:
 
 
 @contextlib.contextmanager
-def site_context(opts: Options) -> Iterator[None]:
+def site_context(opts: Options) -> Generator[None, None, None]:
     """The settings, urlconf, script prefix and language pages are rendered
     with, all restored afterwards."""
     language = (
